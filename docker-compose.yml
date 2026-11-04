@@ -1,27 +1,28 @@
 services:
   prono:
+    # Image publiée par GitHub Actions à chaque push sur main.
+    # Pour construire en local à la place : docker compose up -d --build
+    image: ghcr.io/gwenoler/pronos:latest
     build: .
-    image: prono-entre-potes
+    container_name: prono
     restart: unless-stopped
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?Renseigne PUBLIC_URL dans .env}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     volumes:
       - prono-data:/data
-    # Accès direct depuis le réseau local (facultatif) : http://<ip-du-serveur>:3000
+    # Le cloudflared de ton infra pointe vers http://<ip-du-serveur>:3847
     ports:
-      - "3000:3000"
-
-  # Tunnel Cloudflare : expose l'appli en HTTPS sans ouvrir de port sur la box.
-  # Si tu as déjà un cloudflared qui tourne, supprime ce service et pointe ton tunnel vers http://<serveur>:3000.
-  cloudflared:
-    image: cloudflare/cloudflared:2024.12.2
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Renseigne TUNNEL_TOKEN dans .env}
-    depends_on:
-      - prono
+      - "3847:3000"
+    # Variante : si ton cloudflared est sur un réseau Docker partagé, décommente
+    # ces lignes (et le bloc « networks » en bas), retire « ports » et pointe le tunnel vers http://prono:3000
+    # networks:
+    #   - cloudflared
 
 volumes:
   prono-data:
+
+# networks:
+#   cloudflared:
+#     external: true
+#     name: <nom-du-réseau-de-ton-cloudflared>
