@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { NflStandings } from './NflStandings';
 import { Button, LeaderboardRow, StatusPill } from '../ds/components';
-import { api, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
+import { api, type BonusDto, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';
 import { Loading } from './shared';
@@ -30,8 +30,12 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   const [data, setData] = useState<LeaderboardDto | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [bonusOn, setBonusOn] = useState(false);
   useEffect(() => {
     api<WeeksDto>('/weeks').then(setWeeks).catch((e) => setError(e.message));
+    api<BonusDto>('/bonus')
+      .then((b) => setBonusOn(b.enabled))
+      .catch(() => {});
   }, []);
 
   const load = useCallback(async () => {
@@ -74,7 +78,10 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
       return `${now} · ✓${l.winning} ✗${l.losing}${arrow}`;
     }
     if (scope === 'week') return r.played ? `${r.good} bon${r.good > 1 ? 's' : ''} sur ${r.played}` : 'Pas encore de match terminé';
-    return r.played ? `${r.good} / ${r.played} depuis la S${weeks?.startWeek} · ${r.startPoints} repris` : `${r.startPoints} pts repris de l’ancien site`;
+    const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
+    return r.played
+      ? `${r.good} / ${r.played} depuis la S${weeks?.startWeek} · ${r.startPoints} repris${bonus}`
+      : `${r.startPoints} pts repris de l’ancien site${bonus}`;
   }
 
   return (
@@ -134,6 +141,11 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
         <Button variant="secondary" block onClick={() => go('bilan')}>
           Bilan de saison
         </Button>
+        {bonusOn && (
+          <Button variant="secondary" block onClick={() => go('bonus')}>
+            Bonus de fin de saison
+          </Button>
+        )}
       </main>
     </div>
   );

@@ -80,6 +80,7 @@ export interface StandingRow {
   startPoints: number;
   good: number;
   played: number;
+  bonus: number;
 }
 
 export interface LiveRow extends StandingRow {
@@ -204,4 +205,22 @@ export interface TeamSheetDto {
     result: 'V' | 'D' | 'N' | null;
   }[];
   bande: { name: string; with: number; withGood: number; against: number; againstGood: number }[];
+}
+
+export interface BonusDto {
+  enabled: boolean;
+  points: { afc: number; nfc: number; sb: number };
+  phase: 'off' | 'waiting' | 'open' | 'locked';
+  lockAt: number | null;
+  field: { afc: { seed: number; team: TeamDto }[]; nfc: { seed: number; team: TeamDto }[] } | null;
+  mine: BonusPickDto | null;
+  players: { name: string; done: boolean; pick: BonusPickDto | null; points: number | null }[];
+  result: { afc: TeamDto | null; nfc: TeamDto | null; sb: TeamDto | null; sbTotal: number | null };
+}
+
+export interface BonusPickDto {
+  afc: TeamDto | null;
+  nfc: TeamDto | null;
+  sb: TeamDto | null;
+  sbTotal: number;
 }

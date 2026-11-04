@@ -2,6 +2,7 @@ import webpush from 'web-push';
 import { PUBLIC_URL, SEASON, START_WEEK, weekLabel } from './config';
 import { db, getMeta, setMeta } from './db';
 import { standings } from './scoring';
+import { bonusLockAt, bonusPhase, bonusPicks, bonusSettings } from './bonus';
 
 let publicKey = process.env.VAPID_PUBLIC_KEY || getMeta('vapid_public');
 let privateKey = process.env.VAPID_PRIVATE_KEY || getMeta('vapid_private');
@@ -192,8 +193,41 @@ async function flips() {
   }
 }
 
+/** Bonus de fin de saison : annonce à l'ouverture des choix, puis rappel ~1 h avant la clôture. */
+async function bonusNotifications(now: number) {
+  if (bonusPhase(now) !== 'open') return;
+  const lock = bonusLockAt()!;
+  const { points } = bonusSettings();
+  const max = points.afc + points.nfc + points.sb;
+  const openKey = `bonus-open:${SEASON}`;
+  if (!alreadySent(openKey)) {
+    markSent(openKey);
+    for (const p of subscribedPlayers())
+      await sendToPlayer(p.id, {
+        title: 'Bonus de fin de saison ouvert 🏆',
+        body: `Champion AFC, champion NFC et vainqueur du Super Bowl : jusqu'à ${max} pts. À choisir avant la Wild Card.`,
+        url: '/#/bonus',
+        tag: openKey
+      });
+  }
+  if (lock - now > 75 * 60_000 || lock - now < 45 * 60_000) return;
+  const done = new Set(bonusPicks().map((b) => b.playerId));
+  for (const p of subscribedPlayers()) {
+    const key = `bonus-remind:${SEASON}:${p.id}`;
+    if (done.has(p.id) || alreadySent(key)) continue;
+    markSent(key);
+    await sendToPlayer(p.id, {
+      title: 'Ton bonus de fin de saison 🏆',
+      body: `Plus qu'une heure pour choisir tes champions (jusqu'à ${max} pts).`,
+      url: '/#/bonus',
+      tag: `bonus-remind-${SEASON}`
+    });
+  }
+}
+
 export async function notificationsTick(now = Date.now()) {
   await reminders(now);
+  await bonusNotifications(now);
   await flips();
   await weekResults(now);
 }

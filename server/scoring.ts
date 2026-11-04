@@ -1,5 +1,6 @@
 import { SEASON, START_WEEK, weekLabel } from './config';
 import { db } from './db';
+import { bonusPointsByPlayer, tiebreakDistances } from './bonus';
 
 export interface StandingRow {
   id: number;
@@ -9,6 +10,8 @@ export interface StandingRow {
   startPoints: number;
   good: number;
   played: number;
+  /** Points du bonus de fin de saison (déjà inclus dans points). */
+  bonus: number;
 }
 
 /** Barème : 1 point par bon prono en saison régulière, 2 points en playoffs (semaines 19 à 22). */
@@ -33,20 +36,23 @@ export function standings(week?: number): StandingRow[] {
     )
     .all(...params) as (Omit<StandingRow, 'rank' | 'points'> & { earned: number })[];
 
-  const withPoints = rows.map(({ earned, ...r }) => ({ ...r, points: (week ? 0 : r.startPoints) + earned }));
-  withPoints.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'fr'));
-  // Rangs à égalité : 1, 2, 2, 4
-  return withPoints.map((r, i, arr) => ({
-    ...r,
-    rank: i > 0 && arr[i - 1].points === r.points ? 0 : i + 1
-  })).map((r, i, arr) => {
-    if (r.rank === 0) {
-      let j = i;
-      while (j > 0 && arr[j].rank === 0) j--;
-      r.rank = arr[j].rank;
-    }
-    return r;
+  // Classement de la saison : on ajoute le bonus de fin de saison ; une fois le Super Bowl joué,
+  // l'écart au total de points annoncé départage les égalités (le plus proche passe devant).
+  const bonus = week ? new Map<number, number>() : bonusPointsByPlayer();
+  const tie = week ? null : tiebreakDistances();
+  const withPoints = rows.map(({ earned, ...r }) => {
+    const b = bonus.get(r.id) ?? 0;
+    return { ...r, bonus: b, points: (week ? 0 : r.startPoints) + earned + b, tie: tie ? tie.get(r.id) ?? Infinity : 0 };
   });
+  withPoints.sort((a, b) => b.points - a.points || a.tie - b.tie || a.name.localeCompare(b.name, 'fr'));
+  // Rangs à égalité : 1, 2, 2, 4
+  const same = (x: (typeof withPoints)[number], y: (typeof withPoints)[number]) => x.points === y.points && x.tie === y.tie;
+  const ranked: StandingRow[] = [];
+  withPoints.forEach(({ tie: _tie, ...r }, i) => {
+    const rank = i > 0 && same(withPoints[i - 1], withPoints[i]) ? ranked[i - 1].rank : i + 1;
+    ranked.push({ ...r, rank });
+  });
+  return ranked;
 }
 
 export interface WeekResult {

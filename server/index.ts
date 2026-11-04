@@ -8,6 +8,7 @@ import './db';
 import { routes } from './routes';
 import { LOGO_DIR, syncTick } from './sync';
 import { notificationsTick } from './push';
+import { bonusTick } from './bonus';
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'warn' }, trustProxy: true });
 
@@ -53,6 +54,11 @@ async function tick() {
     if (SYNC_ENABLED) await syncTick();
   } catch (e) {
     console.error('[sync] erreur', (e as Error).message);
+  }
+  try {
+    await bonusTick();
+  } catch (e) {
+    console.error('[bonus] erreur', (e as Error).message);
   }
   try {
     await notificationsTick();

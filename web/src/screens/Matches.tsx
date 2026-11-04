@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { MatchCard, WeekPicker, type Side } from '../ds/components';
-import { api, type GameDto, type Me, type WeeksDto } from '../lib/api';
+import { api, type BonusDto, type GameDto, type Me, type WeeksDto } from '../lib/api';
 import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';
 import { cardStatus, Loading, toTeam } from './shared';
@@ -140,6 +140,7 @@ export function Matches({
       </div>
 
       <main className="stack">
+        <BonusBanner playoffs={playoffs} />
         {!counted && (
           <div className="card card-pad small muted">
             Les pronos comptent à partir de la semaine {weeks.startWeek}. Ici, juste les scores.
@@ -187,4 +188,31 @@ function detailLabel(status: GameDto['status'], counted: boolean): string {
   if (status === 'final') return `Stats du match${pronos}`;
   if (status === 'live') return `Suivre le match${pronos}`;
   return counted ? 'Favori, forme, blessés et pronos' : 'Favori, forme et blessés';
+}
+
+/** Carte du bonus de fin de saison : visible quand les choix sont ouverts, puis pendant les playoffs. */
+function BonusBanner({ playoffs }: { playoffs: boolean }) {
+  const [b, setB] = useState<BonusDto | null>(null);
+  useEffect(() => {
+    api<BonusDto>('/bonus').then(setB).catch(() => {});
+  }, []);
+  if (!b || !(b.phase === 'open' || (b.phase === 'locked' && playoffs))) return null;
+  const max = b.points.afc + b.points.nfc + b.points.sb;
+  return (
+    <a href="#/bonus" className="card bonus-card">
+      <span className="bonus-card-text">
+        <b>Bonus de fin de saison</b>
+        <span className="muted small">
+          {b.phase === 'open'
+            ? b.mine
+              ? `Tes choix sont faits · modifiables jusqu’au ${dayLabel(b.lockAt!)}`
+              : `Jusqu’à ${max} pts à gagner · à choisir avant le ${dayLabel(b.lockAt!)}`
+            : 'Les choix de la bande sont révélés'}
+        </span>
+      </span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </a>
+  );
 }

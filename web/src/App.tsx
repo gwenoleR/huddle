@@ -5,6 +5,7 @@ import { go, useRoute } from './lib/router';
 import { useTheme } from './lib/theme';
 import { Leaderboard } from './screens/Leaderboard';
 import { TeamSheet } from './screens/TeamSheet';
+import { Bonus } from './screens/Bonus';
 import { Login } from './screens/Login';
 import { MatchDetail } from './screens/MatchDetail';
 import { Matches } from './screens/Matches';
@@ -42,7 +43,7 @@ export function App() {
   if (me === null) return <Login onLogged={setMe} />;
 
   const tab =
-    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' ? 'classement' : route.name;
+    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' || route.name === 'bonus' ? 'classement' : route.name;
   const screenKey = route.name === 'match' ? `match-${route.id}` : route.name === 'classement' && route.nfl ? 'classement-nfl' : route.name;
 
   return (
@@ -52,6 +53,7 @@ export function App() {
         {route.name === 'match' && <MatchDetail id={route.id} me={me} theme={theme} notify={notify} />}
         {route.name === 'classement' && <Leaderboard me={me} nfl={!!route.nfl} theme={theme} />}
         {route.name === 'bilan' && <Season me={me} />}
+        {route.name === 'bonus' && <Bonus me={me} theme={theme} notify={notify} />}
         {route.name === 'recap' && <Recap week={route.week} notify={notify} />}
         {route.name === 'profil' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
       </div>

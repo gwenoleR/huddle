@@ -1121,3 +1121,139 @@ button.nfl-row {
 .nfl-list li + li button.nfl-row {
   border-top: 1px solid var(--surface-200);
 }
+
+/* Bonus de fin de saison */
+.bonus-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.bonus-rule {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-size: 15px;
+}
+.bonus-rule b {
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-align: right;
+}
+.bonus-lock {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.bonus-done {
+  color: var(--correct);
+  font-weight: 500;
+}
+.bonus-conf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.bonus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--space-2);
+}
+.bonus-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.bonus-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 96px;
+  padding: var(--space-3) var(--space-2);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-100);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.bonus-team img {
+  object-fit: contain;
+}
+.bonus-team-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.bonus-on {
+  border-color: var(--brand);
+  background: var(--surface-200);
+  box-shadow: inset 0 0 0 1.5px var(--brand);
+}
+.bonus-total {
+  width: 120px;
+  height: 48px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-100);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+.bonus-player {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.bonus-player-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.bonus-pts {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand);
+}
+.bonus-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bonus-ok {
+  color: var(--correct);
+}
+.bonus-ko {
+  color: var(--wrong);
+}
+.bonus-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-color: var(--gold);
+  color: inherit;
+  text-decoration: none;
+}
+.bonus-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bonus-admin-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.bonus-admin-row label {
+  flex: 1;
+}
+.bonus-admin-input {
+  width: 64px;
+  text-align: center;
+}

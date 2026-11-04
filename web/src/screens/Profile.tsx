@@ -262,6 +262,88 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
   );
 }
 
+interface BonusSettings {
+  enabled: boolean;
+  points: { afc: number; nfc: number; sb: number };
+}
+
+/** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
+function BonusAdmin({ notify }: { notify: (m: string) => void }) {
+  const [s, setS] = useState<BonusSettings | null>(null);
+  const [draft, setDraft] = useState({ afc: '', nfc: '', sb: '' });
+  useEffect(() => {
+    api<BonusSettings>('/admin/bonus')
+      .then((x) => {
+        setS(x);
+        setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
+      })
+      .catch(() => {});
+  }, []);
+  if (!s) return null;
+
+  async function save(body: Partial<BonusSettings>, msg: string) {
+    try {
+      const x = await api<BonusSettings>('/admin/bonus', { method: 'PUT', body });
+      setS(x);
+      setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
+      notify(msg);
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  }
+
+  const changed = draft.afc !== String(s.points.afc) || draft.nfc !== String(s.points.nfc) || draft.sb !== String(s.points.sb);
+  const fields = [
+    ['afc', 'Champion AFC'],
+    ['nfc', 'Champion NFC'],
+    ['sb', 'Vainqueur du Super Bowl']
+  ] as const;
+
+  return (
+    <form
+      className="settings-row"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save({ points: { afc: Number(draft.afc), nfc: Number(draft.nfc), sb: Number(draft.sb) } }, 'Barème du bonus enregistré');
+      }}
+    >
+      <span className="label">Bonus de fin de saison</span>
+      <span className="small muted">
+        {s.enabled ? 'Activé : visible par tous, points comptés au classement.' : 'Désactivé : caché pour tout le monde, aucun point compté.'}
+      </span>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => save({ enabled: !s.enabled }, s.enabled ? 'Bonus désactivé' : 'Bonus activé')}
+      >
+        {s.enabled ? 'Désactiver le bonus' : 'Activer le bonus'}
+      </Button>
+      {s.enabled && (
+        <>
+          {fields.map(([k, label]) => (
+            <div key={k} className="bonus-admin-row">
+              <label htmlFor={`bonus-${k}`} className="small">
+                {label}
+              </label>
+              <input
+                id={`bonus-${k}`}
+                className="field bonus-admin-input"
+                inputMode="numeric"
+                value={draft[k]}
+                onChange={(e) => setDraft({ ...draft, [k]: e.target.value.replace(/\D/g, '').slice(0, 2) })}
+              />
+              <span className="small muted">pts</span>
+            </div>
+          ))}
+          <Button type="submit" disabled={!changed || Object.values(draft).some((v) => v === '')}>
+            Enregistrer le barème
+          </Button>
+        </>
+      )}
+    </form>
+  );
+}
+
 interface AdminPlayer {
   id: number;
   name: string;
@@ -306,6 +388,7 @@ function AdminPanel({ notify }: { notify: (m: string) => void }) {
       </h2>
       <div className="card">
         <SyncRow notify={notify} />
+        <BonusAdmin notify={notify} />
         <div className="settings-row">
           {players.map((p) => (
             <div key={p.id} className="admin-player">
