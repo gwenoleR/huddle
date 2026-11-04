@@ -6,7 +6,7 @@ import { defineConfig } from 'vitest/config';
 // aucun test ne touche à data/ ni n'appelle ESPN pour de vrai.
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     environment: 'node',
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--no-warnings=ExperimentalWarning'] } },

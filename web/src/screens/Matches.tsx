@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MatchCard, WeekPicker, type Side } from '../ds/components';
 import { api, type BonusDto, type GameDto, type Me, type WeeksDto } from '../lib/api';
@@ -6,6 +6,7 @@ import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';
 import { detailLabel } from '../lib/labels';
 import { applyPick, keys, weekRefreshInterval } from '../lib/queries';
+import { useScrollMemory } from '../lib/scrollMemory';
 import { cardStatus, Loading, toTeam } from './shared';
 
 interface WeekData {
@@ -39,6 +40,10 @@ export function Matches({
     refetchInterval: (q) => weekRefreshInterval(q.state.data?.games)
   });
   const data = weekQ.data;
+
+  // Au retour d'une fiche match, la liste reprend là où on l'avait laissée (une position par semaine).
+  const root = useRef<HTMLDivElement>(null);
+  useScrollMemory(root, data ? `matchs-${data.week}` : null, !!weeks && !!data);
   const error = (weekQ.error ?? weeksQ.error)?.message ?? null;
 
   // Centre la semaine affichée dans la barre (une fois les données là, sinon la barre n'existe pas encore).
@@ -79,7 +84,7 @@ export function Matches({
   let lastDay = '';
 
   return (
-    <div className="screen-inner">
+    <div className="screen-inner" ref={root}>
       <header className="head">
         <span className="eyebrow">
           Saison {weeks.season} · {playoffs ? 'Playoffs' : 'Saison régulière'}
