@@ -11,8 +11,11 @@ export type Recap = RecapDto;
 
 /** Barème : 1 point par bon prono en saison régulière, 2 points en playoffs (semaines 19 à 22). */
 export const FIRST_PLAYOFF_WEEK = 19;
-export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? 2 : 1);
-const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN 2 ELSE 1 END)`;
+export const REGULAR_POINTS = 1;
+export const PLAYOFF_POINTS = 2;
+export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? PLAYOFF_POINTS : REGULAR_POINTS);
+/** La même règle, pour les requêtes SQL (g = la table games). */
+const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN ${PLAYOFF_POINTS} ELSE ${REGULAR_POINTS} END)`;
 
 /** Classement : points des bons pronos depuis la semaine de reprise, + points repris de l'ancien site (saison). */
 export function standings(week?: number): StandingRow[] {

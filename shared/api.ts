@@ -265,3 +265,14 @@ export interface AdminPlayerDto {
   isAdmin: boolean;
   hasPin: boolean;
 }
+
+/** Toute erreur renvoyée par l'API. */
+export interface ErrorDto {
+  error: string;
+  /** Connexion : essais restants, ou minutes avant de pouvoir réessayer. */
+  attemptsLeft?: number;
+  retryInMinutes?: number;
+}
+
+/** Réponses possibles d'une route : la donnée, ou une erreur. */
+export type Replies<T> = { 200: T; '4xx': ErrorDto; '5xx': ErrorDto };

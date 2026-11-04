@@ -20,6 +20,14 @@ describe('barème', () => {
     expect(pointsFor(19)).toBe(2);
     expect(pointsFor(22)).toBe(2);
   });
+
+  it('le classement compte comme le barème, semaine par semaine', () => {
+    for (let week = 9; week <= 22; week++) {
+      resetDb();
+      picks(addGame({ week, score: [1, 0] }), { Max: 'away' });
+      expect(row('Max').points - 64).toBe(pointsFor(week));
+    }
+  });
 });
 
 describe('classement de la saison', () => {
