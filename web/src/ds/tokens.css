@@ -1,0 +1,59 @@
+/* Prono NFL entre potes — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --surface-0: #0d131d;
+  --surface-100: #172030;
+  --surface-200: #212c3f;
+  --line: #2c3850;
+  --ink: #f1efe8;
+  --ink-muted: #9aa4b6;
+  --brand: #39c97a;
+  --on-brand: #06140c;
+  --accent: #ffb547;
+  --correct: var(--brand);
+  --wrong: #ff6f61;
+  --side-a: #6f9dff;
+  --side-b: #ff9d4a;
+  --gold: #f2c14e;
+  --on-gold: #141a24;
+  --shadow-card: none;
+}
+[data-theme="light"] {
+  --surface-0: #f3f1ea;
+  --surface-100: #ffffff;
+  --surface-200: #e8e4d9;
+  --line: #d3cdbd;
+  --ink: #141a24;
+  --ink-muted: #586172;
+  --brand: #1a7a48;
+  --on-brand: #ffffff;
+  --accent: #9a5a00;
+  --correct: var(--brand);
+  --wrong: #c4382c;
+  --side-a: #2f62d6;
+  --side-b: #b85700;
+  --gold: #e8b730;
+  --on-gold: #141a24;
+  --shadow-card: 0 1px 2px rgba(20,26,36,0.06), 0 4px 12px rgba(20,26,36,0.06);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --tap-min: 44px;
+  --nav-height: 64px;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: Barlow, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.score { font-family: var(--font-display); font-size: 40px; line-height: 40px; font-weight: 800; }
+.title { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 700; letter-spacing: 0.2px; }
+.team { font-family: var(--font-display); font-size: 20px; line-height: 24px; font-weight: 700; }
+.body { font-family: var(--font-body); font-size: 16px; line-height: 22px; font-weight: 500; }
+.label { font-family: var(--font-body); font-size: 14px; line-height: 18px; font-weight: 600; }
+.caption { font-family: var(--font-body); font-size: 13px; line-height: 18px; font-weight: 500; }

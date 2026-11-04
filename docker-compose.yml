@@ -1,0 +1,27 @@
+services:
+  prono:
+    build: .
+    image: prono-entre-potes
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?Renseigne PUBLIC_URL dans .env}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    volumes:
+      - prono-data:/data
+    # Accès direct depuis le réseau local (facultatif) : http://<ip-du-serveur>:3000
+    ports:
+      - "3000:3000"
+
+  # Tunnel Cloudflare : expose l'appli en HTTPS sans ouvrir de port sur la box.
+  # Si tu as déjà un cloudflared qui tourne, supprime ce service et pointe ton tunnel vers http://<serveur>:3000.
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.2
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Renseigne TUNNEL_TOKEN dans .env}
+    depends_on:
+      - prono
+
+volumes:
+  prono-data:
