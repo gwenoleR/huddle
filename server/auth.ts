@@ -1,6 +1,9 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { Me } from '../shared/api';
 import { COOKIE_SECURE } from './config';
+
+export type { Me };
 import { db } from './db';
 
 export const SESSION_COOKIE = 'prono_session';
@@ -39,12 +42,6 @@ export function destroySession(req: FastifyRequest, reply: FastifyReply) {
   const token = req.cookies[SESSION_COOKIE];
   if (token) db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
   reply.clearCookie(SESSION_COOKIE, { path: '/' });
-}
-
-export interface Me {
-  id: number;
-  name: string;
-  isAdmin: boolean;
 }
 
 export function currentPlayer(req: FastifyRequest): Me | null {

@@ -13,6 +13,6 @@
     "isolatedModules": true,
     "types": ["node", "vite/client", "vite-plugin-pwa/client"]
   },
-  "include": ["server", "web/src", "tests", "vite.config.ts", "vitest.config.ts", "pwa-assets.config.ts"],
+  "include": ["server", "shared", "web/src", "tests", "vite.config.ts", "vitest.config.ts", "pwa-assets.config.ts"],
   "exclude": ["web/src/sw.ts"]
 }

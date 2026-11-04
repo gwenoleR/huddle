@@ -2,6 +2,18 @@
  * Client de l'API ESPN (non officielle, gratuite, sans clé).
  * Si elle change un jour, c'est le seul fichier à adapter.
  */
+import type { EspnStatsDto, LiveDto, NflTeamRow, PreviewDto, PreviewSideDto } from '../shared/api';
+
+export type PreviewSide = PreviewSideDto;
+/** L'avant-match tel qu'ESPN le donne ; la place au classement est ajoutée par la route. */
+export type Preview = Omit<PreviewDto, 'standing'>;
+export type LiveInfo = LiveDto;
+/** Une équipe au classement, sans sa fiche (ajoutée par la route depuis la base). */
+export type StandingTeam = Omit<NflTeamRow, 'team'>;
+export interface NflStandings {
+  conferences: { abbr: string; divisions: { name: string; teams: StandingTeam[] }[] }[];
+}
+
 const BASE = process.env.ESPN_BASE ?? 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const UA = 'prono-entre-potes/1.0';
 
@@ -20,15 +32,7 @@ function remember(list: number[], now: number) {
   while (list.length && list[0] < now - 24 * 3600_000) list.shift();
 }
 
-export interface EspnStats {
-  lastHour: number;
-  lastDay: number;
-  errorsLastHour: number;
-  /** ESPN nous a demandé de ralentir (429) : plus aucun appel avant cette heure. */
-  pausedUntil: number | null;
-}
-
-export function espnStats(now = Date.now()): EspnStats {
+export function espnStats(now = Date.now()): EspnStatsDto {
   const hour = (list: number[]) => list.filter((t) => t > now - 3600_000).length;
   return {
     lastHour: hour(calls),
@@ -189,23 +193,6 @@ function parseEvent(e: any, week: number): EspnGame | null {
 
 // ---------- Avant-match (fiche match) ----------
 
-export interface PreviewSide {
-  record: string | null;
-  /** Bilan à domicile pour l'équipe qui reçoit, à l'extérieur pour l'autre. */
-  venueRecord: string | null;
-  /** 5 derniers matchs, du plus ancien au plus récent. */
-  form: { result: 'V' | 'D' | 'N'; opponent: string; home: boolean; score: string }[];
-  winChance: number | null;
-  injuries: { name: string; position: string | null; status: 'out' | 'doubtful' | 'questionable'; part: string | null }[];
-  injuredReserve: number;
-}
-
-export interface Preview {
-  away: PreviewSide;
-  home: PreviewSide;
-  odds: { favorite: 'away' | 'home' | null; spread: number | null; provider: string } | null;
-}
-
 const BODY_PARTS: Record<string, string> = {
   knee: 'genou', ankle: 'cheville', hamstring: 'ischios', concussion: 'commotion', shoulder: 'épaule', groin: 'aine',
   calf: 'mollet', back: 'dos', foot: 'pied', hip: 'hanche', quadriceps: 'quadriceps', ribs: 'côtes', thumb: 'pouce',
@@ -286,20 +273,6 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
 }
 
 // ---------- Pendant le match (fiche match) ----------
-
-export interface LiveInfo {
-  /** Chances de victoire de l'équipe à l'extérieur (0–100) au fil du match ; t = secondes de jeu écoulées. */
-  winProb: { t: number; away: number }[];
-  /** Durée totale de l'axe (60 min, plus la prolongation s'il y en a une). */
-  length: number;
-  scoring: { side: 'away' | 'home' | null; period: number; clock: string; kind: string; text: string; away: number; home: number }[];
-  /** Stats d'équipe, déjà traduites ; awayValue/homeValue servent à dessiner les barres. */
-  stats: { label: string; away: string; home: string; awayValue: number; homeValue: number; lowerIsBetter: boolean }[];
-  /** Meilleurs joueurs à la passe, à la course et à la réception. */
-  leaders: { category: string; away: { name: string; line: string } | null; home: { name: string; line: string } | null }[];
-  /** Situation en cours, seulement pendant le match. */
-  situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
-}
 
 const toSeconds = (clock: unknown) => {
   const m = /^(\d+):(\d+)/.exec(String(clock ?? ''));
@@ -514,22 +487,6 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
 }
 
 // ---------- Classement NFL ----------
-
-export interface StandingTeam {
-  teamId: string;
-  record: string;
-  streak: string | null;
-  seed: number | null;
-  diff: string | null;
-  divRecord: string | null;
-  divRank: number;
-  /** « in » : qualifié pour les playoffs, « out » : éliminé (seulement en fin de saison). */
-  clinch: 'in' | 'out' | null;
-}
-
-export interface NflStandings {
-  conferences: { abbr: string; divisions: { name: string; teams: StandingTeam[] }[] }[];
-}
 
 const DIV_FR: Record<string, string> = { East: 'Est', North: 'Nord', South: 'Sud', West: 'Ouest' };
 

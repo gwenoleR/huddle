@@ -1,18 +1,13 @@
+import type { AwardDto, LeaderboardDto, LiveRow, ProfileDto, RecapDto, StandingRow } from '../shared/api';
 import { SEASON, START_WEEK, weekLabel } from './config';
 import { db } from './db';
 import { bonusPicks, bonusPointsByPlayer, bonusResult, bonusSettings, tiebreakDistances } from './bonus';
 
-export interface StandingRow {
-  id: number;
-  name: string;
-  rank: number;
-  points: number;
-  startPoints: number;
-  good: number;
-  played: number;
-  /** Points du bonus de fin de saison (déjà inclus dans points). */
-  bonus: number;
-}
+export type { LiveRow, StandingRow };
+export type WeekResult = ProfileDto['weeks'][number];
+export type Award = AwardDto;
+export type LiveProjection = NonNullable<LeaderboardDto['live']>;
+export type Recap = RecapDto;
 
 /** Barème : 1 point par bon prono en saison régulière, 2 points en playoffs (semaines 19 à 22). */
 export const FIRST_PLAYOFF_WEEK = 19;
@@ -55,13 +50,6 @@ export function standings(week?: number): StandingRow[] {
   return ranked;
 }
 
-export interface WeekResult {
-  week: number;
-  label: string;
-  good: number;
-  finals: number;
-}
-
 export function weeklyResults(playerId: number): WeekResult[] {
   return (
     db
@@ -93,16 +81,6 @@ export function streak(playerId: number): number {
     n++;
   }
   return n;
-}
-
-export interface Award {
-  id: string;
-  title: string;
-  /** Comment on le gagne, affiché dans la fenêtre d'explication. */
-  rule: string;
-  /** null tant que personne ne remplit la condition. */
-  who: string | null;
-  detail: string | null;
 }
 
 /** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés depuis la reprise comptent. */
@@ -238,20 +216,6 @@ function competitionRanks(points: number[]): number[] {
   return points.map((p, i) => points.indexOf(p) + 1);
 }
 
-export interface LiveRow extends StandingRow {
-  /** Points si les matchs en cours finissaient sur le score actuel. */
-  projected: number;
-  projectedRank: number;
-  /** Pronos actuellement gagnants / perdants dans les matchs en cours. */
-  winning: number;
-  losing: number;
-}
-
-export interface LiveProjection {
-  games: number;
-  rows: LiveRow[];
-}
-
 /** « Si ça finit comme ça » : ajoute les points des matchs en cours selon le score du moment. */
 export function liveProjection(): LiveProjection | null {
   const live = db
@@ -289,18 +253,6 @@ export function liveProjection(): LiveProjection | null {
 }
 
 // ---------- Récap de la semaine ----------
-
-export interface Recap {
-  week: number;
-  label: string;
-  complete: boolean;
-  finals: number;
-  total: number;
-  /** Classement de la semaine (points de la semaine) avec le total de la saison. */
-  rows: (StandingRow & { seasonPoints: number; seasonRank: number })[];
-  /** Le match où le plus de monde s'est trompé. */
-  blunder: { away: string; home: string; awayScore: number; homeScore: number; wrongTeam: string; wrong: string[]; total: number } | null;
-}
 
 /** Dernière semaine avec au moins un match terminé (depuis la reprise). */
 export function latestRecapWeek(): number | null {

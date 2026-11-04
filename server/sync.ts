@@ -1,6 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import type { SyncStatusDto } from '../shared/api';
 import { DATA_DIR, SEASON } from './config';
+
+export type SyncStatus = Omit<SyncStatusDto, 'espn'>;
 import { db, getMeta, setMeta, transaction } from './db';
 import { APP_WEEKS, fetchTeams, fetchWeek, logoUrl, type EspnGame } from './espn';
 
@@ -103,13 +106,6 @@ let lastFast = 0;
 /** Pour les tests : comme au démarrage du serveur. */
 export function resetSyncClock() {
   lastFull = lastHourly = lastFast = 0;
-}
-
-export interface SyncStatus {
-  at: number | null;
-  ok: boolean;
-  message: string;
-  games: number;
 }
 
 function recordStatus(ok: boolean, message: string) {

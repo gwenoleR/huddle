@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds/components';
-import { api, type ApiError, type ProfileDto } from '../lib/api';
-import { espnLine, type EspnStatsDto } from '../lib/labels';
+import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type ProfileDto, type SyncStatusDto } from '../lib/api';
+import { espnLine } from '../lib/labels';
 import { ordinal } from '../lib/format';
 import { keys } from '../lib/queries';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
@@ -214,33 +214,25 @@ function PushSettings({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-interface SyncStatus {
-  at: number | null;
-  ok: boolean;
-  message: string;
-  games: number;
-  espn?: EspnStatsDto;
-}
-
 const syncTime = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' });
 
 function SyncRow({ notify }: { notify: (m: string) => void }) {
-  const [status, setStatus] = useState<SyncStatus | null>(null);
+  const [status, setStatus] = useState<SyncStatusDto | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api<SyncStatus>('/admin/sync').then(setStatus).catch(() => {});
+    api<SyncStatusDto>('/admin/sync').then(setStatus).catch(() => {});
   }, []);
 
   async function run() {
     setBusy(true);
     try {
-      const s = await api<SyncStatus>('/admin/sync', { method: 'POST' });
+      const s = await api<SyncStatusDto>('/admin/sync', { method: 'POST' });
       setStatus(s);
       notify(`Synchro faite : ${s.games} matchs`);
     } catch (e) {
       const err = e as ApiError;
-      if (err.data?.at !== undefined) setStatus(err.data as SyncStatus);
+      if (err.data?.at !== undefined) setStatus(err.data as SyncStatusDto);
       notify(err.message);
     } finally {
       setBusy(false);
@@ -268,19 +260,13 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-interface BonusSettings {
-  enabled: boolean;
-  points: { afc: number; nfc: number; sb: number };
-  reveal: 'wildcard' | 'superbowl';
-}
-
 /** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
 function BonusAdmin({ notify }: { notify: (m: string) => void }) {
   const qc = useQueryClient();
-  const [s, setS] = useState<BonusSettings | null>(null);
+  const [s, setS] = useState<BonusSettingsDto | null>(null);
   const [draft, setDraft] = useState({ afc: '', nfc: '', sb: '' });
   useEffect(() => {
-    api<BonusSettings>('/admin/bonus')
+    api<BonusSettingsDto>('/admin/bonus')
       .then((x) => {
         setS(x);
         setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
@@ -289,9 +275,9 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
   }, []);
   if (!s) return null;
 
-  async function save(body: Partial<BonusSettings>, msg: string) {
+  async function save(body: Partial<BonusSettingsDto>, msg: string) {
     try {
-      const x = await api<BonusSettings>('/admin/bonus', { method: 'PUT', body });
+      const x = await api<BonusSettingsDto>('/admin/bonus', { method: 'PUT', body });
       setS(x);
       setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
       // Le barème change les points de tout le monde : bonus, classement et profil sont à recharger.
@@ -380,19 +366,11 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-interface AdminPlayer {
-  id: number;
-  name: string;
-  startPoints: number;
-  isAdmin: boolean;
-  hasPin: boolean;
-}
-
 function AdminPanel({ notify }: { notify: (m: string) => void }) {
-  const [players, setPlayers] = useState<AdminPlayer[]>([]);
+  const [players, setPlayers] = useState<AdminPlayerDto[]>([]);
   const [name, setName] = useState('');
   const [points, setPoints] = useState('0');
-  const load = () => api<AdminPlayer[]>('/admin/players').then(setPlayers).catch((e) => notify(e.message));
+  const load = () => api<AdminPlayerDto[]>('/admin/players').then(setPlayers).catch((e) => notify(e.message));
   useEffect(() => {
     void load();
   }, []);
@@ -410,7 +388,7 @@ function AdminPanel({ notify }: { notify: (m: string) => void }) {
     }
   }
 
-  async function reset(p: AdminPlayer) {
+  async function reset(p: AdminPlayerDto) {
     if (!confirm(`Effacer le code de ${p.name} ? Il en choisira un nouveau à sa prochaine connexion.`)) return;
     await api(`/admin/players/${p.id}/reset-pin`, { method: 'POST' });
     notify(`Code de ${p.name} effacé`);

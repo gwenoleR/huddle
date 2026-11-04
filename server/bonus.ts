@@ -3,7 +3,12 @@
  * le champion NFC et le vainqueur du Super Bowl, plus le total de points du Super Bowl pour départager.
  * Barème et activation réglables par l'admin (table meta), choix secrets jusqu'au coup d'envoi.
  */
+import type { BonusPhase, BonusReveal, BonusSettingsDto } from '../shared/api';
 import { SEASON } from './config';
+
+export type { BonusPhase, BonusReveal };
+/** Activation, barème et moment de la révélation, réglés par l'admin. */
+export type BonusSettings = BonusSettingsDto;
 import { db, getMeta, setMeta } from './db';
 import { fetchStandings } from './espn';
 
@@ -19,15 +24,6 @@ db.exec(`
     PRIMARY KEY (player_id, season)
   );
 `);
-
-export type BonusReveal = 'wildcard' | 'superbowl';
-
-export interface BonusSettings {
-  enabled: boolean;
-  points: { afc: number; nfc: number; sb: number };
-  /** Quand on dévoile les choix : au coup d'envoi de la Wild Card (clôture) ou à celui du Super Bowl. */
-  reveal: BonusReveal;
-}
 
 const DEFAULTS: BonusSettings = { enabled: true, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' };
 
@@ -73,8 +69,6 @@ export function bonusLockAt(): number | null {
   const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 19').get(SEASON) as { k: number | null };
   return r.k;
 }
-
-export type BonusPhase = 'off' | 'waiting' | 'open' | 'locked';
 
 export function bonusPhase(now = Date.now()): BonusPhase {
   if (!bonusSettings().enabled) return 'off';

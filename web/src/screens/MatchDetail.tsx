@@ -1,17 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, MatchCard, type Side } from '../ds/components';
-import { api, type GameDto, type Me } from '../lib/api';
+import { api, type GameDetailDto, type Me } from '../lib/api';
 import { kickoffLabel } from '../lib/format';
 import { applyPick, keys } from '../lib/queries';
 import { MatchLive } from './MatchLive';
 import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
 
-type Detail = GameDto & { weekLabel: string; waiting: string[]; counted: boolean };
-
 export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: keys.game(id), queryFn: () => api<Detail>(`/games/${id}`), refetchInterval: 60_000 });
+  const q = useQuery({ queryKey: keys.game(id), queryFn: () => api<GameDetailDto>(`/games/${id}`), refetchInterval: 60_000 });
   const g = q.data;
   const error = q.error?.message ?? null;
 
@@ -19,8 +17,8 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
     if (!g || g.myPick === side) return;
     const key = keys.game(id);
     await qc.cancelQueries({ queryKey: key });
-    const previous = qc.getQueryData<Detail>(key);
-    qc.setQueryData<Detail>(key, (d) => d && { ...applyPick(d, side, me.name), waiting: d.waiting.filter((n) => n !== me.name) });
+    const previous = qc.getQueryData<GameDetailDto>(key);
+    qc.setQueryData<GameDetailDto>(key, (d) => d && { ...applyPick(d, side, me.name), waiting: d.waiting.filter((n) => n !== me.name) });
     try {
       await api(`/picks/${id}`, { method: 'PUT', body: { side } });
     } catch (e) {

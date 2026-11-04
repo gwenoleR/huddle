@@ -1,20 +1,13 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MatchCard, WeekPicker, type Side } from '../ds/components';
-import { api, type BonusDto, type GameDto, type Me, type WeeksDto } from '../lib/api';
+import { api, type BonusDto, type GameDto, type Me, type WeekDto, type WeeksDto } from '../lib/api';
 import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';
 import { detailLabel } from '../lib/labels';
 import { applyPick, keys, weekRefreshInterval } from '../lib/queries';
 import { useScrollMemory } from '../lib/scrollMemory';
 import { cardStatus, Loading, toTeam } from './shared';
-
-interface WeekData {
-  week: number;
-  label: string;
-  points: number;
-  games: GameDto[];
-}
 
 export function Matches({
   routeWeek,
@@ -35,7 +28,7 @@ export function Matches({
   // Rafraîchi toutes les 30 s pendant les matchs, toutes les 5 min sinon, et au retour dans l'appli.
   const weekQ = useQuery({
     queryKey: keys.week(week ?? 0),
-    queryFn: () => api<WeekData>(`/weeks/${week}`),
+    queryFn: () => api<WeekDto>(`/weeks/${week}`),
     enabled: !!week,
     refetchInterval: (q) => weekRefreshInterval(q.state.data?.games)
   });
@@ -60,8 +53,8 @@ export function Matches({
     const key = keys.week(week);
     // Mise à jour immédiate, corrigée si le serveur refuse.
     await qc.cancelQueries({ queryKey: key });
-    const previous = qc.getQueryData<WeekData>(key);
-    qc.setQueryData<WeekData>(key, (d) => d && { ...d, games: d.games.map((g) => (g.id === game.id ? applyPick(g, side, me.name) : g)) });
+    const previous = qc.getQueryData<WeekDto>(key);
+    qc.setQueryData<WeekDto>(key, (d) => d && { ...d, games: d.games.map((g) => (g.id === game.id ? applyPick(g, side, me.name) : g)) });
     try {
       await api(`/picks/${game.id}`, { method: 'PUT', body: { side } });
     } catch (e) {

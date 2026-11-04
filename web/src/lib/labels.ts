@@ -1,5 +1,7 @@
 /** Petites fonctions d'affichage sans React, partagées par les écrans (et testées). */
-import type { GameDto, TeamSheetDto, TeamStandingDto } from './api';
+import type { EspnStatsDto, GameDto, TeamSheetDto, TeamStandingDto } from './api';
+
+export type { EspnStatsDto };
 
 /** « 1er AFC Est · 3e tête de série » ou « 3e NFC Nord · hors playoffs ». */
 export function standingText(st: TeamStandingDto | null): string {
@@ -27,13 +29,6 @@ export function withByes(schedule: ScheduleGame[]): (ScheduleGame | { bye: true;
   const out: (ScheduleGame | { bye: true; week: number })[] = [];
   for (let w = 1; w <= last; w++) if (!weeks.has(w)) out.push({ bye: true, week: w });
   return [...out, ...schedule].sort((a, b) => a.week - b.week);
-}
-
-export interface EspnStatsDto {
-  lastHour: number;
-  lastDay: number;
-  errorsLastHour: number;
-  pausedUntil: number | null;
 }
 
 const hourOnly = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
