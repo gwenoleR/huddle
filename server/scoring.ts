@@ -90,54 +90,124 @@ export function streak(playerId: number): number {
 }
 
 export interface Award {
+  id: string;
   title: string;
-  who: string;
-  detail: string;
+  /** Comment on le gagne, affiché dans la fenêtre d'explication. */
+  rule: string;
+  /** null tant que personne ne remplit la condition. */
+  who: string | null;
+  detail: string | null;
 }
 
-/** Trophées du bilan, calculés seulement sur les semaines jouées dans l'appli. */
+/** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés depuis la reprise comptent. */
+const TROPHIES: { id: string; title: string; rule: string }[] = [
+  { id: 'best-week', title: 'Meilleure semaine', rule: 'Le plus grand nombre de bons pronos en une seule semaine. À égalité, la semaine avec le moins de matchs l’emporte (13 sur 13 bat 13 sur 16).' },
+  { id: 'sniper', title: 'Le sniper', rule: 'Le meilleur taux de réussite de la saison. Il faut au moins 10 matchs joués pour être classé, histoire que 2 sur 2 ne suffise pas.' },
+  { id: 'streak', title: 'Inarrêtable', rule: 'La plus longue série de bons pronos d’affilée, dans l’ordre des coups d’envoi. Il faut au moins 5 bons de suite. Un match sans prono ne casse pas la série.' },
+  { id: 'contrarian', title: 'À contre-courant', rule: 'Le plus de pronos contre l’avis de la majorité de la bande, bons ou mauvais. Les matchs où la bande est partagée à égalité ne comptent pas.' },
+  { id: 'heart', title: 'Le cœur avant la tête', rule: 'L’équipe choisie le plus souvent par un même joueur. Il faut l’avoir prise au moins 3 fois.' },
+  { id: 'black-cat', title: 'Le chat noir', rule: 'L’équipe qui a fait perdre le plus de pronos à un même joueur : il l’a prise et elle a perdu. À partir de 3 trahisons.' },
+  { id: 'last-minute', title: 'Sur le fil', rule: 'Le plus de pronos faits (ou changés) dans les 15 dernières minutes avant le coup d’envoi. À partir de 3.' }
+];
+
+const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
+/** Calcule chaque trophée : le gagnant et une ligne de détail, ou null si personne ne le mérite encore. */
+function computeTrophy(id: string): { who: string; detail: string } | null {
+  const args = [SEASON, START_WEEK] as const;
+  switch (id) {
+    case 'best-week': {
+      const r = db
+        .prepare(
+          `SELECT p.name, g.week, SUM(CASE WHEN k.side = g.winner THEN 1 ELSE 0 END) AS good, COUNT(*) AS finals
+           FROM players p JOIN games g ON g.season = ? AND g.week >= ? AND g.status = 'final'
+           LEFT JOIN picks k ON k.game_id = g.id AND k.player_id = p.id
+           GROUP BY p.id, g.week ORDER BY good DESC, finals ASC LIMIT 1`
+        )
+        .get(...args) as { name: string; week: number; good: number; finals: number } | undefined;
+      return r && r.good > 0 ? { who: r.name, detail: `${r.good} sur ${r.finals} en ${weekLabel(r.week, true).toLowerCase()}` } : null;
+    }
+    case 'sniper': {
+      const r = db
+        .prepare(
+          `SELECT p.name, SUM(k.side = g.winner) AS good, COUNT(*) AS played
+           FROM picks k JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
+           WHERE g.season = ? AND g.week >= ? AND g.status = 'final'
+           GROUP BY p.id HAVING played >= 10 ORDER BY good * 1.0 / played DESC, played DESC LIMIT 1`
+        )
+        .get(...args) as { name: string; good: number; played: number } | undefined;
+      return r ? { who: r.name, detail: `${Math.round((r.good * 100) / r.played)} % de réussite (${r.good} sur ${r.played})` } : null;
+    }
+    case 'streak': {
+      const rows = db
+        .prepare(
+          `SELECT p.name, k.side = g.winner AS ok FROM picks k
+           JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
+           WHERE g.season = ? AND g.week >= ? AND g.status = 'final'
+           ORDER BY p.id, g.kickoff, g.id`
+        )
+        .all(...args) as { name: string; ok: number }[];
+      let best = { name: '', n: 0 };
+      let cur = { name: '', n: 0 };
+      for (const r of rows) {
+        if (r.name !== cur.name) cur = { name: r.name, n: 0 };
+        cur.n = r.ok ? cur.n + 1 : 0;
+        if (cur.n > best.n) best = { ...cur };
+      }
+      return best.n >= 5 ? { who: best.name, detail: `${best.n} bons pronos d’affilée` } : null;
+    }
+    case 'contrarian': {
+      const r = db
+        .prepare(
+          `WITH counts AS (
+             SELECT k.game_id, SUM(k.side = 'away') AS a, SUM(k.side = 'home') AS h
+             FROM picks k JOIN games g ON g.id = k.game_id
+             WHERE g.season = ? AND g.week >= ? AND g.status = 'final' GROUP BY k.game_id
+           )
+           SELECT p.name, COUNT(*) AS n FROM picks k JOIN counts c ON c.game_id = k.game_id JOIN players p ON p.id = k.player_id
+           WHERE (k.side = 'away' AND c.a < c.h) OR (k.side = 'home' AND c.h < c.a)
+           GROUP BY p.id ORDER BY n DESC LIMIT 1`
+        )
+        .get(...args) as { name: string; n: number } | undefined;
+      return r && r.n > 0 ? { who: r.name, detail: `${plural(r.n, 'prono')} contre la majorité` } : null;
+    }
+    case 'heart':
+    case 'black-cat': {
+      const lostOnly = id === 'black-cat' ? 'AND k.side != g.winner' : '';
+      const r = db
+        .prepare(
+          `SELECT p.name, t.name AS team, COUNT(*) AS n FROM picks k
+           JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
+           JOIN teams t ON t.id = CASE k.side WHEN 'away' THEN g.away_id ELSE g.home_id END
+           WHERE g.season = ? AND g.week >= ? AND g.status = 'final' ${lostOnly}
+           GROUP BY p.id, t.id ORDER BY n DESC LIMIT 1`
+        )
+        .get(...args) as { name: string; team: string; n: number } | undefined;
+      if (!r || r.n < 3) return null;
+      return id === 'heart' ? { who: r.name, detail: `les ${r.team}, ${r.n} fois` } : { who: r.name, detail: `les ${r.team} l’ont trahi ${r.n} fois` };
+    }
+    case 'last-minute': {
+      const r = db
+        .prepare(
+          `SELECT p.name, COUNT(*) AS n FROM picks k
+           JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
+           WHERE g.season = ? AND g.week >= ? AND g.kickoff <= ?
+             AND k.updated_at <= g.kickoff AND k.updated_at > g.kickoff - 15 * 60000
+           GROUP BY p.id ORDER BY n DESC LIMIT 1`
+        )
+        .get(...args, Date.now()) as { name: string; n: number } | undefined;
+      return r && r.n >= 3 ? { who: r.name, detail: `${plural(r.n, 'prono')} dans le dernier quart d’heure` } : null;
+    }
+  }
+  return null;
+}
+
+/** Tous les trophées, attribués ou non (who = null), pour le bilan. */
 export function awards(): Award[] {
-  const out: Award[] = [];
-
-  const best = db
-    .prepare(
-      `SELECT p.name, g.week, SUM(CASE WHEN k.side = g.winner THEN 1 ELSE 0 END) AS good, COUNT(*) AS finals
-       FROM players p JOIN games g ON g.season = ? AND g.week >= ? AND g.status = 'final'
-       LEFT JOIN picks k ON k.game_id = g.id AND k.player_id = p.id
-       GROUP BY p.id, g.week ORDER BY good DESC, finals ASC LIMIT 1`
-    )
-    .get(SEASON, START_WEEK) as { name: string; week: number; good: number; finals: number } | undefined;
-  if (best && best.good > 0)
-    out.push({ title: 'Meilleure semaine', who: best.name, detail: `${best.good} sur ${best.finals} en ${weekLabel(best.week, true).toLowerCase()}` });
-
-  const contrarian = db
-    .prepare(
-      `WITH counts AS (
-         SELECT k.game_id, SUM(k.side = 'away') AS a, SUM(k.side = 'home') AS h
-         FROM picks k JOIN games g ON g.id = k.game_id
-         WHERE g.season = ? AND g.week >= ? AND g.status = 'final' GROUP BY k.game_id
-       )
-       SELECT p.name, COUNT(*) AS n FROM picks k JOIN counts c ON c.game_id = k.game_id JOIN players p ON p.id = k.player_id
-       WHERE (k.side = 'away' AND c.a < c.h) OR (k.side = 'home' AND c.h < c.a)
-       GROUP BY p.id ORDER BY n DESC LIMIT 1`
-    )
-    .get(SEASON, START_WEEK) as { name: string; n: number } | undefined;
-  if (contrarian && contrarian.n > 0)
-    out.push({ title: 'À contre-courant', who: contrarian.name, detail: `${contrarian.n} prono${contrarian.n > 1 ? 's' : ''} contre la majorité` });
-
-  const heart = db
-    .prepare(
-      `SELECT p.name, t.name AS team, COUNT(*) AS n FROM picks k
-       JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
-       JOIN teams t ON t.id = CASE k.side WHEN 'away' THEN g.away_id ELSE g.home_id END
-       WHERE g.season = ? AND g.week >= ? AND g.status = 'final'
-       GROUP BY p.id, t.id ORDER BY n DESC LIMIT 1`
-    )
-    .get(SEASON, START_WEEK) as { name: string; team: string; n: number } | undefined;
-  // Comme les autres trophées : seulement les matchs joués, et au moins 3 fois la même équipe.
-  if (heart && heart.n >= 3) out.push({ title: 'Le cœur avant la tête', who: heart.name, detail: `les ${heart.team}, ${heart.n} fois` });
-
-  return out;
+  return TROPHIES.map((t) => {
+    const won = computeTrophy(t.id);
+    return { ...t, who: won?.who ?? null, detail: won?.detail ?? null };
+  });
 }
 
 // ---------- Classement en direct ----------

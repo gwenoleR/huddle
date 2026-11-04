@@ -337,6 +337,84 @@ a {
   font-weight: 600;
 }
 
+/* Trophées */
+.award-btn {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+.award-btn:active {
+  background: var(--surface-200);
+}
+.trophy-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-200);
+  color: var(--ink-muted);
+}
+.trophy-won {
+  background: var(--gold);
+  color: var(--on-gold);
+}
+
+/* Feuille modale (qui monte du bas sur téléphone) */
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface-100);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.sheet::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+.sheet[open] {
+  animation: sheet-up 0.22s ease-out;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: none;
+  }
+}
+.sheet-body {
+  padding: var(--space-6) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+.sheet-holder {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-200);
+}
+.sheet-rule {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 /* Connexion */
 .login {
   flex: 1;

@@ -119,11 +119,20 @@ export interface ProfileDto extends Me {
   weeks: { week: number; label: string; good: number; finals: number }[];
 }
 
+export interface AwardDto {
+  id: string;
+  title: string;
+  rule: string;
+  /** null tant que le trophée n'est pas attribué. */
+  who: string | null;
+  detail: string | null;
+}
+
 export interface SeasonDto {
   season: number;
   startWeek: number;
   finished: boolean;
   finalGames: number;
   rows: StandingRow[];
-  awards: { title: string; who: string; detail: string }[];
+  awards: AwardDto[];
 }
