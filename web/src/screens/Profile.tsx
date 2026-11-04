@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Avatar, Button } from '../ds/components';
 import { api, type ApiError, type ProfileDto } from '../lib/api';
+import { espnLine, type EspnStatsDto } from '../lib/labels';
 import { ordinal } from '../lib/format';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
@@ -219,6 +220,7 @@ interface SyncStatus {
   ok: boolean;
   message: string;
   games: number;
+  espn?: EspnStatsDto;
 }
 
 const syncTime = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' });
@@ -253,6 +255,11 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
         <span className="small" style={{ color: status.ok ? 'var(--ink-muted)' : 'var(--wrong)' }}>
           {status.at ? `${status.ok ? 'Dernière synchro' : 'Échec'} ${syncTime.format(status.at)} · ` : ''}
           {status.ok ? `${status.games} matchs en base` : status.message}
+        </span>
+      )}
+      {status?.espn && (
+        <span className="small" style={{ color: status.espn.pausedUntil ? 'var(--wrong)' : 'var(--ink-muted)' }}>
+          {espnLine(status.espn)}
         </span>
       )}
       <Button variant="secondary" disabled={busy} onClick={run}>

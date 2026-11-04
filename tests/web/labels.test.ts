@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dayLabel, kickoffLabel, ordinal, plural } from '../../web/src/lib/format';
-import { detailLabel, standingText, withByes } from '../../web/src/lib/labels';
+import { detailLabel, espnLine, standingText, withByes } from '../../web/src/lib/labels';
 import { parseHash } from '../../web/src/lib/router';
 
 describe('dates à l’heure de Paris', () => {
@@ -74,5 +74,17 @@ describe('routes de l’appli', () => {
     ['#/nimporte', { name: 'matchs' }]
   ])('%s', (hash, route) => {
     expect(parseHash(hash)).toEqual(route);
+  });
+});
+
+describe('ligne ESPN de l’écran admin', () => {
+  it('appels, erreurs et pause', () => {
+    expect(espnLine({ lastHour: 1, lastDay: 40, errorsLastHour: 0, pausedUntil: null })).toBe('1 appel ESPN sur la dernière heure · 40 sur 24 h');
+    expect(espnLine({ lastHour: 12, lastDay: 40, errorsLastHour: 2, pausedUntil: null })).toBe(
+      '12 appels ESPN sur la dernière heure · 2 en erreur · 40 sur 24 h'
+    );
+    expect(espnLine({ lastHour: 12, lastDay: 40, errorsLastHour: 1, pausedUntil: Date.parse('2026-11-08T18:40:00Z') })).toBe(
+      'ESPN demande de ralentir : appels en pause jusqu’à 19:40'
+    );
   });
 });

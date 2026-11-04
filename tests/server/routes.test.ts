@@ -322,6 +322,31 @@ describe('données ESPN à la demande', () => {
     expect(espn.fetchLive).toHaveBeenCalledTimes(2);
   });
 
+  it('direct : au coup de sifflet final, on reprend les stats définitives sans attendre', async () => {
+    vi.mocked(espn.fetchLive).mockResolvedValue(live);
+    const bea = await login('Bea');
+    const g = addGame({ week: 10, status: 'live', score: [7, 0] });
+    await get(`/api/games/${g}/live`, bea);
+    db.prepare("UPDATE games SET status = 'final', winner = 'away' WHERE id = ?").run(g);
+    await get(`/api/games/${g}/live`, bea);
+    expect(espn.fetchLive).toHaveBeenCalledTimes(2);
+  });
+
+  it('direct : un match fini depuis la veille n’est plus jamais redemandé à ESPN', async () => {
+    vi.mocked(espn.fetchLive).mockResolvedValue(live);
+    const bea = await login('Bea');
+    const g = addGame({ week: 10, kickoff: NOW - 2 * DAY, score: [7, 0] });
+    await get(`/api/games/${g}/live`, bea);
+    vi.setSystemTime(NOW + 300 * DAY);
+    await get(`/api/games/${g}/live`, bea);
+    expect(espn.fetchLive).toHaveBeenCalledTimes(1);
+  });
+
+  it('admin : la synchro donne aussi le nombre d’appels ESPN', async () => {
+    const s = (await get('/api/admin/sync', await login('Gwen'))).json();
+    expect(s.espn).toEqual({ lastHour: 0, lastDay: 0, errorsLastHour: 0, pausedUntil: null });
+  });
+
   it('classement NFL : équipes de la base et têtes de série triées', async () => {
     const team = (id: string, seed: number, divRank: number) => ({ teamId: id, record: '5-3', streak: null, seed, diff: null, divRecord: null, divRank, clinch: null });
     vi.mocked(espn.fetchStandings).mockResolvedValue({

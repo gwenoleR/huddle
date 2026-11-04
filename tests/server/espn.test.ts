@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchLive, fetchPreview, fetchStandings, fetchTeams, fetchWeek, fromAppWeek, toAppWeek } from '../../server/espn';
+import { espnStats, fetchLive, fetchPreview, fetchStandings, fetchTeams, fetchWeek, fromAppWeek, resetEspnStats, toAppWeek } from '../../server/espn';
 
 const fixture = (name: string) => JSON.parse(readFileSync(`tests/fixtures/espn/${name}.json`, 'utf8'));
 const clone = <T>(x: T): T => structuredClone(x);
@@ -267,5 +267,52 @@ describe('erreurs ESPN', () => {
       throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } });
     });
     await expect(fetchTeams()).rejects.toThrow('ESPN injoignable (ENOTFOUND)');
+  });
+});
+
+describe('limites ESPN', () => {
+  beforeEach(() => {
+    resetEspnStats();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse('2026-11-08T18:00:00Z'));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('compte les appels et les erreurs sur l’heure et la journée', async () => {
+    serve({ events: [] });
+    await fetchWeek(2026, 10);
+    vi.setSystemTime(Date.now() + 2 * 3600_000);
+    await fetchWeek(2026, 10);
+    serve({}, 500);
+    await expect(fetchWeek(2026, 10)).rejects.toThrow();
+    expect(espnStats()).toEqual({ lastHour: 2, lastDay: 3, errorsLastHour: 1, pausedUntil: null });
+  });
+
+  it('429 : plus aucun appel pendant 5 min, puis 10 si ça recommence', async () => {
+    const t0 = Date.now();
+    serve({}, 429);
+    await expect(fetchWeek(2026, 10)).rejects.toThrow('429');
+    expect(espnStats().pausedUntil).toBe(t0 + 5 * 60_000);
+
+    serve({ events: [] });
+    await expect(fetchWeek(2026, 10)).rejects.toThrow('ESPN en pause encore 5 min');
+    expect(calls).toEqual([]); // ESPN n'a même pas été appelé
+
+    vi.setSystemTime(t0 + 5 * 60_000);
+    serve({}, 429);
+    await expect(fetchWeek(2026, 10)).rejects.toThrow('429');
+    expect(espnStats().pausedUntil).toBe(t0 + 15 * 60_000);
+  });
+
+  it('la pause redescend à 5 min après un appel réussi', async () => {
+    const t0 = Date.now();
+    serve({}, 429);
+    await expect(fetchWeek(2026, 10)).rejects.toThrow();
+    vi.setSystemTime(t0 + 5 * 60_000);
+    serve({ events: [] });
+    await fetchWeek(2026, 10);
+    serve({}, 429);
+    await expect(fetchWeek(2026, 10)).rejects.toThrow();
+    expect(espnStats().pausedUntil).toBe(t0 + 10 * 60_000);
   });
 });

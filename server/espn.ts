@@ -5,16 +5,74 @@
 const BASE = process.env.ESPN_BASE ?? 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const UA = 'prono-entre-potes/1.0';
 
+// ---------- Appels à ESPN : compteur et pause ----------
+
+/** Horodatage de chaque appel (et des erreurs) sur les dernières 24 h, pour l'écran admin. */
+const calls: number[] = [];
+const failures: number[] = [];
+let pausedUntil = 0;
+let strikes = 0;
+const PAUSE_BASE = 5 * 60_000;
+const PAUSE_MAX = 60 * 60_000;
+
+function remember(list: number[], now: number) {
+  list.push(now);
+  while (list.length && list[0] < now - 24 * 3600_000) list.shift();
+}
+
+export interface EspnStats {
+  lastHour: number;
+  lastDay: number;
+  errorsLastHour: number;
+  /** ESPN nous a demandé de ralentir (429) : plus aucun appel avant cette heure. */
+  pausedUntil: number | null;
+}
+
+export function espnStats(now = Date.now()): EspnStats {
+  const hour = (list: number[]) => list.filter((t) => t > now - 3600_000).length;
+  return {
+    lastHour: hour(calls),
+    lastDay: calls.filter((t) => t > now - 24 * 3600_000).length,
+    errorsLastHour: hour(failures),
+    pausedUntil: pausedUntil > now ? pausedUntil : null
+  };
+}
+
+/** Pour les tests. */
+export function resetEspnStats() {
+  calls.length = failures.length = 0;
+  pausedUntil = strikes = 0;
+}
+
 async function getJson(url: string): Promise<any> {
+  const now = Date.now();
+  if (now < pausedUntil) {
+    const min = Math.ceil((pausedUntil - now) / 60_000);
+    throw new Error(`ESPN en pause encore ${min} min (trop d’appels)`);
+  }
+  remember(calls, now);
   let res: Response;
   try {
     res = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15_000) });
   } catch (e: any) {
+    remember(failures, now);
     // « fetch failed » seul ne dit rien : on remonte la vraie cause (ENOTFOUND = DNS, ECONNREFUSED, délai…).
     const cause = e?.cause?.code ?? e?.cause?.message ?? (e?.name === 'TimeoutError' ? 'délai dépassé (15 s)' : e?.message);
     throw new Error(`ESPN injoignable (${cause}) : ${new URL(url).host}`);
   }
-  if (!res.ok) throw new Error(`ESPN a répondu ${res.status} sur ${url}`);
+  if (res.status === 429) {
+    // ESPN demande de ralentir : on s'arrête 5 min, puis 10, 20… jusqu'à 1 h si ça se répète.
+    remember(failures, now);
+    pausedUntil = now + Math.min(PAUSE_BASE * 2 ** strikes, PAUSE_MAX);
+    strikes++;
+    console.warn(`[espn] 429 : pause jusqu'à ${new Date(pausedUntil).toISOString()}`);
+    throw new Error('ESPN a répondu 429 (trop d’appels), pause des appels');
+  }
+  if (!res.ok) {
+    remember(failures, now);
+    throw new Error(`ESPN a répondu ${res.status} sur ${url}`);
+  }
+  strikes = 0;
   return res.json();
 }
 

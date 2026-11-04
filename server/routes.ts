@@ -31,7 +31,11 @@ import {
   saveBonusPick,
   saveBonusSettings
 } from './bonus';
-import { fetchLive, fetchPreview, fetchStandings, type LiveInfo, type NflStandings, type Preview } from './espn';
+import { espnStats, fetchLive, fetchPreview, fetchStandings, type NflStandings } from './espn';
+import { FOREVER, cached } from './espnCache';
+
+const MIN = 60_000;
+const HOUR = 60 * MIN;
 
 // ---------- Mise en forme ----------
 
@@ -230,19 +234,8 @@ export async function routes(app: FastifyInstance) {
     return { ...game, weekLabel: weekLabel(row.week, true), waiting, counted: row.week >= START_WEEK };
   });
 
-  // Classement NFL : pris chez ESPN, gardé 30 min (il ne bouge qu'à la fin des matchs).
-  let nfl: { at: number; data: NflStandings } | null = null;
-  async function nflStandings(): Promise<NflStandings> {
-    if (nfl && Date.now() - nfl.at < 30 * 60_000) return nfl.data;
-    try {
-      const data = await fetchStandings(SEASON);
-      nfl = { at: Date.now(), data };
-      return data;
-    } catch (e) {
-      if (nfl) return nfl.data;
-      throw e;
-    }
-  }
+  // Classement NFL : il ne bouge qu'à la fin des matchs. Frais 30 min, puis resservi le temps d'être rafraîchi.
+  const nflStandings = () => cached(`standings:${SEASON}`, () => fetchStandings(SEASON), { ttl: 30 * MIN, swr: 24 * HOUR });
   /** Place d'une équipe : « 1er AFC Est », tête de série dans sa conférence. */
   function standingOf(s: NflStandings, teamId: string) {
     for (const c of s.conferences)
@@ -424,50 +417,43 @@ export async function routes(app: FastifyInstance) {
     };
   });
 
-  // Avant-match : bilan, forme, favori et blessés, pris chez ESPN à la demande et gardés 20 min en mémoire.
-  const previews = new Map<string, { at: number; data: Preview }>();
+  // Avant-match : bilan, forme, favori et blessés. Frais 20 min ; ensuite on sert l'ancienne version
+  // tout de suite et on rafraîchit en arrière-plan.
   app.get<{ Params: { id: string } }>('/api/games/:id/preview', { preHandler: requireAuth }, async (req, reply) => {
-    const row = db.prepare('SELECT id FROM games WHERE id = ?').get(req.params.id) as { id: string } | undefined;
-    if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
-    const game = db.prepare('SELECT away_id, home_id FROM games WHERE id = ?').get(row.id) as { away_id: string; home_id: string };
-    // La place au classement est un bonus : si ESPN ne répond pas, l'avant-match s'affiche sans.
-    const withStandings = async (data: Preview) => {
-      const s = await nflStandings().catch(() => null);
-      return { ...data, standing: s ? { away: standingOf(s, game.away_id), home: standingOf(s, game.home_id) } : null };
-    };
-    const hit = previews.get(row.id);
-    if (hit && Date.now() - hit.at < 20 * 60_000) return withStandings(hit.data);
+    const game = db.prepare('SELECT id, away_id, home_id FROM games WHERE id = ?').get(req.params.id) as
+      | { id: string; away_id: string; home_id: string }
+      | undefined;
+    if (!game) return reply.code(404).send({ error: 'Match introuvable.' });
+    let data;
     try {
-      const data = await fetchPreview(row.id);
-      if (previews.size > 200) previews.clear();
-      previews.set(row.id, { at: Date.now(), data });
-      return withStandings(data);
+      data = await cached(`preview:${game.id}`, () => fetchPreview(game.id), { ttl: 20 * MIN, swr: 6 * HOUR });
     } catch (e) {
       req.log.warn({ err: e }, 'avant-match indisponible');
-      if (hit) return withStandings(hit.data);
       return reply.code(502).send({ error: 'Infos d’avant-match indisponibles pour le moment.' });
     }
+    // La place au classement est un bonus : si ESPN ne répond pas, l'avant-match s'affiche sans.
+    const s = await nflStandings().catch(() => null);
+    return { ...data, standing: s ? { away: standingOf(s, game.away_id), home: standingOf(s, game.home_id) } : null };
   });
 
   // Pendant le match : courbe des chances, actions qui marquent et situation en cours.
-  // 25 s de cache pendant le match (tous les joueurs regardent en même temps), 6 h une fois terminé.
-  const lives = new Map<string, { at: number; ttl: number; data: LiveInfo }>();
+  // 25 s pendant le match (tout le monde regarde en même temps) ; 1 h une fois terminé, le temps
+  // qu'ESPN corrige ses stats ; puis plus jamais redemandé passé le lendemain.
   app.get<{ Params: { id: string } }>('/api/games/:id/live', { preHandler: requireAuth }, async (req, reply) => {
-    const row = db.prepare('SELECT id, week, status FROM games WHERE id = ?').get(req.params.id) as
-      | { id: string; week: number; status: string }
+    const row = db.prepare('SELECT id, week, status, kickoff FROM games WHERE id = ?').get(req.params.id) as
+      | { id: string; week: number; status: string; kickoff: number }
       | undefined;
     if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
     if (row.status !== 'live' && row.status !== 'final') return reply.code(409).send({ error: 'Le match n’a pas commencé.' });
-    const hit = lives.get(row.id);
-    if (hit && Date.now() - hit.at < hit.ttl) return hit.data;
+    const final = row.status === 'final';
+    const settled = final && row.kickoff < Date.now() - 24 * HOUR;
     try {
-      const data = await fetchLive(row.id, row.week >= 19);
-      if (lives.size > 200) lives.clear();
-      lives.set(row.id, { at: Date.now(), ttl: row.status === 'final' ? 6 * 3600_000 : 25_000, data });
-      return data;
+      return await cached(`live:${row.id}:${row.status}`, () => fetchLive(row.id, row.week >= 19), {
+        ttl: settled ? FOREVER : final ? HOUR : 25_000,
+        swr: final ? 24 * HOUR : MIN
+      });
     } catch (e) {
       req.log.warn({ err: e }, 'direct indisponible');
-      if (hit) return hit.data;
       return reply.code(502).send({ error: 'Le direct ESPN ne répond pas pour le moment.' });
     }
   });
@@ -552,14 +538,14 @@ export async function routes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.get('/api/admin/sync', { preHandler: requireAdmin }, async () => syncStatus());
+  app.get('/api/admin/sync', { preHandler: requireAdmin }, async () => ({ ...syncStatus(), espn: espnStats() }));
 
   app.post('/api/admin/sync', { preHandler: requireAdmin }, async (_req, reply) => {
     try {
       await forceSync();
-      return syncStatus();
+      return { ...syncStatus(), espn: espnStats() };
     } catch {
-      return reply.code(502).send({ error: `Synchro impossible : ${syncStatus().message}`, ...syncStatus() });
+      return reply.code(502).send({ error: `Synchro impossible : ${syncStatus().message}`, ...syncStatus(), espn: espnStats() });
     }
   });
 

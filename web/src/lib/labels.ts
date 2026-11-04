@@ -28,3 +28,19 @@ export function withByes(schedule: ScheduleGame[]): (ScheduleGame | { bye: true;
   for (let w = 1; w <= last; w++) if (!weeks.has(w)) out.push({ bye: true, week: w });
   return [...out, ...schedule].sort((a, b) => a.week - b.week);
 }
+
+export interface EspnStatsDto {
+  lastHour: number;
+  lastDay: number;
+  errorsLastHour: number;
+  pausedUntil: number | null;
+}
+
+const hourOnly = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
+
+/** « 12 appels ESPN sur la dernière heure · 140 sur 24 h », ou la pause si ESPN a demandé de ralentir. */
+export function espnLine(e: EspnStatsDto): string {
+  if (e.pausedUntil) return `ESPN demande de ralentir : appels en pause jusqu’à ${hourOnly.format(e.pausedUntil)}`;
+  const errors = e.errorsLastHour ? ` · ${e.errorsLastHour} en erreur` : '';
+  return `${e.lastHour} appel${e.lastHour > 1 ? 's' : ''} ESPN sur la dernière heure${errors} · ${e.lastDay} sur 24 h`;
+}

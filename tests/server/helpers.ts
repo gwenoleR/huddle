@@ -3,6 +3,8 @@
  * La base est en mémoire (voir vitest.config.ts), propre à chaque fichier de test.
  */
 import { db, setMeta } from '../../server/db';
+import { clearEspnCache } from '../../server/espnCache';
+import { resetEspnStats } from '../../server/espn';
 
 export const HOUR = 3600_000;
 export const DAY = 24 * HOUR;
@@ -23,6 +25,8 @@ export const TEAMS = {
 export type Abbr = keyof typeof TEAMS;
 
 export function resetDb() {
+  clearEspnCache();
+  resetEspnStats();
   db.exec(`
     DELETE FROM picks; DELETE FROM bonus_picks; DELETE FROM games; DELETE FROM teams;
     DELETE FROM sessions; DELETE FROM push_subscriptions; DELETE FROM sent_notifications;
