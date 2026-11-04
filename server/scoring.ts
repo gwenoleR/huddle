@@ -130,11 +130,12 @@ export function awards(): Award[] {
       `SELECT p.name, t.name AS team, COUNT(*) AS n FROM picks k
        JOIN games g ON g.id = k.game_id JOIN players p ON p.id = k.player_id
        JOIN teams t ON t.id = CASE k.side WHEN 'away' THEN g.away_id ELSE g.home_id END
-       WHERE g.season = ? AND g.week >= ?
+       WHERE g.season = ? AND g.week >= ? AND g.status = 'final'
        GROUP BY p.id, t.id ORDER BY n DESC LIMIT 1`
     )
     .get(SEASON, START_WEEK) as { name: string; team: string; n: number } | undefined;
-  if (heart && heart.n > 1) out.push({ title: 'Le cœur avant la tête', who: heart.name, detail: `les ${heart.team}, ${heart.n} fois` });
+  // Comme les autres trophées : seulement les matchs joués, et au moins 3 fois la même équipe.
+  if (heart && heart.n >= 3) out.push({ title: 'Le cœur avant la tête', who: heart.name, detail: `les ${heart.team}, ${heart.n} fois` });
 
   return out;
 }
