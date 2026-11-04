@@ -151,3 +151,10 @@ export interface PreviewDto {
   home: PreviewSideDto;
   odds: { favorite: 'away' | 'home' | null; spread: number | null; provider: string } | null;
 }
+
+export interface LiveDto {
+  winProb: { t: number; away: number }[];
+  length: number;
+  scoring: { side: 'away' | 'home' | null; period: number; clock: string; kind: string; text: string; away: number; home: number }[];
+  situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
+}

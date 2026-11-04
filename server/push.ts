@@ -131,7 +131,69 @@ async function weekResults(now: number) {
   }
 }
 
+/**
+ * « Ton prono bascule » : dans le dernier quart-temps (ou en prolongation), quand l'équipe qui mène change,
+ * on prévient ceux qui ont pronostiqué ce match. Une égalité ne compte pas comme un changement.
+ * Un retournement dans les dernières secondes peut n'être vu qu'avec le match déjà terminé : il compte aussi.
+ */
+async function flips() {
+  const games = db
+    .prepare(
+      `SELECT g.id, g.status, g.detail, g.away_score AS a, g.home_score AS h,
+              ta.name AS awayName, ta.abbr AS awayAbbr, th.name AS homeName, th.abbr AS homeAbbr
+       FROM games g JOIN teams ta ON ta.id = g.away_id JOIN teams th ON th.id = g.home_id
+       WHERE g.season = ? AND g.week >= ? AND g.away_score IS NOT NULL
+         AND (g.status = 'live' OR (g.status = 'final' AND EXISTS (SELECT 1 FROM meta WHERE key = 'lead:' || g.id)))`
+    )
+    .all(SEASON, START_WEEK) as {
+    id: string;
+    status: string;
+    detail: string | null;
+    a: number;
+    h: number;
+    awayName: string;
+    awayAbbr: string;
+    homeName: string;
+    homeAbbr: string;
+  }[];
+
+  for (const g of games) {
+    const key = `lead:${g.id}`;
+    const prev = getMeta(key);
+    const lead = g.a > g.h ? 'away' : g.h > g.a ? 'home' : null;
+    const late = g.status === 'final' || /^(Q4|Fin Q4|Prol)/.test(g.detail ?? '');
+
+    if (lead && prev && lead !== prev && late) {
+      const leadName = lead === 'away' ? g.awayName : g.homeName;
+      const score = `${g.awayAbbr} ${g.a}–${g.h} ${g.homeAbbr}`;
+      const pickers = db
+        .prepare(
+          `SELECT p.player_id AS id, p.side FROM picks p
+           WHERE p.game_id = ? AND EXISTS (SELECT 1 FROM push_subscriptions s WHERE s.player_id = p.player_id)`
+        )
+        .all(g.id) as { id: number; side: string }[];
+      for (const p of pickers) {
+        const mine = p.side === 'away' ? g.awayName : g.homeName;
+        const good = p.side === lead;
+        const done = g.status === 'final';
+        await sendToPlayer(p.id, {
+          title: good ? (done ? 'Renversement final, ton prono passe !' : 'Ça tourne pour toi !') : done ? 'Crucifié sur le fil…' : 'Aïe, ça bascule…',
+          body: done
+            ? `Les ${leadName} l’emportent sur le fil : ${score}. ${good ? 'Ton prono est bon !' : `Ton prono sur les ${mine} tombe à l’eau.`}`
+            : `Les ${leadName} passent devant : ${score} (${g.detail}). ${good ? 'Ton prono redevient bon.' : `Ton prono sur les ${mine} est en danger.`}`,
+          url: `/#/match/${g.id}`,
+          tag: `flip-${g.id}`
+        });
+      }
+    }
+
+    if (g.status === 'final') db.prepare('DELETE FROM meta WHERE key = ?').run(key);
+    else if (lead && lead !== prev) setMeta(key, lead);
+  }
+}
+
 export async function notificationsTick(now = Date.now()) {
   await reminders(now);
+  await flips();
   await weekResults(now);
 }

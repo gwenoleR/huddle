@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Avatar, MatchCard, type Side } from '../ds/components';
 import { api, type GameDto, type Me } from '../lib/api';
 import { kickoffLabel } from '../lib/format';
+import { MatchLive } from './MatchLive';
 import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
 
@@ -60,6 +61,7 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
         />
 
         {(g.status === 'scheduled' || g.status === 'postponed') && <MatchPreview game={g} />}
+        {(g.status === 'live' || g.status === 'final') && <MatchLive game={g} />}
 
         <section className="grid-2">
           {(['away', 'home'] as const).map((side) => (

@@ -18,7 +18,7 @@ import {
 import { awards, latestRecapWeek, liveProjection, pointsFor, recap, standings, streak, weeklyResults } from './scoring';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from './push';
 import { forceSync, syncStatus } from './sync';
-import { fetchPreview, type Preview } from './espn';
+import { fetchLive, fetchPreview, type LiveInfo, type Preview } from './espn';
 
 // ---------- Mise en forme ----------
 
@@ -233,6 +233,29 @@ export async function routes(app: FastifyInstance) {
       req.log.warn({ err: e }, 'avant-match indisponible');
       if (hit) return hit.data;
       return reply.code(502).send({ error: 'Infos d’avant-match indisponibles pour le moment.' });
+    }
+  });
+
+  // Pendant le match : courbe des chances, actions qui marquent et situation en cours.
+  // 25 s de cache pendant le match (tous les joueurs regardent en même temps), 6 h une fois terminé.
+  const lives = new Map<string, { at: number; ttl: number; data: LiveInfo }>();
+  app.get<{ Params: { id: string } }>('/api/games/:id/live', { preHandler: requireAuth }, async (req, reply) => {
+    const row = db.prepare('SELECT id, week, status FROM games WHERE id = ?').get(req.params.id) as
+      | { id: string; week: number; status: string }
+      | undefined;
+    if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
+    if (row.status !== 'live' && row.status !== 'final') return reply.code(409).send({ error: 'Le match n’a pas commencé.' });
+    const hit = lives.get(row.id);
+    if (hit && Date.now() - hit.at < hit.ttl) return hit.data;
+    try {
+      const data = await fetchLive(row.id, row.week >= 19);
+      if (lives.size > 200) lives.clear();
+      lives.set(row.id, { at: Date.now(), ttl: row.status === 'final' ? 6 * 3600_000 : 25_000, data });
+      return data;
+    } catch (e) {
+      req.log.warn({ err: e }, 'direct indisponible');
+      if (hit) return hit.data;
+      return reply.code(502).send({ error: 'Le direct ESPN ne répond pas pour le moment.' });
     }
   });
 

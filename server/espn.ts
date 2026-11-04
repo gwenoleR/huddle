@@ -226,3 +226,175 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
 
   return { away: side('away'), home: side('home'), odds };
 }
+
+// ---------- Pendant le match (fiche match) ----------
+
+export interface LiveInfo {
+  /** Chances de victoire de l'équipe à l'extérieur (0–100) au fil du match ; t = secondes de jeu écoulées. */
+  winProb: { t: number; away: number }[];
+  /** Durée totale de l'axe (60 min, plus la prolongation s'il y en a une). */
+  length: number;
+  scoring: { side: 'away' | 'home' | null; period: number; clock: string; kind: string; text: string; away: number; home: number }[];
+  /** Situation en cours, seulement pendant le match. */
+  situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
+}
+
+const toSeconds = (clock: unknown) => {
+  const m = /^(\d+):(\d+)/.exec(String(clock ?? ''));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+};
+const elapsed = (period: number, clock: unknown, otLength: number) =>
+  period <= 4 ? (period - 1) * 900 + (900 - toSeconds(clock)) : 3600 + (period - 5) * otLength + (otLength - toSeconds(clock));
+
+function frenchDown(text: unknown): string | null {
+  if (typeof text !== 'string' || !text) return null;
+  return text
+    .replace(/^1st/, '1re')
+    .replace(/^(\d)(nd|rd|th)/, '$1e')
+    .replace('& Goal', 'et but')
+    .replace('&', 'et')
+    .replace(' at ', ' · ');
+}
+
+function yards(n: unknown) {
+  const v = Math.abs(Number(n) || 0);
+  return `${v} yard${v > 1 ? 's' : ''}`;
+}
+
+function frenchPlay(p: any): string | null {
+  const type = String(p?.type?.text ?? '');
+  const y = Number(p?.statYardage ?? 0);
+  switch (type) {
+    case 'Rush':
+      return y < 0 ? `Course, perte de ${yards(y)}` : `Course de ${yards(y)}`;
+    case 'Pass Reception':
+      return `Passe complétée, ${yards(y)}`;
+    case 'Pass Incompletion':
+      return 'Passe incomplète';
+    case 'Sack':
+      return `Sack, perte de ${yards(y)}`;
+    case 'Punt':
+      return 'Punt';
+    case 'Penalty':
+      return 'Pénalité';
+    case 'Kickoff':
+      return 'Coup d’envoi';
+    case 'Timeout':
+    case 'Official Timeout':
+      return 'Temps mort';
+    case 'Passing Touchdown':
+      return 'Touchdown sur passe !';
+    case 'Rushing Touchdown':
+      return 'Touchdown à la course !';
+    case 'Field Goal Good':
+      return 'Field goal réussi';
+    case 'Field Goal Missed':
+    case 'Blocked Field Goal':
+      return 'Field goal manqué';
+    case 'Pass Interception Return':
+    case 'Interception Return Touchdown':
+      return 'Interception !';
+    case 'Fumble Recovery (Opponent)':
+    case 'Fumble Return Touchdown':
+      return 'Fumble perdu !';
+    case 'Fumble Recovery (Own)':
+      return 'Fumble, ballon récupéré';
+    case 'Two-minute warning':
+      return 'Avertissement des 2 minutes';
+    case 'End Period':
+      return 'Fin du quart-temps';
+    case 'End of Half':
+      return 'Mi-temps';
+    case 'Safety':
+      return 'Safety !';
+    default:
+      return type || null;
+  }
+}
+
+/** « Tucker Kraft 12 Yd pass from Jordan Love (Trey Smack Kick) » → « Passe de Jordan Love pour Tucker Kraft, 12 yards ». */
+function frenchScore(kind: string, text: string): string {
+  const m = /^(.+?) (\d+) Yd (.+?)\s*(?:\((.*)\))?\s*$/i.exec(text.trim());
+  if (!m) return text.trim();
+  const [, who, n, how] = m;
+  const dist = yards(n);
+  const from = /pass from (.+)/i.exec(how);
+  if (from) return `Passe de ${from[1]} pour ${who}, ${dist}`;
+  if (/^rush/i.test(how)) return `Course de ${who}, ${dist}`;
+  if (/field goal/i.test(how)) return `${who}, ${dist}`;
+  if (/interception/i.test(how)) return `Retour d’interception de ${who}, ${dist}`;
+  if (/fumble/i.test(how)) return `Retour de fumble de ${who}, ${dist}`;
+  if (/punt/i.test(how)) return `Retour de punt de ${who}, ${dist}`;
+  if (/kickoff/i.test(how)) return `Retour de coup d’envoi de ${who}, ${dist}`;
+  return `${who}, ${dist}`;
+}
+
+const SCORE_KIND: Record<string, string> = { TD: 'Touchdown', FG: 'Field goal', SF: 'Safety', S: 'Safety', XP: 'Transformation', '2PT': '2 points' };
+
+export async function fetchLive(gameId: string, playoffs: boolean): Promise<LiveInfo> {
+  const d = await getJson(`${BASE}/summary?event=${encodeURIComponent(gameId)}`);
+  const comp = d.header?.competitions?.[0];
+  const competitors: any[] = comp?.competitors ?? [];
+  const sideOf = (teamId: unknown) => (competitors.find((c) => String(c.id) === String(teamId))?.homeAway as 'away' | 'home' | undefined) ?? null;
+  const otLength = playoffs ? 900 : 600;
+  const state = comp?.status?.type?.state;
+
+  const drives: any[] = [...(d.drives?.previous ?? []), ...(d.drives?.current ? [d.drives.current] : [])];
+  const plays: any[] = [];
+  const seen = new Set<string>();
+  for (const dr of drives)
+    for (const p of dr.plays ?? [])
+      if (!seen.has(String(p.id))) {
+        seen.add(String(p.id));
+        plays.push(p);
+      }
+  const byId = new Map(plays.map((p) => [String(p.id), p]));
+
+  let maxPeriod = 4;
+  const winProb: LiveInfo['winProb'] = [];
+  for (const w of d.winprobability ?? []) {
+    const p = byId.get(String(w.playId));
+    // Les temps morts et fins de période portent parfois une valeur aberrante : on les ignore.
+    if (!p || w.homeWinPercentage == null || /timeout|end period|end of half|end of game/i.test(p.type?.text ?? '')) continue;
+    const period = Number(p.period?.number ?? 1);
+    maxPeriod = Math.max(maxPeriod, period);
+    const t = Math.max(elapsed(period, p.clock?.displayValue, otLength), winProb.at(-1)?.t ?? 0);
+    winProb.push({ t, away: Math.round((1 - Number(w.homeWinPercentage)) * 1000) / 10 });
+  }
+
+  // Garde-fou : un point isolé qui saute de plus de 25 points par rapport à ses deux voisins est retiré.
+  for (let i = winProb.length - 2; i > 0; i--) {
+    const [a, b, c] = [winProb[i - 1].away, winProb[i].away, winProb[i + 1].away];
+    if (Math.abs(b - a) > 25 && Math.abs(b - c) > 25 && Math.abs(a - c) < 25) winProb.splice(i, 1);
+  }
+
+  const scoring = (d.scoringPlays ?? []).map((s: any) => {
+    const abbr = String(s.scoringType?.abbreviation ?? s.type?.abbreviation ?? '');
+    const kind = SCORE_KIND[abbr] ?? s.scoringType?.displayName ?? abbr;
+    return {
+      side: sideOf(s.team?.id),
+      period: Number(s.period?.number ?? 0),
+      clock: String(s.clock?.displayValue ?? ''),
+      kind,
+      text: frenchScore(kind, String(s.text ?? '')),
+      away: Number(s.awayScore ?? 0),
+      home: Number(s.homeScore ?? 0)
+    };
+  });
+
+  let situation: LiveInfo['situation'] = null;
+  if (state === 'in') {
+    const last = [...plays].reverse().find((p) => p.type?.text && !/timeout|end period|end of half/i.test(p.type.text)) ?? plays.at(-1);
+    const end = last?.end ?? {};
+    const possession = sideOf(d.drives?.current?.team?.id ?? end.team?.id);
+    situation = {
+      possession,
+      down: frenchDown(end.downDistanceText),
+      redZone: Number(end.yardsToEndzone ?? 99) <= 20,
+      lastPlay: last ? frenchPlay(last) : null,
+      lastSide: sideOf(last?.start?.team?.id)
+    };
+  }
+
+  return { winProb, length: 3600 + Math.max(0, maxPeriod - 4) * otLength, scoring, situation };
+}

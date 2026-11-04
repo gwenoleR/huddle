@@ -682,3 +682,113 @@ html.short-webview .login {
 .preview-status-questionable {
   color: var(--ink-muted);
 }
+
+/* Pendant le match (fiche match) */
+.live-sit,
+.live-chart,
+.live-scoring {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.live-ball {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+}
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.live-redzone {
+  margin-left: auto;
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--wrong);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.live-now {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.live-now b {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.win-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.wc-bg { fill: var(--surface-100); }
+.wc-grid { stroke: var(--surface-200); stroke-width: 1; }
+.wc-mid { stroke: var(--ink-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.6; }
+.wc-area-a { fill: var(--side-a); opacity: 0.25; }
+.wc-area-b { fill: var(--side-b); opacity: 0.25; }
+.wc-line { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.wc-dot { fill: var(--ink); }
+.wc-team { font-family: var(--font-display); font-size: 12px; font-weight: 700; }
+.pr-a-fill { fill: var(--side-a); }
+.pr-b-fill { fill: var(--side-b); }
+.wc-label { fill: var(--ink-muted); font-size: 10px; font-weight: 600; }
+.live-scoring ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.live-scoring li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 0;
+}
+.live-scoring li + li {
+  border-top: 1px solid var(--surface-200);
+}
+.live-when {
+  flex: none;
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+}
+.live-when small {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.live-what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+.live-score {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
