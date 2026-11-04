@@ -5,7 +5,8 @@ export type Route =
   | { name: 'match'; id: string }
   | { name: 'classement' }
   | { name: 'profil' }
-  | { name: 'bilan' };
+  | { name: 'bilan' }
+  | { name: 'recap'; week?: number };
 
 export function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -18,6 +19,8 @@ export function parseHash(hash: string): Route {
       return { name: 'profil' };
     case 'bilan':
       return { name: 'bilan' };
+    case 'recap':
+      return { name: 'recap', week: parts[1] ? Number(parts[1]) : undefined };
     case 'matchs':
       return { name: 'matchs', week: parts[1] ? Number(parts[1]) : undefined };
     default:

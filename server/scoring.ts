@@ -138,3 +138,127 @@ export function awards(): Award[] {
 
   return out;
 }
+
+// ---------- Classement en direct ----------
+
+/** Rangs avec égalités (1, 2, 2, 4) sur une liste déjà triée par points décroissants. */
+function competitionRanks(points: number[]): number[] {
+  return points.map((p, i) => points.indexOf(p) + 1);
+}
+
+export interface LiveRow extends StandingRow {
+  /** Points si les matchs en cours finissaient sur le score actuel. */
+  projected: number;
+  projectedRank: number;
+  /** Pronos actuellement gagnants / perdants dans les matchs en cours. */
+  winning: number;
+  losing: number;
+}
+
+export interface LiveProjection {
+  games: number;
+  rows: LiveRow[];
+}
+
+/** « Si ça finit comme ça » : ajoute les points des matchs en cours selon le score du moment. */
+export function liveProjection(): LiveProjection | null {
+  const live = db
+    .prepare(
+      `SELECT id, week, away_score AS a, home_score AS h FROM games
+       WHERE season = ? AND week >= ? AND status = 'live'`
+    )
+    .all(SEASON, START_WEEK) as { id: string; week: number; a: number | null; h: number | null }[];
+  if (!live.length) return null;
+
+  const base = standings();
+  const extra = new Map<number, { pts: number; winning: number; losing: number }>(base.map((r) => [r.id, { pts: 0, winning: 0, losing: 0 }]));
+  const pickStmt = db.prepare('SELECT player_id, side FROM picks WHERE game_id = ?');
+  for (const g of live) {
+    const leading = (g.a ?? 0) > (g.h ?? 0) ? 'away' : (g.h ?? 0) > (g.a ?? 0) ? 'home' : null;
+    for (const p of pickStmt.all(g.id) as { player_id: number; side: string }[]) {
+      const e = extra.get(p.player_id);
+      if (!e || !leading) continue;
+      if (p.side === leading) {
+        e.pts += pointsFor(g.week);
+        e.winning++;
+      } else e.losing++;
+    }
+  }
+
+  const rows = base
+    .map((r) => {
+      const e = extra.get(r.id)!;
+      return { ...r, projected: r.points + e.pts, winning: e.winning, losing: e.losing, projectedRank: 0 };
+    })
+    .sort((x, y) => y.projected - x.projected || x.name.localeCompare(y.name, 'fr'));
+  const ranks = competitionRanks(rows.map((r) => r.projected));
+  rows.forEach((r, i) => (r.projectedRank = ranks[i]));
+  return { games: live.length, rows };
+}
+
+// ---------- Récap de la semaine ----------
+
+export interface Recap {
+  week: number;
+  label: string;
+  complete: boolean;
+  finals: number;
+  total: number;
+  /** Classement de la semaine (points de la semaine) avec le total de la saison. */
+  rows: (StandingRow & { seasonPoints: number; seasonRank: number })[];
+  /** Le match où le plus de monde s'est trompé. */
+  blunder: { away: string; home: string; awayScore: number; homeScore: number; wrongTeam: string; wrong: string[]; total: number } | null;
+}
+
+/** Dernière semaine avec au moins un match terminé (depuis la reprise). */
+export function latestRecapWeek(): number | null {
+  const row = db
+    .prepare("SELECT MAX(week) AS w FROM games WHERE season = ? AND week >= ? AND status = 'final'")
+    .get(SEASON, START_WEEK) as { w: number | null };
+  return row.w;
+}
+
+export function recap(week: number): Recap {
+  const counts = db
+    .prepare("SELECT COUNT(*) AS total, SUM(status = 'final') AS finals FROM games WHERE season = ? AND week = ?")
+    .get(SEASON, week) as { total: number; finals: number | null };
+  const season = new Map(standings().map((r) => [r.id, r]));
+  const rows = standings(week).map((r) => ({ ...r, seasonPoints: season.get(r.id)!.points, seasonRank: season.get(r.id)!.rank }));
+
+  // La boulette : match terminé avec le plus de pronos ratés.
+  const games = db
+    .prepare(
+      `SELECT g.id, g.winner, g.away_score AS a, g.home_score AS h, ta.name AS away, th.name AS home
+       FROM games g JOIN teams ta ON ta.id = g.away_id JOIN teams th ON th.id = g.home_id
+       WHERE g.season = ? AND g.week = ? AND g.status = 'final' AND g.winner IN ('away', 'home')`
+    )
+    .all(SEASON, week) as { id: string; winner: 'away' | 'home'; a: number; h: number; away: string; home: string }[];
+  const pickStmt = db.prepare('SELECT k.side, p.name FROM picks k JOIN players p ON p.id = k.player_id WHERE k.game_id = ?');
+  let blunder: Recap['blunder'] = null;
+  for (const g of games) {
+    const picks = pickStmt.all(g.id) as { side: string; name: string }[];
+    const wrong = picks.filter((p) => p.side !== g.winner).map((p) => p.name);
+    if (!wrong.length) continue;
+    const better = !blunder || wrong.length > blunder.wrong.length || (wrong.length === blunder.wrong.length && picks.length < blunder.total);
+    if (better)
+      blunder = {
+        away: g.away,
+        home: g.home,
+        awayScore: g.a,
+        homeScore: g.h,
+        wrongTeam: g.winner === 'away' ? g.home : g.away,
+        wrong,
+        total: picks.length
+      };
+  }
+
+  return {
+    week,
+    label: weekLabel(week, true),
+    complete: counts.total > 0 && counts.finals === counts.total,
+    finals: counts.finals ?? 0,
+    total: counts.total,
+    rows,
+    blunder
+  };
+}

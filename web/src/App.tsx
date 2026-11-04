@@ -9,6 +9,7 @@ import { MatchDetail } from './screens/MatchDetail';
 import { Matches } from './screens/Matches';
 import { Profile } from './screens/Profile';
 import { Season } from './screens/Season';
+import { Recap } from './screens/Recap';
 
 export function App() {
   const { pref, setPref, theme } = useTheme();
@@ -39,7 +40,8 @@ export function App() {
   if (me === undefined) return <div className="app splash" />;
   if (me === null) return <Login onLogged={setMe} />;
 
-  const tab = route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' ? 'classement' : route.name;
+  const tab =
+    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' ? 'classement' : route.name;
   const screenKey = route.name === 'match' ? `match-${route.id}` : route.name;
 
   return (
@@ -49,6 +51,7 @@ export function App() {
         {route.name === 'match' && <MatchDetail id={route.id} me={me} theme={theme} notify={notify} />}
         {route.name === 'classement' && <Leaderboard me={me} />}
         {route.name === 'bilan' && <Season me={me} />}
+        {route.name === 'recap' && <Recap week={route.week} notify={notify} />}
         {route.name === 'profil' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
       </div>
       <BottomNav active={tab} onChange={(id) => go(id)} />

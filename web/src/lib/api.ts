@@ -82,6 +82,30 @@ export interface StandingRow {
   played: number;
 }
 
+export interface LiveRow extends StandingRow {
+  projected: number;
+  projectedRank: number;
+  winning: number;
+  losing: number;
+}
+
+export interface LeaderboardDto {
+  week: number | null;
+  startWeek: number;
+  rows: StandingRow[];
+  live: { games: number; rows: LiveRow[] } | null;
+}
+
+export interface RecapDto {
+  week: number;
+  label: string;
+  complete: boolean;
+  finals: number;
+  total: number;
+  rows: (StandingRow & { seasonPoints: number; seasonRank: number })[];
+  blunder: { away: string; home: string; awayScore: number; homeScore: number; wrongTeam: string; wrong: string[]; total: number } | null;
+}
+
 export interface ProfileDto extends Me {
   season: number;
   startWeek: number;

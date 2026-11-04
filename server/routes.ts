@@ -15,7 +15,7 @@ import {
   verifyPin,
   type Me
 } from './auth';
-import { awards, pointsFor, standings, streak, weeklyResults } from './scoring';
+import { awards, latestRecapWeek, liveProjection, pointsFor, recap, standings, streak, weeklyResults } from './scoring';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from './push';
 import { forceSync, syncStatus } from './sync';
 
@@ -233,7 +233,14 @@ export async function routes(app: FastifyInstance) {
 
   app.get<{ Querystring: { week?: string } }>('/api/leaderboard', { preHandler: requireAuth }, async (req) => {
     const week = req.query.week ? Number(req.query.week) : undefined;
-    return { week: week ?? null, startWeek: START_WEEK, rows: standings(week) };
+    // En saison, pendant les matchs : projection « si ça finit comme ça ».
+    return { week: week ?? null, startWeek: START_WEEK, rows: standings(week), live: week ? null : liveProjection() };
+  });
+
+  app.get<{ Querystring: { week?: string } }>('/api/recap', { preHandler: requireAuth }, async (req, reply) => {
+    const week = req.query.week ? Number(req.query.week) : latestRecapWeek();
+    if (!week) return reply.code(404).send({ error: 'Pas encore de match terminé depuis la reprise.' });
+    return recap(week);
   });
 
   app.get('/api/profile', { preHandler: requireAuth }, async (req) => {
