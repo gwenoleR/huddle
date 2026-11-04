@@ -38,13 +38,13 @@ Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**.
 
 ### Mettre à jour
 
-Chaque push sur `main` déclenche GitHub Actions, qui construit l'image et la publie sur `ghcr.io/gwenoler/pronos`, avec les tags `latest` et le hash court du commit. Une fois le build terminé (onglet Actions du dépôt, environ 2 min), sur le serveur :
+Chaque push sur `main` déclenche GitHub Actions, qui construit l'image et la publie sur `ghcr.io/gwenoler/pronos`, avec les tags `latest` et `sha-<hash court du commit>` (ex. `sha-daade27`). Une fois le build terminé (onglet Actions du dépôt, environ 2 min), sur le serveur :
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-Pour revenir à une version précise, remplacer `latest` par le hash du commit dans `docker-compose.yml`. Pour construire sur le serveur sans passer par GitHub : `docker compose up -d --build`.
+Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` dans `docker-compose.yml`. Pour construire sur le serveur sans passer par GitHub : `docker compose up -d --build`.
 
 ## Admin
 
