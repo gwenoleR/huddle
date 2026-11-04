@@ -1,3 +1,4 @@
+import { openTeam } from '../lib/teamSheet';
 import type { GameDto, TeamDto } from '../lib/api';
 import type { MatchStatus, Team } from '../ds/components';
 
@@ -27,4 +28,13 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 
 export function Loading() {
   return <p className="empty">Chargement…</p>;
+}
+
+/** Nom d'équipe cliquable qui ouvre sa fiche (jamais sur les boutons de prono). */
+export function TeamLink({ abbr, className, children }: { abbr: string; className?: string; children: React.ReactNode }) {
+  return (
+    <button type="button" className={`team-link${className ? ` ${className}` : ''}`} onClick={() => openTeam(abbr)}>
+      {children}
+    </button>
+  );
 }

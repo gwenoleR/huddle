@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Button } from '../ds/components';
 import { api, type NflStandingsDto, type NflTeamRow } from '../lib/api';
+import { openTeam } from '../lib/teamSheet';
 import { Loading } from './shared';
 
 const PLAYOFF_SPOTS = 7;
@@ -66,7 +67,7 @@ export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: R
                   {c.seeds.map((t, i) => (
                     <li key={t.teamId} className={i >= PLAYOFF_SPOTS ? 'nfl-out' : undefined}>
                       {i === PLAYOFF_SPOTS && <div className="nfl-cut">Ligne des playoffs</div>}
-                      <div className="nfl-row">
+                      <button type="button" className="nfl-row" onClick={() => openTeam(t.team.abbr)}>
                         <span className="nfl-rank">{t.seed ?? i + 1}</span>
                         <img src={logo(t)} alt="" width={28} height={28} loading="lazy" />
                         <span className="nfl-name">
@@ -77,7 +78,7 @@ export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: R
                           </span>
                         </span>
                         <span className="nfl-rec">{t.record}</span>
-                      </div>
+                      </button>
                     </li>
                   ))}
                 </ol>
@@ -106,7 +107,7 @@ export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: R
                   <ol className="nfl-list">
                     {div.teams.map((t) => (
                       <li key={t.teamId}>
-                        <div className="nfl-row">
+                        <button type="button" className="nfl-row" onClick={() => openTeam(t.team.abbr)}>
                           <span className="nfl-rank">{t.divRank}</span>
                           <img src={logo(t)} alt="" width={28} height={28} loading="lazy" />
                           <span className="nfl-name">
@@ -123,7 +124,7 @@ export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: R
                               {t.diff ?? '–'}
                             </span>
                           </span>
-                        </div>
+                        </button>
                       </li>
                     ))}
                   </ol>

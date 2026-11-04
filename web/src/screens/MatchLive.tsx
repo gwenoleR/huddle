@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, type GameDto, type LiveDto } from '../lib/api';
+import { TeamLink } from './shared';
 
 const periodLabel = (p: number) => (p > 4 ? 'Prol.' : `Q${p}`);
 
@@ -85,9 +86,13 @@ export function MatchLive({ game }: { game: GameDto }) {
       {d.stats.length > 0 && (
         <section className="card card-pad live-stats">
           <div className="live-stats-head">
-            <b className="pr-a">{game.away.abbr}</b>
+            <TeamLink abbr={game.away.abbr} className="pr-a">
+              <b>{game.away.abbr}</b>
+            </TeamLink>
             <span className="section-title" style={{ margin: 0 }}>Les stats du match</span>
-            <b className="pr-b">{game.home.abbr}</b>
+            <TeamLink abbr={game.home.abbr} className="pr-b">
+              <b>{game.home.abbr}</b>
+            </TeamLink>
           </div>
           {d.stats.map((st) => {
             const tot = st.awayValue + st.homeValue;

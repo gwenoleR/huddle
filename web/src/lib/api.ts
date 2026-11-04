@@ -186,3 +186,22 @@ export interface LiveDto {
   leaders: { category: string; away: { name: string; line: string } | null; home: { name: string; line: string } | null }[];
   situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
 }
+
+export interface TeamSheetDto {
+  team: TeamDto;
+  record: string;
+  standing: TeamStandingDto | null;
+  schedule: {
+    id: string;
+    week: number;
+    weekLabel: string;
+    kickoff: number;
+    status: GameDto['status'];
+    detail: string | null;
+    home: boolean;
+    opponent: TeamDto;
+    score: string | null;
+    result: 'V' | 'D' | 'N' | null;
+  }[];
+  bande: { name: string; with: number; withGood: number; against: number; againstGood: number }[];
+}

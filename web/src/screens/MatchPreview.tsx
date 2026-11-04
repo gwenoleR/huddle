@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { TeamLink } from './shared';
 import { api, type GameDto, type PreviewDto, type PreviewSideDto, type TeamStandingDto } from '../lib/api';
 
 const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
@@ -73,7 +74,9 @@ export function MatchPreview({ game }: { game: GameDto }) {
           <tbody>
             {sides.map((s) => (
               <tr key={s}>
-                <th scope="row" className={s === 'away' ? 'pr-a' : 'pr-b'}>{team(s).name}</th>
+                <th scope="row" className={s === 'away' ? 'pr-a' : 'pr-b'}>
+                  <TeamLink abbr={team(s).abbr}>{team(s).name}</TeamLink>
+                </th>
                 <td>{p[s].record ?? '–'}</td>
                 <td>
                   {p[s].venueRecord ?? '–'} <span className="muted small">{s === 'home' ? 'à dom.' : 'à l’ext.'}</span>
@@ -95,7 +98,7 @@ export function MatchPreview({ game }: { game: GameDto }) {
           </div>
         )}
         {sides.map((s) => (
-          <Form key={s} name={team(s).name} side={p[s]} />
+          <Form key={s} name={team(s).name} abbr={team(s).abbr} side={p[s]} />
         ))}
         <span className="muted small">Bilan en victoires-défaites. Forme du plus ancien au plus récent.</span>
       </section>
@@ -111,11 +114,13 @@ export function MatchPreview({ game }: { game: GameDto }) {
   );
 }
 
-function Form({ name, side }: { name: string; side: PreviewSideDto }) {
+function Form({ name, abbr, side }: { name: string; abbr: string; side: PreviewSideDto }) {
   if (!side.form.length) return null;
   return (
     <div className="preview-form">
-      <span className="preview-form-name">{name}</span>
+      <TeamLink abbr={abbr} className="preview-form-name">
+        {name}
+      </TeamLink>
       <span className="preview-chips">
         {side.form.map((f, i) => (
           <span
@@ -157,7 +162,7 @@ function Injuries({ name, side, color }: { name: string; side: PreviewSideDto; c
 }
 
 /** « 1er AFC Est · 3e tête de série » ou « 3e NFC Nord · hors playoffs ». */
-function standingText(st: TeamStandingDto | null): string {
+export function standingText(st: TeamStandingDto | null): string {
   if (!st) return '–';
   const div = `${st.divRank === 1 ? '1er' : `${st.divRank}e`} ${st.division}`;
   if (st.clinch === 'out') return `${div} · éliminé`;

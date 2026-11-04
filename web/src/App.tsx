@@ -4,6 +4,7 @@ import { api, type Me } from './lib/api';
 import { go, useRoute } from './lib/router';
 import { useTheme } from './lib/theme';
 import { Leaderboard } from './screens/Leaderboard';
+import { TeamSheet } from './screens/TeamSheet';
 import { Login } from './screens/Login';
 import { MatchDetail } from './screens/MatchDetail';
 import { Matches } from './screens/Matches';
@@ -55,6 +56,7 @@ export function App() {
         {route.name === 'profil' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
       </div>
       <BottomNav active={tab} onChange={(id) => go(id)} />
+      <TeamSheet me={me} theme={theme} />
       {toast && (
         <div className="toast" role="status">
           {toast}
