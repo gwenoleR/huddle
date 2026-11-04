@@ -454,3 +454,57 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
 
   return { winProb, length: 3600 + Math.max(0, maxPeriod - 4) * otLength, scoring, stats, leaders, situation };
 }
+
+// ---------- Classement NFL ----------
+
+export interface StandingTeam {
+  teamId: string;
+  record: string;
+  streak: string | null;
+  seed: number | null;
+  diff: string | null;
+  divRecord: string | null;
+  divRank: number;
+  /** « in » : qualifié pour les playoffs, « out » : éliminé (seulement en fin de saison). */
+  clinch: 'in' | 'out' | null;
+}
+
+export interface NflStandings {
+  conferences: { abbr: string; divisions: { name: string; teams: StandingTeam[] }[] }[];
+}
+
+const DIV_FR: Record<string, string> = { East: 'Est', North: 'Nord', South: 'Sud', West: 'Ouest' };
+
+function frenchStreak(v: unknown): string | null {
+  const m = /^([WLT])(\d+)$/.exec(String(v ?? ''));
+  if (!m) return null;
+  return `${m[2]} ${m[1] === 'W' ? 'V' : m[1] === 'L' ? 'D' : 'N'}`;
+}
+
+export async function fetchStandings(season: number): Promise<NflStandings> {
+  const d = await getJson(`${BASE.replace('/apis/site/v2/', '/apis/v2/')}/standings?season=${season}&level=3`);
+  const conferences = (d.children ?? []).map((conf: any) => ({
+    abbr: String(conf.abbreviation ?? conf.name),
+    divisions: (conf.children ?? []).map((div: any) => {
+      const [c, dir] = String(div.name ?? '').split(' ');
+      return {
+        name: `${c} ${DIV_FR[dir] ?? dir ?? ''}`.trim(),
+        teams: (div.standings?.entries ?? []).map((e: any, i: number) => {
+          const stat = (name: string) => e.stats?.find((s: any) => s.name === name || s.type === name)?.displayValue ?? null;
+          const clincher = String(stat('clincher') ?? '').trim().toLowerCase();
+          return {
+            teamId: String(e.team?.id),
+            record: stat('overall') ?? `${stat('wins') ?? 0}-${stat('losses') ?? 0}`,
+            streak: frenchStreak(stat('streak')),
+            seed: stat('playoffSeed') ? Number(stat('playoffSeed')) : null,
+            diff: stat('differential') ?? stat('pointDifferential'),
+            divRecord: stat('vs. Div.') ?? stat('divisionRecord'),
+            divRank: i + 1,
+            clinch: clincher === 'e' ? 'out' : clincher ? 'in' : null
+          } satisfies StandingTeam;
+        })
+      };
+    })
+  }));
+  return { conferences };
+}

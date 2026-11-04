@@ -866,3 +866,135 @@ html.short-webview .login {
 .live-leader-p:last-child {
   text-align: right;
 }
+
+/* Classement : bascule La bande / NFL */
+.league-tabs {
+  display: flex;
+  gap: var(--space-5, 20px);
+  border-bottom: 1px solid var(--surface-200);
+}
+.league-tabs a {
+  padding: 6px 0 8px;
+  margin-bottom: -1px;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+.league-tabs a[aria-current='page'] {
+  color: var(--ink);
+  border-bottom-color: var(--brand);
+}
+
+/* Classement NFL */
+.nfl-card {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.nfl-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+}
+.nfl-div-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.nfl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nfl-list li + li .nfl-row {
+  border-top: 1px solid var(--surface-200);
+}
+.nfl-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 0;
+}
+.nfl-row img {
+  flex: none;
+  object-fit: contain;
+}
+.nfl-rank {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink-muted);
+}
+.nfl-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 15px;
+}
+.nfl-name > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nfl-rec {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.nfl-cols {
+  flex: none;
+  display: grid;
+  grid-template-columns: 52px 34px 38px;
+  text-align: right;
+  align-items: baseline;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.nfl-plus {
+  color: var(--correct);
+}
+.nfl-minus {
+  color: var(--wrong);
+}
+.nfl-out {
+  opacity: 0.6;
+}
+.nfl-cut {
+  margin: 4px 0;
+  padding: 4px 0;
+  border-top: 2px dashed var(--brand);
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  opacity: 1;
+}
+.nfl-out .nfl-cut {
+  opacity: 1;
+}
+.preview-standing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+.preview-standing .detail-link {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+}

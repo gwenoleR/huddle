@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, type GameDto, type PreviewDto, type PreviewSideDto } from '../lib/api';
+import { api, type GameDto, type PreviewDto, type PreviewSideDto, type TeamStandingDto } from '../lib/api';
 
 const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
 const fr = (n: number) => n.toLocaleString('fr-FR');
@@ -82,6 +82,18 @@ export function MatchPreview({ game }: { game: GameDto }) {
             ))}
           </tbody>
         </table>
+        {p.standing && (p.standing.away || p.standing.home) && (
+          <div className="preview-standing">
+            {sides.map((s) => (
+              <span key={s} className={s === 'home' ? 'preview-standing-home' : undefined}>
+                <b className={s === 'away' ? 'pr-a' : 'pr-b'}>{team(s).abbr}</b> {standingText(p.standing![s])}
+              </span>
+            ))}
+            <a className="detail-link" href="#/classement/nfl">
+              Voir le classement NFL
+            </a>
+          </div>
+        )}
         {sides.map((s) => (
           <Form key={s} name={team(s).name} side={p[s]} />
         ))}
@@ -142,4 +154,13 @@ function Injuries({ name, side, color }: { name: string; side: PreviewSideDto; c
       )}
     </div>
   );
+}
+
+/** « 1er AFC Est · 3e tête de série » ou « 3e NFC Nord · hors playoffs ». */
+function standingText(st: TeamStandingDto | null): string {
+  if (!st) return '–';
+  const div = `${st.divRank === 1 ? '1er' : `${st.divRank}e`} ${st.division}`;
+  if (st.clinch === 'out') return `${div} · éliminé`;
+  if (!st.seed) return div;
+  return st.seed <= 7 ? `${div} · ${st.seed === 1 ? '1re' : `${st.seed}e`} tête de série` : `${div} · hors playoffs (${st.seed}e)`;
 }

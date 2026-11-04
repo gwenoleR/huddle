@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 export type Route =
   | { name: 'matchs'; week?: number }
   | { name: 'match'; id: string }
-  | { name: 'classement' }
+  | { name: 'classement'; nfl?: boolean }
   | { name: 'profil' }
   | { name: 'bilan' }
   | { name: 'recap'; week?: number };
@@ -14,7 +14,7 @@ export function parseHash(hash: string): Route {
     case 'match':
       return parts[1] ? { name: 'match', id: parts[1] } : { name: 'matchs' };
     case 'classement':
-      return { name: 'classement' };
+      return { name: 'classement', nfl: parts[1] === 'nfl' };
     case 'profil':
       return { name: 'profil' };
     case 'bilan':

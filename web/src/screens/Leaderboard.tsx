@@ -1,11 +1,30 @@
-import { useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { NflStandings } from './NflStandings';
 import { Button, LeaderboardRow, StatusPill } from '../ds/components';
 import { api, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';
 import { Loading } from './shared';
 
-export function Leaderboard({ me }: { me: Me }) {
+export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
+  return nfl ? <NflStandings theme={theme} tabs={<LeagueTabs nfl />} /> : <BandeLeaderboard me={me} tabs={<LeagueTabs nfl={false} />} />;
+}
+
+/** Bascule entre le classement de la bande (par défaut) et celui de la NFL. */
+function LeagueTabs({ nfl }: { nfl: boolean }) {
+  return (
+    <nav className="league-tabs" aria-label="Quel classement">
+      <a href="#/classement" aria-current={nfl ? undefined : 'page'}>
+        La bande
+      </a>
+      <a href="#/classement/nfl" aria-current={nfl ? 'page' : undefined}>
+        NFL
+      </a>
+    </nav>
+  );
+}
+
+function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   const [weeks, setWeeks] = useState<WeeksDto | null>(null);
   const [scope, setScope] = useState<'season' | 'week'>('season');
   const [data, setData] = useState<LeaderboardDto | null>(null);
@@ -67,6 +86,7 @@ export function Leaderboard({ me }: { me: Me }) {
           </span>
           <h1 className="h1">Classement</h1>
         </div>
+        {tabs}
         <div className="segmented">
           <Button variant={scope === 'season' ? 'primary' : 'secondary'} onClick={() => setScope('season')}>
             Saison

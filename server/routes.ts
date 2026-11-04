@@ -18,7 +18,7 @@ import {
 import { awards, latestRecapWeek, liveProjection, pointsFor, recap, standings, streak, weeklyResults } from './scoring';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from './push';
 import { forceSync, syncStatus } from './sync';
-import { fetchLive, fetchPreview, type LiveInfo, type Preview } from './espn';
+import { fetchLive, fetchPreview, fetchStandings, type LiveInfo, type NflStandings, type Preview } from './espn';
 
 // ---------- Mise en forme ----------
 
@@ -217,21 +217,75 @@ export async function routes(app: FastifyInstance) {
     return { ...game, weekLabel: weekLabel(row.week, true), waiting, counted: row.week >= START_WEEK };
   });
 
+  // Classement NFL : pris chez ESPN, gardé 30 min (il ne bouge qu'à la fin des matchs).
+  let nfl: { at: number; data: NflStandings } | null = null;
+  async function nflStandings(): Promise<NflStandings> {
+    if (nfl && Date.now() - nfl.at < 30 * 60_000) return nfl.data;
+    try {
+      const data = await fetchStandings(SEASON);
+      nfl = { at: Date.now(), data };
+      return data;
+    } catch (e) {
+      if (nfl) return nfl.data;
+      throw e;
+    }
+  }
+  /** Place d'une équipe : « 1er AFC Est », tête de série dans sa conférence. */
+  function standingOf(s: NflStandings, teamId: string) {
+    for (const c of s.conferences)
+      for (const d of c.divisions) {
+        const t = d.teams.find((x) => x.teamId === teamId);
+        if (t) return { conference: c.abbr, division: d.name, divRank: t.divRank, seed: t.seed, clinch: t.clinch };
+      }
+    return null;
+  }
+
+  app.get('/api/nfl/standings', { preHandler: requireAuth }, async (req, reply) => {
+    let s: NflStandings;
+    try {
+      s = await nflStandings();
+    } catch (e) {
+      req.log.warn({ err: e }, 'classement NFL indisponible');
+      return reply.code(502).send({ error: 'Le classement NFL ne répond pas pour le moment.' });
+    }
+    const teams = new Map((db.prepare('SELECT * FROM teams').all() as unknown as TeamRow[]).map((t) => [t.id, t]));
+    const row = (t: NflStandings['conferences'][number]['divisions'][number]['teams'][number]) => {
+      const tr = teams.get(t.teamId);
+      return tr ? { ...t, team: teamDto(tr) } : null;
+    };
+    return {
+      season: SEASON,
+      conferences: s.conferences.map((c) => {
+        const divisions = c.divisions.map((d) => ({ name: d.name, teams: d.teams.map(row).filter(Boolean) }));
+        const seeds = divisions
+          .flatMap((d) => d.teams.map((t) => ({ ...t!, division: d.name })))
+          .sort((a, b) => (a.seed ?? 99) - (b.seed ?? 99));
+        return { abbr: c.abbr, divisions, seeds };
+      })
+    };
+  });
+
   // Avant-match : bilan, forme, favori et blessés, pris chez ESPN à la demande et gardés 20 min en mémoire.
   const previews = new Map<string, { at: number; data: Preview }>();
   app.get<{ Params: { id: string } }>('/api/games/:id/preview', { preHandler: requireAuth }, async (req, reply) => {
     const row = db.prepare('SELECT id FROM games WHERE id = ?').get(req.params.id) as { id: string } | undefined;
     if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
+    const game = db.prepare('SELECT away_id, home_id FROM games WHERE id = ?').get(row.id) as { away_id: string; home_id: string };
+    // La place au classement est un bonus : si ESPN ne répond pas, l'avant-match s'affiche sans.
+    const withStandings = async (data: Preview) => {
+      const s = await nflStandings().catch(() => null);
+      return { ...data, standing: s ? { away: standingOf(s, game.away_id), home: standingOf(s, game.home_id) } : null };
+    };
     const hit = previews.get(row.id);
-    if (hit && Date.now() - hit.at < 20 * 60_000) return hit.data;
+    if (hit && Date.now() - hit.at < 20 * 60_000) return withStandings(hit.data);
     try {
       const data = await fetchPreview(row.id);
       if (previews.size > 200) previews.clear();
       previews.set(row.id, { at: Date.now(), data });
-      return data;
+      return withStandings(data);
     } catch (e) {
       req.log.warn({ err: e }, 'avant-match indisponible');
-      if (hit) return hit.data;
+      if (hit) return withStandings(hit.data);
       return reply.code(502).send({ error: 'Infos d’avant-match indisponibles pour le moment.' });
     }
   });

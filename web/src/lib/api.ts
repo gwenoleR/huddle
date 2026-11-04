@@ -150,6 +150,32 @@ export interface PreviewDto {
   away: PreviewSideDto;
   home: PreviewSideDto;
   odds: { favorite: 'away' | 'home' | null; spread: number | null; provider: string } | null;
+  standing: { away: TeamStandingDto | null; home: TeamStandingDto | null } | null;
+}
+
+export interface TeamStandingDto {
+  conference: string;
+  division: string;
+  divRank: number;
+  seed: number | null;
+  clinch: 'in' | 'out' | null;
+}
+
+export interface NflTeamRow {
+  teamId: string;
+  team: TeamDto;
+  record: string;
+  streak: string | null;
+  seed: number | null;
+  diff: string | null;
+  divRecord: string | null;
+  divRank: number;
+  clinch: 'in' | 'out' | null;
+}
+
+export interface NflStandingsDto {
+  season: number;
+  conferences: { abbr: string; divisions: { name: string; teams: NflTeamRow[] }[]; seeds: (NflTeamRow & { division: string })[] }[];
 }
 
 export interface LiveDto {
