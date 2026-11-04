@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds';
-import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type ProfileDto, type SyncStatusDto } from '../lib/api';
+import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type SyncStatusDto } from '../lib/api';
 import { espnLine } from '../lib/labels';
 import { ordinal } from '../lib/format';
 import { keys } from '../lib/queries';
+import { useProfile } from '../lib/data';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
 import { APP_VERSION, reloadLatest } from '../lib/version';
@@ -21,7 +22,7 @@ export function Profile({
   onLogout: () => void;
   notify: (m: string) => void;
 }) {
-  const q = useQuery({ queryKey: keys.profile, queryFn: () => api<ProfileDto>('/profile') });
+  const q = useProfile();
   const p = q.data;
   const error = q.error?.message ?? null;
 

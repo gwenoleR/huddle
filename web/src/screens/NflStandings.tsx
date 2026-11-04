@@ -1,9 +1,8 @@
 import { type ReactNode, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ds';
-import { api, type NflStandingsDto, type NflTeamRow } from '../lib/api';
+import { type NflTeamRow } from '../lib/api';
 import { openTeam } from '../lib/teamSheet';
-import { keys } from '../lib/queries';
+import { useNflStandings } from '../lib/data';
 import { Loading } from './shared';
 
 const PLAYOFF_SPOTS = 7;
@@ -11,7 +10,7 @@ const DIVISION_WINNERS = 4;
 
 /** Classement NFL : la course aux playoffs par conférence, ou les 8 divisions. */
 export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: ReactNode }) {
-  const q = useQuery({ queryKey: keys.nflStandings, queryFn: () => api<NflStandingsDto>('/nfl/standings'), staleTime: 30 * 60_000 });
+  const q = useNflStandings();
   const d = q.data;
   const error = d ? null : q.error?.message ?? null;
   const [view, setView] = useState<'race' | 'divisions'>(() => {

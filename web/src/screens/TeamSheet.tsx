@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ds';
-import { api, type Me, type TeamSheetDto } from '../lib/api';
+import { type Me, type TeamSheetDto } from '../lib/api';
 import { dayLabel } from '../lib/format';
 import { standingText, withByes } from '../lib/labels';
-import { keys } from '../lib/queries';
+import { useTeam } from '../lib/data';
 
 /** Fiche équipe en feuille : on la ferme et on retrouve l'écran (et son prono) tel quel. */
 export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [abbr, setAbbr] = useState<string | null>(null);
-  const q = useQuery({ queryKey: keys.team(abbr ?? ''), queryFn: () => api<TeamSheetDto>(`/teams/${abbr}`), enabled: !!abbr });
+  const q = useTeam(abbr);
   const d = abbr ? q.data ?? null : null;
   const error = d ? null : q.error?.message ?? null;
 

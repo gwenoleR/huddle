@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { api, type GameDto, type LiveDto } from '../lib/api';
+import { type GameDto, type LiveDto } from '../lib/api';
 import { TeamLink } from './shared';
-import { keys } from '../lib/queries';
+import { useLive } from '../lib/data';
 
 const periodLabel = (p: number) => (p > 4 ? 'Prol.' : `Q${p}`);
 
@@ -9,12 +8,7 @@ const periodLabel = (p: number) => (p > 4 ? 'Prol.' : `Q${p}`);
 export function MatchLive({ game }: { game: GameDto }) {
   const live = game.status === 'live';
   // Pendant le match : toutes les 30 s (en pause quand l'appli est en arrière-plan).
-  const q = useQuery({
-    queryKey: keys.live(game.id),
-    queryFn: () => api<LiveDto>(`/games/${game.id}/live`),
-    refetchInterval: live ? 30_000 : false,
-    staleTime: live ? 20_000 : 3600_000
-  });
+  const q = useLive(game.id, live);
   const d = q.data;
   const error = q.error?.message ?? null;
 

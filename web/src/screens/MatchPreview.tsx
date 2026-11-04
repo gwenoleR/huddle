@@ -1,15 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
 import { TeamLink } from './shared';
 import { standingText } from '../lib/labels';
-import { keys } from '../lib/queries';
-import { api, type GameDto, type PreviewDto, type PreviewSideDto, type TeamStandingDto } from '../lib/api';
+import { usePreview } from '../lib/data';
+import { type GameDto, type PreviewSideDto } from '../lib/api';
 
 const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
 const fr = (n: number) => n.toLocaleString('fr-FR');
 
 /** Avant-match : bilan, forme, favori et blessés. Ne s'affiche que tant que le match n'a pas commencé. */
 export function MatchPreview({ game }: { game: GameDto }) {
-  const q = useQuery({ queryKey: keys.preview(game.id), queryFn: () => api<PreviewDto>(`/games/${game.id}/preview`), staleTime: 20 * 60_000 });
+  const q = usePreview(game.id);
   const p = q.data;
   const error = p ? null : q.error?.message ?? null;
 

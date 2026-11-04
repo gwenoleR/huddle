@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Icon, LeaderboardRow } from '../ds';
-import { api, type AwardDto, type Me, type SeasonDto } from '../lib/api';
+import { type AwardDto, type Me } from '../lib/api';
 import { BackLink, Loading } from './shared';
-import { keys } from '../lib/queries';
+import { useSeason } from '../lib/data';
 
 export function Season({ me }: { me: Me }) {
-  const q = useQuery({ queryKey: keys.season, queryFn: () => api<SeasonDto>('/season') });
+  const q = useSeason();
   const s = q.data;
   const error = q.error?.message ?? null;
   const [open, setOpen] = useState<AwardDto | null>(null);

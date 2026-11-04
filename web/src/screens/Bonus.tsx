@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds';
 import { api, type BonusDto, type BonusPickDto, type Me, type TeamDto } from '../lib/api';
 import { dayLabel, kickoffLabel } from '../lib/format';
 import { BackLink, Loading } from './shared';
 import { keys } from '../lib/queries';
+import { useBonus } from '../lib/data';
 
 const pts = (n: number) => `${n} pt${n > 1 ? 's' : ''}`;
 
 /** Bonus de fin de saison : règles, choix (avant la Wild Card), puis révélation et résultats. */
 export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') });
+  const q = useBonus();
   const d = q.data;
   const error = q.error?.message ?? null;
   const [afc, setAfc] = useState<string | null>(null);

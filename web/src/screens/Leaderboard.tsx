@@ -1,11 +1,10 @@
 import { type ReactNode, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { NflStandings } from './NflStandings';
 import { Button, LeaderboardRow, StatusPill } from '../ds';
-import { api, type BonusDto, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
+import { type Me, type StandingRow } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';
-import { keys } from '../lib/queries';
+import { useBonus, useLeaderboard, useWeeks } from '../lib/data';
 import { Loading } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
@@ -28,18 +27,13 @@ function LeagueTabs({ nfl }: { nfl: boolean }) {
 
 function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   const [scope, setScope] = useState<'season' | 'week'>('season');
-  const weeksQ = useQuery({ queryKey: keys.weeks, queryFn: () => api<WeeksDto>('/weeks') });
+  const weeksQ = useWeeks();
   const weeks = weeksQ.data;
-  const bonusOn = useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') }).data?.enabled ?? false;
+  const bonusOn = useBonus().data?.enabled ?? false;
 
   // Pendant les matchs, le classement bouge : on le rafraîchit toutes les 30 s.
   const week = scope === 'week' ? weeks?.current : undefined;
-  const q = useQuery({
-    queryKey: keys.leaderboard(week),
-    queryFn: () => api<LeaderboardDto>(week ? `/leaderboard?week=${week}` : '/leaderboard'),
-    enabled: !!weeks,
-    refetchInterval: (query) => (query.state.data?.live ? 30_000 : false)
-  });
+  const q = useLeaderboard(week, !!weeks);
   const data = q.data;
   const error = (q.error ?? weeksQ.error)?.message ?? null;
   const live = scope === 'season' ? data?.live ?? null : null;

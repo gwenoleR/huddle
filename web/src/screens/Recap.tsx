@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ds';
-import { api, type RecapDto } from '../lib/api';
-import { keys } from '../lib/queries';
+import { useRecap } from '../lib/data';
 import { drawRecap, RECAP_H, RECAP_W } from '../lib/recapImage';
 import { BackLink, Loading } from './shared';
 
 /** Récap de la semaine : image générée sur le téléphone, partagée via le menu Partager du système. */
 export function Recap({ week, notify }: { week?: number; notify: (m: string) => void }) {
-  const q = useQuery({ queryKey: keys.recap(week), queryFn: () => api<RecapDto>(week ? `/recap?week=${week}` : '/recap') });
+  const q = useRecap(week);
   const data = q.data ?? null;
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);

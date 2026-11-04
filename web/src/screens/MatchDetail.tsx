@@ -1,33 +1,17 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, MatchCard, type Side } from '../ds';
-import { api, type GameDetailDto, type Me } from '../lib/api';
+import type { Me } from '../lib/api';
+import { useGame, usePick } from '../lib/data';
 import { kickoffLabel } from '../lib/format';
-import { applyPick, keys } from '../lib/queries';
 import { MatchLive } from './MatchLive';
 import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
 
 export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: keys.game(id), queryFn: () => api<GameDetailDto>(`/games/${id}`), refetchInterval: 60_000 });
+  const q = useGame(id);
   const g = q.data;
   const error = q.error?.message ?? null;
-
-  async function pick(side: Side) {
-    if (!g || g.myPick === side) return;
-    const key = keys.game(id);
-    await qc.cancelQueries({ queryKey: key });
-    const previous = qc.getQueryData<GameDetailDto>(key);
-    qc.setQueryData<GameDetailDto>(key, (d) => d && { ...applyPick(d, side, me.name), waiting: d.waiting.filter((n) => n !== me.name) });
-    try {
-      await api(`/picks/${id}`, { method: 'PUT', body: { side } });
-    } catch (e) {
-      qc.setQueryData(key, previous);
-      notify((e as Error).message);
-    }
-    void qc.invalidateQueries({ queryKey: key });
-    void qc.invalidateQueries({ queryKey: keys.week(g.week) });
-  }
+  const pickGame = usePick(me, notify);
+  const pick = (side: Side) => g && pickGame(g, side);
 
   if (!g) return error ? <p className="error-box">{error}</p> : <Loading />;
   const { status, statusText } = cardStatus(g);
