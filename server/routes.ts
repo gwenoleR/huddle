@@ -25,6 +25,8 @@ import {
   bonusPicks,
   bonusPointsByPlayer,
   bonusResult,
+  bonusRevealAt,
+  bonusRevealed,
   bonusSettings,
   saveBonusPick,
   saveBonusSettings
@@ -288,13 +290,17 @@ export async function routes(app: FastifyInstance) {
     const mine = picks.find((p) => p.playerId === req.me.id) ?? null;
     const result = bonusResult();
     const points = bonusPointsByPlayer();
+    const revealed = bonusRevealed();
     const players = db.prepare('SELECT id, name FROM players ORDER BY name COLLATE NOCASE').all() as { id: number; name: string }[];
     const pickDto = (p: (typeof picks)[number]) => ({ afc: team(p.afc), nfc: team(p.nfc), sb: team(p.sb), sbTotal: p.sbTotal });
     return {
       enabled: settings.enabled,
       points: settings.points,
+      reveal: settings.reveal,
       phase,
       lockAt: bonusLockAt(),
+      revealed,
+      revealAt: bonusRevealAt(),
       field: field
         ? {
             afc: field.afc.map((t) => ({ seed: t.seed, team: team(t.teamId) })),
@@ -302,14 +308,14 @@ export async function routes(app: FastifyInstance) {
           }
         : null,
       mine: mine ? pickDto(mine) : null,
-      // Avant la clôture : seulement qui a déjà choisi (pas quoi). Après : les choix de tout le monde.
+      // Avant la révélation : seulement qui a choisi (pas quoi). Après : les choix de tout le monde.
       players: players.map((pl) => {
         const p = picks.find((x) => x.playerId === pl.id);
         return {
           name: pl.name,
           done: !!p,
-          pick: phase === 'locked' && p ? pickDto(p) : null,
-          points: phase === 'locked' && p ? points.get(pl.id) ?? 0 : null
+          pick: revealed && p ? pickDto(p) : null,
+          points: revealed && p ? points.get(pl.id) ?? 0 : null
         };
       }),
       result: { afc: team(result.afc), nfc: team(result.nfc), sb: team(result.sb), sbTotal: result.sbTotal }
@@ -335,7 +341,7 @@ export async function routes(app: FastifyInstance) {
 
   app.get('/api/admin/bonus', { preHandler: requireAdmin }, async () => bonusSettings());
 
-  app.put<{ Body: { enabled?: boolean; points?: { afc?: number; nfc?: number; sb?: number } } }>(
+  app.put<{ Body: { enabled?: boolean; reveal?: string; points?: { afc?: number; nfc?: number; sb?: number } } }>(
     '/api/admin/bonus',
     { preHandler: requireAdmin },
     async (req, reply) => {
@@ -343,7 +349,9 @@ export async function routes(app: FastifyInstance) {
       const pts = { ...cur.points, ...(req.body?.points ?? {}) };
       for (const v of Object.values(pts))
         if (!Number.isInteger(v) || v < 0 || v > 50) return reply.code(400).send({ error: 'Les points doivent être des nombres entiers entre 0 et 50.' });
-      const next = { enabled: req.body?.enabled ?? cur.enabled, points: pts };
+      const reveal = req.body?.reveal ?? cur.reveal;
+      if (reveal !== 'wildcard' && reveal !== 'superbowl') return reply.code(400).send({ error: 'Révélation inconnue.' });
+      const next = { enabled: req.body?.enabled ?? cur.enabled, points: pts, reveal: reveal as 'wildcard' | 'superbowl' };
       saveBonusSettings(next);
       return next;
     }

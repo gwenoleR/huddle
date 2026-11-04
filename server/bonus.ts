@@ -20,17 +20,21 @@ db.exec(`
   );
 `);
 
+export type BonusReveal = 'wildcard' | 'superbowl';
+
 export interface BonusSettings {
   enabled: boolean;
   points: { afc: number; nfc: number; sb: number };
+  /** Quand on dévoile les choix : au coup d'envoi de la Wild Card (clôture) ou à celui du Super Bowl. */
+  reveal: BonusReveal;
 }
 
-const DEFAULTS: BonusSettings = { enabled: true, points: { afc: 3, nfc: 3, sb: 5 } };
+const DEFAULTS: BonusSettings = { enabled: true, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' };
 
 export function bonusSettings(): BonusSettings {
   try {
     const s = JSON.parse(getMeta('bonus_settings') ?? 'null');
-    if (s) return { enabled: !!s.enabled, points: { ...DEFAULTS.points, ...s.points } };
+    if (s) return { enabled: !!s.enabled, points: { ...DEFAULTS.points, ...s.points }, reveal: s.reveal === 'superbowl' ? 'superbowl' : 'wildcard' };
   } catch {
     /* réglages illisibles : valeurs par défaut */
   }
@@ -79,6 +83,24 @@ export function bonusPhase(now = Date.now()): BonusPhase {
   return now < lock ? 'open' : 'locked';
 }
 
+/** Coup d'envoi du Super Bowl, s'il est déjà au calendrier. */
+export function superBowlKickoff(): number | null {
+  const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 22').get(SEASON) as { k: number | null };
+  return r.k;
+}
+
+/** Moment où les choix de la bande deviennent visibles (null si pas encore connu). */
+export function bonusRevealAt(): number | null {
+  return bonusSettings().reveal === 'superbowl' ? superBowlKickoff() : bonusLockAt();
+}
+
+/** Les choix (et donc les points bonus) sont-ils dévoilés ? */
+export function bonusRevealed(now = Date.now()): boolean {
+  if (bonusPhase(now) !== 'locked') return false;
+  const at = bonusRevealAt();
+  return at != null && now >= at;
+}
+
 export interface BonusPick {
   playerId: number;
   afc: string;
@@ -105,7 +127,8 @@ export function saveBonusPick(p: BonusPick) {
 export function bonusPointsByPlayer(): Map<number, number> {
   const out = new Map<number, number>();
   const s = bonusSettings();
-  if (!s.enabled) return out;
+  // Tant que les choix sont secrets, les points bonus aussi : sinon le classement trahirait qui a quoi.
+  if (!s.enabled || !bonusRevealed()) return out;
   const r = bonusResult();
   for (const p of bonusPicks()) {
     const pts = (r.afc && p.afc === r.afc ? s.points.afc : 0) + (r.nfc && p.nfc === r.nfc ? s.points.nfc : 0) + (r.sb && p.sb === r.sb ? s.points.sb : 0);

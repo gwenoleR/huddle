@@ -265,6 +265,7 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
 interface BonusSettings {
   enabled: boolean;
   points: { afc: number; nfc: number; sb: number };
+  reveal: 'wildcard' | 'superbowl';
 }
 
 /** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
@@ -338,6 +339,29 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
           <Button type="submit" disabled={!changed || Object.values(draft).some((v) => v === '')}>
             Enregistrer le barème
           </Button>
+          <span className="small">Révéler les choix de la bande</span>
+          <div className="segmented">
+            {(
+              [
+                ['wildcard', 'À la Wild Card'],
+                ['superbowl', 'Au Super Bowl']
+              ] as const
+            ).map(([v, label]) => (
+              <Button
+                key={v}
+                type="button"
+                variant={s.reveal === v ? 'primary' : 'secondary'}
+                onClick={() => s.reveal !== v && save({ reveal: v }, `Choix révélés ${v === 'wildcard' ? 'à la Wild Card' : 'au Super Bowl'}`)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <span className="small muted">
+            {s.reveal === 'wildcard'
+              ? 'Dès la clôture des choix : on suit qui est encore en course pendant les playoffs.'
+              : 'Au coup d’envoi du Super Bowl : suspense jusqu’au bout, points bonus ajoutés à ce moment-là.'}
+          </span>
         </>
       )}
     </form>

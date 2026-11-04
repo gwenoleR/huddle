@@ -207,7 +207,9 @@ function BonusBanner({ playoffs }: { playoffs: boolean }) {
             ? b.mine
               ? `Tes choix sont faits · modifiables jusqu’au ${dayLabel(b.lockAt!)}`
               : `Jusqu’à ${max} pts à gagner · à choisir avant le ${dayLabel(b.lockAt!)}`
-            : 'Les choix de la bande sont révélés'}
+            : b.revealed
+              ? 'Les choix de la bande sont révélés'
+              : 'Choix verrouillés · révélés au coup d’envoi du Super Bowl'}
         </span>
       </span>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

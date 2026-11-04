@@ -210,8 +210,11 @@ export interface TeamSheetDto {
 export interface BonusDto {
   enabled: boolean;
   points: { afc: number; nfc: number; sb: number };
+  reveal: 'wildcard' | 'superbowl';
   phase: 'off' | 'waiting' | 'open' | 'locked';
   lockAt: number | null;
+  revealed: boolean;
+  revealAt: number | null;
   field: { afc: { seed: number; team: TeamDto }[]; nfc: { seed: number; team: TeamDto }[] } | null;
   mine: BonusPickDto | null;
   players: { name: string; done: boolean; pick: BonusPickDto | null; points: number | null }[];

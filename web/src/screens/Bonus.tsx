@@ -84,8 +84,9 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
               <b>{pts(d.points.sb)}</b>
             </div>
             <span className="muted small">
-              Les choix restent secrets jusqu’au premier match de Wild Card. En cas d’égalité au classement final, le plus proche du total
-              de points marqués au Super Bowl passe devant.
+              Les choix restent secrets jusqu’au {d.reveal === 'superbowl' ? 'coup d’envoi du Super Bowl' : 'premier match de Wild Card'}
+              {d.reveal === 'superbowl' ? ' (on peut les changer jusqu’à la Wild Card)' : ''}. En cas d’égalité au classement final, le plus
+              proche du total de points marqués au Super Bowl passe devant.
             </span>
           </section>
         )}
@@ -176,26 +177,7 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
               {d.mine ? 'Mettre à jour mes choix' : 'Valider mes choix'}
             </Button>
 
-            <section className="grid-2">
-              {[
-                { title: 'Ont choisi', list: d.players.filter((p) => p.done), color: 'var(--correct)' },
-                { title: 'Pas encore', list: d.players.filter((p) => !p.done), color: 'var(--ink-muted)' }
-              ].map((col) => (
-                <div key={col.title} className="card people">
-                  <h2>
-                    {col.title}
-                    <span style={{ color: col.color, fontVariantNumeric: 'tabular-nums' }}>{col.list.length}</span>
-                  </h2>
-                  {col.list.length === 0 && <span className="muted small">Personne</span>}
-                  {col.list.map((p) => (
-                    <div key={p.name} className="person">
-                      <Avatar name={p.name} size="sm" me={p.name === me.name} />
-                      <span>{p.name === me.name ? 'Toi' : p.name}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </section>
+            <WhoChose players={d.players} me={me} />
           </>
         )}
 
@@ -220,6 +202,20 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
                 </div>
               </section>
             )}
+            {!d.revealed && (
+              <>
+                <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <b>Choix verrouillés 🔒</b>
+                  <span className="muted small">
+                    Les choix de la bande seront révélés au coup d’envoi du Super Bowl
+                    {d.revealAt ? `, le ${dayLabel(d.revealAt)} à ${kickoffLabel(d.revealAt).split(' ')[1]}` : ''}. Les points bonus
+                    arriveront au classement à ce moment-là.
+                  </span>
+                </div>
+                <WhoChose players={d.players} me={me} locked />
+              </>
+            )}
+            {d.revealed && (
             <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <h2 className="section-title" style={{ margin: 0 }}>
                 Les choix de la bande
@@ -235,6 +231,7 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
                 </div>
               ))}
             </section>
+            )}
           </>
         )}
       </main>
@@ -261,5 +258,31 @@ function PickLine({ pick, result }: { pick: BonusPickDto; result: BonusDto['resu
         {result.sbTotal != null && <span className="muted"> (écart {Math.abs(pick.sbTotal - result.sbTotal)})</span>}
       </span>
     </div>
+  );
+}
+
+/** Qui a déjà fait ses choix (sans dire lesquels), présenté comme sur la fiche match. */
+function WhoChose({ players, me, locked }: { players: BonusDto['players']; me: Me; locked?: boolean }) {
+  return (
+    <section className="grid-2">
+      {[
+        { title: 'Ont choisi', list: players.filter((p) => p.done), color: 'var(--correct)' },
+        { title: locked ? 'Pas de choix' : 'Pas encore', list: players.filter((p) => !p.done), color: 'var(--ink-muted)' }
+      ].map((col) => (
+        <div key={col.title} className="card people">
+          <h2>
+            {col.title}
+            <span style={{ color: col.color, fontVariantNumeric: 'tabular-nums' }}>{col.list.length}</span>
+          </h2>
+          {col.list.length === 0 && <span className="muted small">Personne</span>}
+          {col.list.map((p) => (
+            <div key={p.name} className="person">
+              <Avatar name={p.name} size="sm" me={p.name === me.name} />
+              <span>{p.name === me.name ? 'Toi' : p.name}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
   );
 }
