@@ -792,3 +792,77 @@ html.short-webview .login {
   font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Stats et meilleurs joueurs (fiche match) */
+.live-stats,
+.live-leaders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.live-stats-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+.live-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.live-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.live-stat-row > :nth-child(2) {
+  text-align: center;
+}
+.live-stat-row > :last-child {
+  text-align: right;
+}
+.live-stat-best {
+  font-weight: 700;
+}
+.live-stat-bar {
+  display: flex;
+  gap: 3px;
+  height: 4px;
+}
+.live-stat-bar > span {
+  border-radius: var(--radius-pill);
+  min-width: 2px;
+}
+.live-dim {
+  opacity: 0.3;
+}
+.live-leader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.live-leader + .live-leader {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--surface-200);
+}
+.live-leader-cat {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+.live-leader-p {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.live-leader-p:last-child {
+  text-align: right;
+}

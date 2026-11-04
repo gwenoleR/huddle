@@ -6,7 +6,7 @@ import { MatchLive } from './MatchLive';
 import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
 
-type Detail = GameDto & { weekLabel: string; waiting: string[] };
+type Detail = GameDto & { weekLabel: string; waiting: string[]; counted: boolean };
 
 export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
   const [g, setG] = useState<Detail | null>(null);
@@ -63,34 +63,38 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
         {(g.status === 'scheduled' || g.status === 'postponed') && <MatchPreview game={g} />}
         {(g.status === 'live' || g.status === 'final') && <MatchLive game={g} />}
 
-        <section className="grid-2">
-          {(['away', 'home'] as const).map((side) => (
-            <div key={side} className="card people">
-              <h2>
-                {g[side].name}
-                <span style={{ color: side === 'away' ? 'var(--side-a)' : 'var(--side-b)', fontVariantNumeric: 'tabular-nums' }}>
-                  {g.pickers[side].length}
-                </span>
-              </h2>
-              {g.pickers[side].length === 0 && <span className="muted small">Personne</span>}
-              {g.pickers[side].map((n) => (
-                <div key={n} className="person">
-                  <Avatar name={n} size="sm" side={side === 'away' ? 'a' : 'b'} me={n === me.name} />
-                  <span>{label(n)}</span>
+        {g.counted && (
+          <>
+            <section className="grid-2">
+              {(['away', 'home'] as const).map((side) => (
+                <div key={side} className="card people">
+                  <h2>
+                    {g[side].name}
+                    <span style={{ color: side === 'away' ? 'var(--side-a)' : 'var(--side-b)', fontVariantNumeric: 'tabular-nums' }}>
+                      {g.pickers[side].length}
+                    </span>
+                  </h2>
+                  {g.pickers[side].length === 0 && <span className="muted small">Personne</span>}
+                  {g.pickers[side].map((n) => (
+                    <div key={n} className="person">
+                      <Avatar name={n} size="sm" side={side === 'away' ? 'a' : 'b'} me={n === me.name} />
+                      <span>{label(n)}</span>
+                    </div>
+                  ))}
                 </div>
               ))}
-            </div>
-          ))}
-        </section>
+            </section>
 
-        <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="section-title" style={{ margin: 0 }}>
-            Pas encore joué
-          </span>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>
-            {g.waiting.length ? g.waiting.map(label).join(', ') : 'Personne. Toute la bande a choisi son camp.'}
-          </span>
-        </div>
+            <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="section-title" style={{ margin: 0 }}>
+                Pas encore joué
+              </span>
+              <span style={{ fontSize: 15, fontWeight: 500 }}>
+                {g.waiting.length ? g.waiting.map(label).join(', ') : 'Personne. Toute la bande a choisi son camp.'}
+              </span>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

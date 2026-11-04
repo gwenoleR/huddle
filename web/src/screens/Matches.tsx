@@ -167,11 +167,9 @@ export function Matches({
                 onPick={g.locked ? undefined : (side) => pick(g, side)}
                 emptyText={counted ? undefined : 'Avant l’appli'}
                 footer={
-                  counted && (
-                    <a className="detail-link" href={`#/match/${g.id}`}>
-                      {g.status === 'scheduled' ? 'Favori, forme, blessés et pronos' : 'Voir qui a pris quoi'}
-                    </a>
-                  )
+                  <a className="detail-link" href={`#/match/${g.id}`}>
+                    {detailLabel(g.status, counted)}
+                  </a>
                 }
               />
             </Fragment>
@@ -182,4 +180,11 @@ export function Matches({
       </main>
     </div>
   );
+}
+
+function detailLabel(status: GameDto['status'], counted: boolean): string {
+  const pronos = counted ? ' et pronos' : '';
+  if (status === 'final') return `Stats du match${pronos}`;
+  if (status === 'live') return `Suivre le match${pronos}`;
+  return counted ? 'Favori, forme, blessés et pronos' : 'Favori, forme et blessés';
 }

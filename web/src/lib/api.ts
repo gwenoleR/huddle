@@ -156,5 +156,7 @@ export interface LiveDto {
   winProb: { t: number; away: number }[];
   length: number;
   scoring: { side: 'away' | 'home' | null; period: number; clock: string; kind: string; text: string; away: number; home: number }[];
+  stats: { label: string; away: string; home: string; awayValue: number; homeValue: number; lowerIsBetter: boolean }[];
+  leaders: { category: string; away: { name: string; line: string } | null; home: { name: string; line: string } | null }[];
   situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
 }

@@ -82,6 +82,60 @@ export function MatchLive({ game }: { game: GameDto }) {
         </section>
       )}
 
+      {d.stats.length > 0 && (
+        <section className="card card-pad live-stats">
+          <div className="live-stats-head">
+            <b className="pr-a">{game.away.abbr}</b>
+            <span className="section-title" style={{ margin: 0 }}>Les stats du match</span>
+            <b className="pr-b">{game.home.abbr}</b>
+          </div>
+          {d.stats.map((st) => {
+            const tot = st.awayValue + st.homeValue;
+            const pa = tot ? (st.awayValue / tot) * 100 : 50;
+            const better =
+              st.awayValue === st.homeValue ? null : (st.awayValue > st.homeValue) !== st.lowerIsBetter ? 'away' : 'home';
+            return (
+              <div key={st.label} className="live-stat">
+                <div className="live-stat-row">
+                  <span className={better === 'away' ? 'live-stat-best pr-a' : undefined}>{st.away}</span>
+                  <span className="muted small">{st.label}</span>
+                  <span className={better === 'home' ? 'live-stat-best pr-b' : undefined}>{st.home}</span>
+                </div>
+                <div className="live-stat-bar" aria-hidden>
+                  <span className={`pr-split-a${better === 'home' ? ' live-dim' : ''}`} style={{ width: `${pa}%` }} />
+                  <span className={`pr-split-b${better === 'away' ? ' live-dim' : ''}`} style={{ width: `${100 - pa}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {d.leaders.length > 0 && (
+        <section className="card card-pad live-leaders">
+          <span className="section-title" style={{ margin: 0 }}>Les meilleurs joueurs</span>
+          {d.leaders.map((l) => (
+            <div key={l.category} className="live-leader">
+              <span className="muted small live-leader-cat">{l.category}</span>
+              <div className="grid-2" style={{ gap: 12 }}>
+                {(['away', 'home'] as const).map((s) => (
+                  <div key={s} className="live-leader-p">
+                    {l[s] ? (
+                      <>
+                        <b className={s === 'away' ? 'pr-a' : 'pr-b'}>{l[s]!.name}</b>
+                        <span className="small">{l[s]!.line}</span>
+                      </>
+                    ) : (
+                      <span className="muted small">–</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       {d.scoring.length > 0 && (
         <section className="card card-pad live-scoring">
           <span className="section-title" style={{ margin: 0 }}>Les points marqués</span>

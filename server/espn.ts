@@ -235,6 +235,10 @@ export interface LiveInfo {
   /** Durée totale de l'axe (60 min, plus la prolongation s'il y en a une). */
   length: number;
   scoring: { side: 'away' | 'home' | null; period: number; clock: string; kind: string; text: string; away: number; home: number }[];
+  /** Stats d'équipe, déjà traduites ; awayValue/homeValue servent à dessiner les barres. */
+  stats: { label: string; away: string; home: string; awayValue: number; homeValue: number; lowerIsBetter: boolean }[];
+  /** Meilleurs joueurs à la passe, à la course et à la réception. */
+  leaders: { category: string; away: { name: string; line: string } | null; home: { name: string; line: string } | null }[];
   /** Situation en cours, seulement pendant le match. */
   situation: { possession: 'away' | 'home' | null; down: string | null; redZone: boolean; lastPlay: string | null; lastSide: 'away' | 'home' | null } | null;
 }
@@ -329,6 +333,33 @@ function frenchScore(kind: string, text: string): string {
   return `${who}, ${dist}`;
 }
 
+
+const STAT_ROWS: { key: string; label: string; lowerIsBetter?: boolean; show?: (v: string) => string; value?: (v: string) => number }[] = [
+  { key: 'totalYards', label: 'Yards gagnés' },
+  { key: 'netPassingYards', label: 'À la passe' },
+  { key: 'rushingYards', label: 'À la course' },
+  { key: 'firstDowns', label: 'Premiers downs' },
+  { key: 'thirdDownEff', label: 'Conversions en 3e tentative', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
+  { key: 'redZoneAttempts', label: 'Zone rouge (TD / visites)', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
+  { key: 'turnovers', label: 'Ballons perdus', lowerIsBetter: true },
+  { key: 'sacksYardsLost', label: 'Sacks subis', lowerIsBetter: true, show: (v) => v.split('-')[0], value: (v) => Number(v.split('-')[0]) },
+  { key: 'totalPenaltiesYards', label: 'Pénalités', lowerIsBetter: true, show: (v) => { const [n, y] = v.split('-'); return y ? `${n} (${y} yds)` : n; }, value: (v) => Number(v.split('-')[1] ?? v.split('-')[0]) },
+  { key: 'possessionTime', label: 'Possession', show: (v) => v.replace(':', ' min '), value: (v) => toSeconds(v) }
+];
+function ratio(v: string) {
+  const [a, b] = v.split('-').map(Number);
+  return b ? a / b : 0;
+}
+
+function frenchLine(v: unknown): string {
+  return String(v ?? '')
+    .replace(/(\d+) YDS/g, '$1 yds')
+    .replace(/(\d+) CAR\b/g, '$1 courses')
+    .replace(/(\d+) REC\b/g, '$1 réc.');
+}
+
+const LEADER_CATEGORIES: Record<string, string> = { passingYards: 'À la passe', rushingYards: 'À la course', receivingYards: 'À la réception' };
+
 const SCORE_KIND: Record<string, string> = { TD: 'Touchdown', FG: 'Field goal', SF: 'Safety', S: 'Safety', XP: 'Transformation', '2PT': '2 points' };
 
 export async function fetchLive(gameId: string, playoffs: boolean): Promise<LiveInfo> {
@@ -382,6 +413,31 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     };
   });
 
+  const teamStats = (side: 'away' | 'home') => {
+    const t = (d.boxscore?.teams ?? []).find((x: any) => x.homeAway === side || sideOf(x.team?.id) === side);
+    return new Map<string, string>((t?.statistics ?? []).map((st: any) => [st.name, String(st.displayValue ?? '')]));
+  };
+  const sa = teamStats('away');
+  const sh = teamStats('home');
+  const stats: LiveInfo['stats'] = [];
+  for (const r of STAT_ROWS) {
+    const a = sa.get(r.key);
+    const h = sh.get(r.key);
+    if (a == null || h == null || a === '' || h === '') continue;
+    const val = r.value ?? ((v: string) => Number(v));
+    const show = r.show ?? ((v: string) => v);
+    stats.push({ label: r.label, away: show(a), home: show(h), awayValue: val(a) || 0, homeValue: val(h) || 0, lowerIsBetter: !!r.lowerIsBetter });
+  }
+
+  const leaderOf = (side: 'away' | 'home', cat: string) => {
+    const t = (d.leaders ?? []).find((x: any) => sideOf(x.team?.id) === side);
+    const l = t?.leaders?.find((x: any) => x.name === cat)?.leaders?.[0];
+    return l ? { name: String(l.athlete?.displayName ?? '?'), line: frenchLine(l.displayValue) } : null;
+  };
+  const leaders = Object.entries(LEADER_CATEGORIES)
+    .map(([cat, category]) => ({ category, away: leaderOf('away', cat), home: leaderOf('home', cat) }))
+    .filter((l) => l.away || l.home);
+
   let situation: LiveInfo['situation'] = null;
   if (state === 'in') {
     const last = [...plays].reverse().find((p) => p.type?.text && !/timeout|end period|end of half/i.test(p.type.text)) ?? plays.at(-1);
@@ -396,5 +452,5 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     };
   }
 
-  return { winProb, length: 3600 + Math.max(0, maxPeriod - 4) * otLength, scoring, situation };
+  return { winProb, length: 3600 + Math.max(0, maxPeriod - 4) * otLength, scoring, stats, leaders, situation };
 }

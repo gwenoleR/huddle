@@ -214,7 +214,7 @@ export async function routes(app: FastifyInstance) {
     const waiting = (db.prepare('SELECT name FROM players ORDER BY name COLLATE NOCASE').all() as { name: string }[])
       .map((p) => p.name)
       .filter((n) => !done.has(n));
-    return { ...game, weekLabel: weekLabel(row.week, true), waiting };
+    return { ...game, weekLabel: weekLabel(row.week, true), waiting, counted: row.week >= START_WEEK };
   });
 
   // Avant-match : bilan, forme, favori et blessés, pris chez ESPN à la demande et gardés 20 min en mémoire.
