@@ -20,7 +20,6 @@ a {
 .app {
   position: fixed;
   inset: 0;
-  height: var(--app-h, auto); /* posée par main.tsx sur iPhone en mode installé */
   padding-top: env(safe-area-inset-top);
   display: flex;
   flex-direction: column;
@@ -441,6 +440,19 @@ a {
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
+}
+
+/* iOS installé : zone web plus courte que l'écran (voir main.tsx). iOS peint le bas de l'écran
+   avec le fond de la page : il prend la couleur de la navigation, sur les écrans qui en ont une. */
+html.short-webview:has(.pr-nav),
+html.short-webview:has(.pr-nav) body {
+  background: var(--surface-100);
+}
+html.short-webview .pr-nav {
+  padding-bottom: 0;
+}
+html.short-webview .login {
+  padding-bottom: var(--space-6);
 }
 
 /* Toast */

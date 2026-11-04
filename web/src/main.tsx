@@ -14,18 +14,16 @@ import { App } from './App';
 registerSW({ immediate: true });
 
 /**
- * Bug iOS (appli ajoutée à l'écran d'accueil, barre d'état translucide) : la hauteur de la fenêtre
- * ignore la zone de l'heure, ce qui laisse une bande vide sous la navigation. On prend alors la
- * hauteur réelle de l'écran. Si iOS corrige le bug, innerHeight vaut déjà screen.height : rien ne change.
+ * iOS, appli ajoutée à l'écran d'accueil : la zone web s'arrête avant le bas de l'écran (elle est
+ * plus courte que l'écran de la hauteur de la zone de l'heure) et iOS peint le reste avec le fond
+ * de la page. La barre d'accueil est alors hors de la zone web : pas de marge à lui laisser, et le
+ * fond de page prend la couleur de la navigation pour la prolonger jusqu'en bas.
+ * Si iOS corrige ce comportement, innerHeight vaut screen.height et rien ne change.
  */
 if ((navigator as any).standalone === true) {
-  const fit = () => {
-    const h = Math.max(innerHeight, screen.height);
-    document.documentElement.style.setProperty('--app-h', `${h}px`);
-  };
-  fit();
-  addEventListener('resize', fit);
-  addEventListener('orientationchange', fit);
+  const check = () => document.documentElement.classList.toggle('short-webview', innerHeight < screen.height - 1);
+  check();
+  addEventListener('resize', check);
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
