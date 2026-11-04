@@ -1,6 +1,6 @@
 import { SEASON, START_WEEK, weekLabel } from './config';
 import { db } from './db';
-import { bonusPointsByPlayer, tiebreakDistances } from './bonus';
+import { bonusPicks, bonusPointsByPlayer, bonusResult, bonusSettings, tiebreakDistances } from './bonus';
 
 export interface StandingRow {
   id: number;
@@ -113,7 +113,8 @@ const TROPHIES: { id: string; title: string; rule: string }[] = [
   { id: 'contrarian', title: 'À contre-courant', rule: 'Le plus de pronos contre l’avis de la majorité de la bande, bons ou mauvais. Les matchs où la bande est partagée à égalité ne comptent pas.' },
   { id: 'heart', title: 'Le cœur avant la tête', rule: 'L’équipe choisie le plus souvent par un même joueur. Il faut l’avoir prise au moins 3 fois.' },
   { id: 'black-cat', title: 'Le chat noir', rule: 'L’équipe qui a fait perdre le plus de pronos à un même joueur : il l’a prise et elle a perdu. À partir de 3 trahisons.' },
-  { id: 'last-minute', title: 'Sur le fil', rule: 'Le plus de pronos faits (ou changés) dans les 15 dernières minutes avant le coup d’envoi. À partir de 3.' }
+  { id: 'last-minute', title: 'Sur le fil', rule: 'Le plus de pronos faits (ou changés) dans les 15 dernières minutes avant le coup d’envoi. À partir de 3.' },
+  { id: 'nostradamus', title: 'Nostradamus', rule: 'Avoir annoncé le vainqueur du Super Bowl dans le bonus de fin de saison, avant même la Wild Card. Si plusieurs l’ont trouvé, le plus proche du total de points du Super Bowl l’emporte.' }
 ];
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
@@ -204,13 +205,27 @@ function computeTrophy(id: string): { who: string; detail: string } | null {
         .get(...args, Date.now()) as { name: string; n: number } | undefined;
       return r && r.n >= 3 ? { who: r.name, detail: `${plural(r.n, 'prono')} dans le dernier quart d’heure` } : null;
     }
+    case 'nostradamus': {
+      const res = bonusResult();
+      if (!res.sb || res.sbTotal == null) return null;
+      const best = bonusPicks()
+        .filter((p) => p.sb === res.sb)
+        .sort((a, b) => Math.abs(a.sbTotal - res.sbTotal!) - Math.abs(b.sbTotal - res.sbTotal!))[0];
+      if (!best) return null;
+      const name = (db.prepare('SELECT name FROM players WHERE id = ?').get(best.playerId) as { name: string }).name;
+      const team = (db.prepare('SELECT name FROM teams WHERE id = ?').get(res.sb) as { name: string } | undefined)?.name ?? '?';
+      const gap = Math.abs(best.sbTotal - res.sbTotal);
+      return { who: name, detail: `Les ${team} champions, annoncés avant la Wild Card · ${best.sbTotal} pts au total (${gap ? `écart ${gap}` : 'pile poil !'})` };
+    }
   }
   return null;
 }
 
 /** Tous les trophées, attribués ou non (who = null), pour le bilan. */
 export function awards(): Award[] {
-  return TROPHIES.map((t) => {
+  // Nostradamus n'existe que si le bonus de fin de saison est activé.
+  const on = bonusSettings().enabled;
+  return TROPHIES.filter((t) => on || t.id !== 'nostradamus').map((t) => {
     const won = computeTrophy(t.id);
     return { ...t, who: won?.who ?? null, detail: won?.detail ?? null };
   });
