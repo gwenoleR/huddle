@@ -76,6 +76,7 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 - `npm run build` : construit l'interface et le serveur dans `dist/` ;
 - `npm start` : lance la version construite ;
 - `npm run typecheck` : vérifie les types ;
+- `npm test` : lance les tests (`npm run test:watch` pour les relancer à chaque modification) ;
 - `npm run icons` : régénère les icônes à partir de `web/public/icon.svg`.
 
 | Dossier | Contenu |
@@ -84,4 +85,11 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 | `web/src/ds/` | Tokens et composants du design system ([artefact](https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh)) |
 | `web/src/screens/` | Les écrans ([maquettes](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
 | `web/src/sw.ts` | Service worker : cache hors ligne et notifications |
+| `tests/` | Tests Vitest : base SQLite en mémoire, réponses ESPN enregistrées dans `tests/fixtures/espn` |
 | `seed/joueurs.json` | Joueurs et points de départ (lu au tout premier démarrage) |
+
+### Tests
+
+Chaque nouvelle fonctionnalité ou correction arrive avec ses tests. Ils ne touchent jamais à `data/` et n'appellent ni ESPN ni les serveurs de notifications : chaque fichier de test a sa propre base en mémoire (voir `tests/server/helpers.ts` pour fabriquer joueurs, matchs et pronos). En CI, les types et les tests passent avant la construction de l'image Docker : si l'un échoue, rien n'est publié.
+
+Pour rafraîchir une réponse ESPN enregistrée, la télécharger, puis ne garder que les champs lus par `server/espn.ts`.

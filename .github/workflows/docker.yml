@@ -1,6 +1,6 @@
 name: Image Docker
 
-# Construit l'image à chaque push sur main et la publie sur ghcr.io/gwenoler/pronos
+# Vérifie les types, lance les tests, puis construit l'image à chaque push sur main et la publie sur ghcr.io/gwenoler/pronos
 on:
   push:
     branches: [main]
@@ -15,7 +15,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Types et tests d'abord : si l'un des deux échoue, l'image n'est pas publiée.
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+
   build:
+    needs: test
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
