@@ -15,7 +15,9 @@
     "build:server": "esbuild server/index.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=dist/server.mjs",
     "start": "node dist/server.mjs",
     "typecheck": "tsc --noEmit",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.1",
@@ -39,6 +41,7 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^3.2.7",
     "workbox-core": "^7.3.0",
     "workbox-precaching": "^7.3.0",
     "workbox-routing": "^7.3.0",

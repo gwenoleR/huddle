@@ -1,11 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { DATA_DIR, seed } from './config';
+import { DATA_DIR, DB_FILE, seed } from './config';
 
 mkdirSync(DATA_DIR, { recursive: true });
 
-export const db = new DatabaseSync(path.join(DATA_DIR, 'prono.db'));
+export const db = new DatabaseSync(DB_FILE);
 
 db.exec(`
   PRAGMA journal_mode = WAL;

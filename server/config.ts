@@ -4,6 +4,8 @@ import path from 'node:path';
 const ROOT = process.cwd();
 
 export const DATA_DIR = process.env.DATA_DIR ?? path.join(ROOT, 'data');
+/** Fichier SQLite ; « :memory: » pour les tests. */
+export const DB_FILE = process.env.DB_FILE ?? path.join(DATA_DIR, 'prono.db');
 export const WEB_DIR = process.env.WEB_DIR ?? path.join(ROOT, 'dist', 'web');
 export const PORT = Number(process.env.PORT ?? 3000);
 export const HOST = process.env.HOST ?? '0.0.0.0';
