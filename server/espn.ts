@@ -2,12 +2,19 @@
  * Client de l'API ESPN (non officielle, gratuite, sans clé).
  * Si elle change un jour, c'est le seul fichier à adapter.
  */
-const BASE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+const BASE = process.env.ESPN_BASE ?? 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const UA = 'prono-entre-potes/1.0';
 
 async function getJson(url: string): Promise<any> {
-  const res = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) throw new Error(`ESPN ${res.status} sur ${url}`);
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15_000) });
+  } catch (e: any) {
+    // « fetch failed » seul ne dit rien : on remonte la vraie cause (ENOTFOUND = DNS, ECONNREFUSED, délai…).
+    const cause = e?.cause?.code ?? e?.cause?.message ?? (e?.name === 'TimeoutError' ? 'délai dépassé (15 s)' : e?.message);
+    throw new Error(`ESPN injoignable (${cause}) : ${new URL(url).host}`);
+  }
+  if (!res.ok) throw new Error(`ESPN a répondu ${res.status} sur ${url}`);
   return res.json();
 }
 

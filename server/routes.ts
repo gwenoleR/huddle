@@ -17,6 +17,7 @@ import {
 } from './auth';
 import { awards, pointsFor, standings, streak, weeklyResults } from './scoring';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from './push';
+import { forceSync, syncStatus } from './sync';
 
 // ---------- Mise en forme ----------
 
@@ -283,6 +284,17 @@ export async function routes(app: FastifyInstance) {
     db.prepare('UPDATE players SET pin_hash = NULL, failed_attempts = 0, locked_until = 0 WHERE id = ?').run(id);
     db.prepare('DELETE FROM sessions WHERE player_id = ?').run(id);
     return { ok: true };
+  });
+
+  app.get('/api/admin/sync', { preHandler: requireAdmin }, async () => syncStatus());
+
+  app.post('/api/admin/sync', { preHandler: requireAdmin }, async (_req, reply) => {
+    try {
+      await forceSync();
+      return syncStatus();
+    } catch {
+      return reply.code(502).send({ error: `Synchro impossible : ${syncStatus().message}`, ...syncStatus() });
+    }
   });
 
   // --- Notifications ---

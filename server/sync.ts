@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { DATA_DIR, SEASON } from './config';
-import { db, transaction } from './db';
+import { db, getMeta, setMeta, transaction } from './db';
 import { APP_WEEKS, fetchTeams, fetchWeek, logoUrl, type EspnGame } from './espn';
 
 const LOGO_DIR = path.join(DATA_DIR, 'logos');
@@ -60,14 +60,18 @@ export async function syncWeek(week: number) {
 
 export async function syncSeason() {
   let total = 0;
+  const errors: string[] = [];
   for (const w of APP_WEEKS) {
     try {
       total += await syncWeek(w);
     } catch (e) {
-      console.warn(`[sync] semaine ${w} :`, (e as Error).message);
+      errors.push(`S${w} : ${(e as Error).message}`);
     }
     await sleep(300);
   }
+  // Toute la saison régulière en échec = problème réseau ou ESPN : on remonte l'erreur pour réessayer.
+  if (errors.length) console.warn(`[sync] ${errors.length} semaine(s) en échec`, errors[0]);
+  if (total === 0 && errors.length) throw new Error(errors[0]);
   return total;
 }
 
@@ -94,23 +98,68 @@ let lastFull = 0;
 let lastHourly = 0;
 let lastFast = 0;
 
-/** Appelé chaque minute : saison complète 1×/jour, semaines actives 1×/h, matchs en cours toutes les 2 min. */
-export async function syncTick(now = Date.now()) {
-  if (now - lastFull >= 24 * HOUR) {
+export interface SyncStatus {
+  at: number | null;
+  ok: boolean;
+  message: string;
+  games: number;
+}
+
+function recordStatus(ok: boolean, message: string) {
+  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(SEASON) as { n: number }).n;
+  setMeta('sync_status', JSON.stringify({ at: Date.now(), ok, message, games }));
+}
+
+export function syncStatus(): SyncStatus {
+  const raw = getMeta('sync_status');
+  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(SEASON) as { n: number }).n;
+  if (!raw) return { at: null, ok: false, message: 'Pas encore de synchro', games };
+  return { ...(JSON.parse(raw) as SyncStatus), games };
+}
+
+async function fullSync(now: number) {
+  try {
     const teams = await syncTeams();
     const games = await syncSeason();
     lastFull = lastHourly = now;
-    console.log(`[sync] saison ${SEASON} : ${teams} équipes, ${games} matchs`);
-    return;
+    const msg = `${teams} équipes, ${games} matchs`;
+    console.log(`[sync] saison ${SEASON} : ${msg}`);
+    recordStatus(true, msg);
+  } catch (e) {
+    // Pas de lastFull : on réessaie au prochain passage (chaque minute) au lieu d'attendre 24 h.
+    const msg = (e as Error).message;
+    console.error(`[sync] échec de la synchro complète : ${msg}`);
+    recordStatus(false, msg);
+    throw e;
   }
-  const hot = hotWeeks(now);
-  if (hot.length && now - lastFast >= 2 * 60_000) {
-    for (const w of hot) await syncWeek(w);
-    lastFast = now;
-    return;
-  }
-  if (now - lastHourly >= HOUR) {
-    for (const w of activeWeeks(now)) await syncWeek(w);
-    lastHourly = now;
-  }
+}
+
+/** Un seul passage à la fois : un clic sur « Synchroniser » attend la fin de celui en cours. */
+let queue: Promise<unknown> = Promise.resolve();
+function exclusive(fn: () => Promise<void>): Promise<void> {
+  const run = queue.then(fn, fn);
+  queue = run.catch(() => {});
+  return run;
+}
+
+/** Appelé chaque minute : saison complète 1×/jour, semaines actives 1×/h, matchs en cours toutes les 2 min. */
+export function syncTick(now = Date.now()) {
+  return exclusive(async () => {
+    if (now - lastFull >= 24 * HOUR) return fullSync(now);
+    const hot = hotWeeks(now);
+    if (hot.length && now - lastFast >= 2 * 60_000) {
+      for (const w of hot) await syncWeek(w);
+      lastFast = now;
+      return;
+    }
+    if (now - lastHourly >= HOUR) {
+      for (const w of activeWeeks(now)) await syncWeek(w);
+      lastHourly = now;
+    }
+  });
+}
+
+/** Synchro complète immédiate (bouton admin). */
+export function forceSync() {
+  return exclusive(() => fullSync(Date.now()));
 }

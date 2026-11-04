@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Avatar, Button } from '../ds/components';
-import { api, type ProfileDto } from '../lib/api';
+import { api, type ApiError, type ProfileDto } from '../lib/api';
 import { ordinal } from '../lib/format';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
@@ -187,6 +187,54 @@ function PushSettings({ notify }: { notify: (m: string) => void }) {
   );
 }
 
+interface SyncStatus {
+  at: number | null;
+  ok: boolean;
+  message: string;
+  games: number;
+}
+
+const syncTime = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
+function SyncRow({ notify }: { notify: (m: string) => void }) {
+  const [status, setStatus] = useState<SyncStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api<SyncStatus>('/admin/sync').then(setStatus).catch(() => {});
+  }, []);
+
+  async function run() {
+    setBusy(true);
+    try {
+      const s = await api<SyncStatus>('/admin/sync', { method: 'POST' });
+      setStatus(s);
+      notify(`Synchro faite : ${s.games} matchs`);
+    } catch (e) {
+      const err = e as ApiError;
+      if (err.data?.at !== undefined) setStatus(err.data as SyncStatus);
+      notify(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="settings-row">
+      <span className="label">Données ESPN</span>
+      {status && (
+        <span className="small" style={{ color: status.ok ? 'var(--ink-muted)' : 'var(--wrong)' }}>
+          {status.at ? `${status.ok ? 'Dernière synchro' : 'Échec'} ${syncTime.format(status.at)} · ` : ''}
+          {status.ok ? `${status.games} matchs en base` : status.message}
+        </span>
+      )}
+      <Button variant="secondary" disabled={busy} onClick={run}>
+        {busy ? 'Synchro en cours… (≈ 15 s)' : 'Synchroniser maintenant'}
+      </Button>
+    </div>
+  );
+}
+
 interface AdminPlayer {
   id: number;
   name: string;
@@ -230,6 +278,7 @@ function AdminPanel({ notify }: { notify: (m: string) => void }) {
         Admin
       </h2>
       <div className="card">
+        <SyncRow notify={notify} />
         <div className="settings-row">
           {players.map((p) => (
             <div key={p.id} className="admin-player">
