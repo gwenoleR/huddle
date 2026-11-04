@@ -4,11 +4,16 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
+# Hash du commit, passé par GitHub Actions : affiché dans le profil pour vérifier les mises à jour.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 RUN npm run build && npm prune --omit=dev
 
 # ---- Image finale : Node + le strict nécessaire ----
 FROM node:22-bookworm-slim
-ENV NODE_ENV=production \
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION \
+    NODE_ENV=production \
     DATA_DIR=/data \
     PORT=3000 \
     TZ=Europe/Paris \

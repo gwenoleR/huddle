@@ -4,6 +4,7 @@ import { api, type ApiError, type ProfileDto } from '../lib/api';
 import { ordinal } from '../lib/format';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
+import { APP_VERSION, reloadLatest } from '../lib/version';
 import { Loading } from './shared';
 
 export function Profile({
@@ -125,7 +126,33 @@ export function Profile({
         <Button variant="secondary" block onClick={onLogout}>
           Se déconnecter
         </Button>
+        <VersionRow />
       </main>
+    </div>
+  );
+}
+
+function VersionRow() {
+  const [server, setServer] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/health', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => setServer(d.version ?? null))
+      .catch(() => {});
+  }, []);
+  const outdated = server !== null && server !== APP_VERSION;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      {outdated && (
+        <Button block onClick={reloadLatest}>
+          Nouvelle version dispo : recharger
+        </Button>
+      )}
+      <span className="muted small">
+        Version {APP_VERSION}
+        {outdated ? ` · serveur ${server}` : ''}
+      </span>
     </div>
   );
 }

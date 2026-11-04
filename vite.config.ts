@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: 'web',
+  // Version gravée dans l'interface au build (hash du commit en CI), comparée à celle du serveur.
+  define: { __APP_VERSION__: JSON.stringify((process.env.APP_VERSION ?? 'dev').slice(0, 7)) },
   build: { outDir: '../dist/web', emptyOutDir: true },
   server: {
     port: 5173,

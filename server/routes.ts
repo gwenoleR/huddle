@@ -121,7 +121,10 @@ export async function routes(app: FastifyInstance) {
     if (!req.me.isAdmin) return reply.code(403).send({ error: 'Réservé à l’admin' });
   };
 
-  app.get('/api/health', async () => ({ ok: true }));
+  app.get('/api/health', async (_req, reply) => {
+    reply.header('cache-control', 'no-store');
+    return { ok: true, version: (process.env.APP_VERSION ?? 'dev').slice(0, 7) };
+  });
 
   // --- Connexion ---
 
