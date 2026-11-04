@@ -17,6 +17,7 @@ export default defineConfig({
       DATA_DIR: path.join(tmpdir(), 'prono-tests'),
       SEED_FILE: path.resolve('tests/fixtures/seed.json'),
       SYNC: 'off',
+      SYNC_PAUSE_MS: '0',
       TZ: 'Europe/Paris'
     }
   }

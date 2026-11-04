@@ -9,6 +9,8 @@ export { LOGO_DIR };
 
 const HOUR = 60 * 60_000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Petite pause entre deux semaines pour ne pas mitrailler ESPN (0 dans les tests). */
+const PAUSE_MS = Number(process.env.SYNC_PAUSE_MS ?? 300);
 
 export async function syncTeams() {
   const teams = await fetchTeams();
@@ -67,7 +69,7 @@ export async function syncSeason() {
     } catch (e) {
       errors.push(`S${w} : ${(e as Error).message}`);
     }
-    await sleep(300);
+    await sleep(PAUSE_MS);
   }
   // Toute la saison régulière en échec = problème réseau ou ESPN : on remonte l'erreur pour réessayer.
   if (errors.length) console.warn(`[sync] ${errors.length} semaine(s) en échec`, errors[0]);
@@ -97,6 +99,11 @@ function activeWeeks(now: number): number[] {
 let lastFull = 0;
 let lastHourly = 0;
 let lastFast = 0;
+
+/** Pour les tests : comme au démarrage du serveur. */
+export function resetSyncClock() {
+  lastFull = lastHourly = lastFast = 0;
+}
 
 export interface SyncStatus {
   at: number | null;

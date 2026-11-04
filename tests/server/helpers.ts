@@ -5,6 +5,8 @@
 import { db, setMeta } from '../../server/db';
 import { clearEspnCache } from '../../server/espnCache';
 import { resetEspnStats } from '../../server/espn';
+// Les tables créées par les modules (bonus, cache ESPN) doivent exister pour remettre la base à zéro.
+import '../../server/bonus';
 
 export const HOUR = 3600_000;
 export const DAY = 24 * HOUR;
