@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config';
 // Chaque fichier de test tourne dans son propre processus, avec sa base SQLite en mémoire :
 // aucun test ne touche à data/ ni n'appelle ESPN pour de vrai.
 export default defineConfig({
+  // Version de l'interface gravée au build (voir vite.config.ts) : fixe dans les tests.
+  define: { __APP_VERSION__: JSON.stringify('abc1234') },
   test: {
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     environment: 'node',
