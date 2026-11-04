@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ds/components';
 import { api, type Me, type TeamSheetDto } from '../lib/api';
 import { dayLabel } from '../lib/format';
 import { standingText, withByes } from '../lib/labels';
+import { keys } from '../lib/queries';
 
 /** Fiche équipe en feuille : on la ferme et on retrouve l'écran (et son prono) tel quel. */
 export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [abbr, setAbbr] = useState<string | null>(null);
-  const [d, setD] = useState<TeamSheetDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const q = useQuery({ queryKey: keys.team(abbr ?? ''), queryFn: () => api<TeamSheetDto>(`/teams/${abbr}`), enabled: !!abbr });
+  const d = abbr ? q.data ?? null : null;
+  const error = d ? null : q.error?.message ?? null;
 
   useEffect(() => {
     const onOpen = (e: Event) => setAbbr((e as CustomEvent<string>).detail);
@@ -27,16 +30,6 @@ export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
     if (!dlg) return;
     if (abbr && !dlg.open) dlg.showModal();
     if (!abbr && dlg.open) dlg.close();
-    setD(null);
-    setError(null);
-    if (!abbr) return;
-    let alive = true;
-    api<TeamSheetDto>(`/teams/${abbr}`)
-      .then((x) => alive && setD(x))
-      .catch((e) => alive && setError(e.message));
-    return () => {
-      alive = false;
-    };
   }, [abbr]);
 
   const close = () => setAbbr(null);

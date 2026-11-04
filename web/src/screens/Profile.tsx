@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds/components';
 import { api, type ApiError, type ProfileDto } from '../lib/api';
 import { espnLine, type EspnStatsDto } from '../lib/labels';
 import { ordinal } from '../lib/format';
+import { keys } from '../lib/queries';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
 import { APP_VERSION, reloadLatest } from '../lib/version';
@@ -19,12 +21,9 @@ export function Profile({
   onLogout: () => void;
   notify: (m: string) => void;
 }) {
-  const [p, setP] = useState<ProfileDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api<ProfileDto>('/profile').then(setP).catch((e) => setError(e.message));
-  }, []);
+  const q = useQuery({ queryKey: keys.profile, queryFn: () => api<ProfileDto>('/profile') });
+  const p = q.data;
+  const error = q.error?.message ?? null;
 
   if (!p) return error ? <p className="error-box">{error}</p> : <Loading />;
   const pct = p.played ? `${Math.round((p.good * 100) / p.played)} %` : '–';
@@ -277,6 +276,7 @@ interface BonusSettings {
 
 /** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
 function BonusAdmin({ notify }: { notify: (m: string) => void }) {
+  const qc = useQueryClient();
   const [s, setS] = useState<BonusSettings | null>(null);
   const [draft, setDraft] = useState({ afc: '', nfc: '', sb: '' });
   useEffect(() => {
@@ -294,6 +294,11 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
       const x = await api<BonusSettings>('/admin/bonus', { method: 'PUT', body });
       setS(x);
       setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
+      // Le barème change les points de tout le monde : bonus, classement et profil sont à recharger.
+      void qc.invalidateQueries({ queryKey: keys.bonus });
+      void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+      void qc.invalidateQueries({ queryKey: keys.profile });
+      void qc.invalidateQueries({ queryKey: keys.season });
       notify(msg);
     } catch (e) {
       notify((e as Error).message);

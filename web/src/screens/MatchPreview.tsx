@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TeamLink } from './shared';
 import { standingText } from '../lib/labels';
+import { keys } from '../lib/queries';
 import { api, type GameDto, type PreviewDto, type PreviewSideDto, type TeamStandingDto } from '../lib/api';
 
 const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
@@ -8,13 +9,9 @@ const fr = (n: number) => n.toLocaleString('fr-FR');
 
 /** Avant-match : bilan, forme, favori et blessés. Ne s'affiche que tant que le match n'a pas commencé. */
 export function MatchPreview({ game }: { game: GameDto }) {
-  const [p, setP] = useState<PreviewDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api<PreviewDto>(`/games/${game.id}/preview`)
-      .then(setP)
-      .catch((e) => setError(e.message));
-  }, [game.id]);
+  const q = useQuery({ queryKey: keys.preview(game.id), queryFn: () => api<PreviewDto>(`/games/${game.id}/preview`), staleTime: 20 * 60_000 });
+  const p = q.data;
+  const error = p ? null : q.error?.message ?? null;
 
   if (error) return <p className="muted small" style={{ margin: 0, textAlign: 'center' }}>{error}</p>;
   if (!p) return null;

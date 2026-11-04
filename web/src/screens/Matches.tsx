@@ -1,9 +1,11 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MatchCard, WeekPicker, type Side } from '../ds/components';
 import { api, type BonusDto, type GameDto, type Me, type WeeksDto } from '../lib/api';
 import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';
 import { detailLabel } from '../lib/labels';
+import { applyPick, keys, weekRefreshInterval } from '../lib/queries';
 import { cardStatus, Loading, toTeam } from './shared';
 
 interface WeekData {
@@ -24,46 +26,20 @@ export function Matches({
   theme: 'dark' | 'light';
   notify: (msg: string) => void;
 }) {
-  const [weeks, setWeeks] = useState<WeeksDto | null>(null);
-  const [data, setData] = useState<WeekData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const weeksQ = useQuery({ queryKey: keys.weeks, queryFn: () => api<WeeksDto>('/weeks') });
+  const weeks = weeksQ.data;
   const week = routeWeek ?? weeks?.current;
 
-  useEffect(() => {
-    api<WeeksDto>('/weeks')
-      .then(setWeeks)
-      .catch((e) => setError(e.message));
-  }, []);
-
-  const load = useCallback(async () => {
-    if (!week) return;
-    try {
-      setData(await api<WeekData>(`/weeks/${week}`));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [week]);
-
-  useEffect(() => {
-    setData((d) => (d?.week === week ? d : null));
-    void load();
-  }, [load, week]);
-
-  // Rafraîchissement : 30 s pendant les matchs, 5 min sinon, et au retour dans l'appli.
-  useEffect(() => {
-    const now = Date.now();
-    const hot = data?.games.some(
-      (g) => g.status === 'live' || (g.status === 'scheduled' && g.kickoff - now < 15 * 60_000 && g.kickoff > now - 6 * 3600_000)
-    );
-    const id = setInterval(load, hot ? 30_000 : 5 * 60_000);
-    const onVisible = () => document.visibilityState === 'visible' && load();
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [data, load]);
+  // Rafraîchi toutes les 30 s pendant les matchs, toutes les 5 min sinon, et au retour dans l'appli.
+  const weekQ = useQuery({
+    queryKey: keys.week(week ?? 0),
+    queryFn: () => api<WeekData>(`/weeks/${week}`),
+    enabled: !!week,
+    refetchInterval: (q) => weekRefreshInterval(q.state.data?.games)
+  });
+  const data = weekQ.data;
+  const error = (weekQ.error ?? weeksQ.error)?.message ?? null;
 
   // Centre la semaine affichée dans la barre (une fois les données là, sinon la barre n'existe pas encore).
   const shownWeek = data?.week;
@@ -75,28 +51,20 @@ export function Matches({
   }, [shownWeek]);
 
   async function pick(game: GameDto, side: Side) {
-    if (game.myPick === side) return;
-    const previous = data;
+    if (game.myPick === side || !week) return;
+    const key = keys.week(week);
     // Mise à jour immédiate, corrigée si le serveur refuse.
-    setData((d) =>
-      d && {
-        ...d,
-        games: d.games.map((g) => {
-          if (g.id !== game.id) return g;
-          const away = g.pickers.away.filter((n) => n !== me.name);
-          const home = g.pickers.home.filter((n) => n !== me.name);
-          (side === 'away' ? away : home).unshift(me.name);
-          return { ...g, myPick: side, pickers: { away, home } };
-        })
-      }
-    );
+    await qc.cancelQueries({ queryKey: key });
+    const previous = qc.getQueryData<WeekData>(key);
+    qc.setQueryData<WeekData>(key, (d) => d && { ...d, games: d.games.map((g) => (g.id === game.id ? applyPick(g, side, me.name) : g)) });
     try {
       await api(`/picks/${game.id}`, { method: 'PUT', body: { side } });
     } catch (e) {
-      setData(previous);
+      qc.setQueryData(key, previous);
       notify((e as Error).message);
-      void load();
     }
+    void qc.invalidateQueries({ queryKey: key });
+    void qc.invalidateQueries({ queryKey: keys.game(game.id) });
   }
 
   if (!weeks || !data) return error ? <p className="error-box">{error}</p> : <Loading />;
@@ -186,10 +154,7 @@ export function Matches({
 
 /** Carte du bonus de fin de saison : visible quand les choix sont ouverts, puis pendant les playoffs. */
 function BonusBanner({ playoffs }: { playoffs: boolean }) {
-  const [b, setB] = useState<BonusDto | null>(null);
-  useEffect(() => {
-    api<BonusDto>('/bonus').then(setB).catch(() => {});
-  }, []);
+  const { data: b } = useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') });
   if (!b || !(b.phase === 'open' || (b.phase === 'locked' && playoffs))) return null;
   const max = b.points.afc + b.points.nfc + b.points.sb;
   return (

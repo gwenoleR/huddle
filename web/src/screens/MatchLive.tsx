@@ -1,32 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, type GameDto, type LiveDto } from '../lib/api';
 import { TeamLink } from './shared';
+import { keys } from '../lib/queries';
 
 const periodLabel = (p: number) => (p > 4 ? 'Prol.' : `Q${p}`);
 
 /** Pendant et après le match : situation en cours, courbe des chances de victoire et actions qui ont marqué. */
 export function MatchLive({ game }: { game: GameDto }) {
-  const [d, setD] = useState<LiveDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const live = game.status === 'live';
-
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      api<LiveDto>(`/games/${game.id}/live`)
-        .then((x) => {
-          if (!alive) return;
-          setD(x);
-          setError(null);
-        })
-        .catch((e) => alive && setError(e.message));
-    void load();
-    const t = live ? setInterval(load, 30_000) : undefined;
-    return () => {
-      alive = false;
-      if (t) clearInterval(t);
-    };
-  }, [game.id, live]);
+  // Pendant le match : toutes les 30 s (en pause quand l'appli est en arrière-plan).
+  const q = useQuery({
+    queryKey: keys.live(game.id),
+    queryFn: () => api<LiveDto>(`/games/${game.id}/live`),
+    refetchInterval: live ? 30_000 : false,
+    staleTime: live ? 20_000 : 3600_000
+  });
+  const d = q.data;
+  const error = q.error?.message ?? null;
 
   if (!d) return error ? <p className="muted small" style={{ margin: 0, textAlign: 'center' }}>{error}</p> : null;
   const team = (s: 'away' | 'home' | null) => (s ? game[s] : null);

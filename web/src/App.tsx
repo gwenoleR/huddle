@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BottomNav } from './ds/components';
 import { api, type Me } from './lib/api';
 import { go, useRoute } from './lib/router';
+import { claimCache, forgetEverything } from './lib/queries';
 import { useTheme } from './lib/theme';
 import { Leaderboard } from './screens/Leaderboard';
 import { TeamSheet } from './screens/TeamSheet';
@@ -28,19 +29,31 @@ export function App() {
 
   useEffect(() => {
     api<Me>('/me')
-      .then(setMe)
+      .then((m) => {
+        claimCache(m.id);
+        setMe(m);
+      })
       .catch(() => setMe(null));
   }, []);
 
   async function logout() {
     await api('/logout', { method: 'POST' }).catch(() => {});
     if ('caches' in window) await caches.delete('api').catch(() => {});
+    forgetEverything();
     setMe(null);
     go('matchs', true);
   }
 
   if (me === undefined) return <div className="app splash" />;
-  if (me === null) return <Login onLogged={setMe} />;
+  if (me === null)
+    return (
+      <Login
+        onLogged={(m) => {
+          claimCache(m.id);
+          setMe(m);
+        }}
+      />
+    );
 
   const tab =
     route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' || route.name === 'bonus' ? 'classement' : route.name;

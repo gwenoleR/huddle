@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Icon, LeaderboardRow } from '../ds/components';
 import { api, type AwardDto, type Me, type SeasonDto } from '../lib/api';
 import { BackLink, Loading } from './shared';
+import { keys } from '../lib/queries';
 
 export function Season({ me }: { me: Me }) {
-  const [s, setS] = useState<SeasonDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const q = useQuery({ queryKey: keys.season, queryFn: () => api<SeasonDto>('/season') });
+  const s = q.data;
+  const error = q.error?.message ?? null;
   const [open, setOpen] = useState<AwardDto | null>(null);
-  useEffect(() => {
-    api<SeasonDto>('/season').then(setS).catch((e) => setError(e.message));
-  }, []);
 
   if (!s) return error ? <p className="error-box">{error}</p> : <Loading />;
   const leader = s.rows[0];

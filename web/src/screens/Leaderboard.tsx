@@ -1,9 +1,11 @@
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { NflStandings } from './NflStandings';
 import { Button, LeaderboardRow, StatusPill } from '../ds/components';
 import { api, type BonusDto, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';
+import { keys } from '../lib/queries';
 import { Loading } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
@@ -25,41 +27,22 @@ function LeagueTabs({ nfl }: { nfl: boolean }) {
 }
 
 function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
-  const [weeks, setWeeks] = useState<WeeksDto | null>(null);
   const [scope, setScope] = useState<'season' | 'week'>('season');
-  const [data, setData] = useState<LeaderboardDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const [bonusOn, setBonusOn] = useState(false);
-  useEffect(() => {
-    api<WeeksDto>('/weeks').then(setWeeks).catch((e) => setError(e.message));
-    api<BonusDto>('/bonus')
-      .then((b) => setBonusOn(b.enabled))
-      .catch(() => {});
-  }, []);
-
-  const load = useCallback(async () => {
-    if (!weeks) return;
-    try {
-      setData(await api<LeaderboardDto>(scope === 'season' ? '/leaderboard' : `/leaderboard?week=${weeks.current}`));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [scope, weeks]);
-
-  useEffect(() => {
-    setData(null);
-    void load();
-  }, [load]);
+  const weeksQ = useQuery({ queryKey: keys.weeks, queryFn: () => api<WeeksDto>('/weeks') });
+  const weeks = weeksQ.data;
+  const bonusOn = useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') }).data?.enabled ?? false;
 
   // Pendant les matchs, le classement bouge : on le rafraîchit toutes les 30 s.
+  const week = scope === 'week' ? weeks?.current : undefined;
+  const q = useQuery({
+    queryKey: keys.leaderboard(week),
+    queryFn: () => api<LeaderboardDto>(week ? `/leaderboard?week=${week}` : '/leaderboard'),
+    enabled: !!weeks,
+    refetchInterval: (query) => (query.state.data?.live ? 30_000 : false)
+  });
+  const data = q.data;
+  const error = (q.error ?? weeksQ.error)?.message ?? null;
   const live = scope === 'season' ? data?.live ?? null : null;
-  useEffect(() => {
-    if (!live) return;
-    const t = setInterval(load, 30_000);
-    return () => clearInterval(t);
-  }, [live, load]);
 
   // En direct, on affiche la projection « si ça finit comme ça ».
   const rows: StandingRow[] | null = live ? live.rows.map((r) => ({ ...r, points: r.projected, rank: r.projectedRank })) : data?.rows ?? null;

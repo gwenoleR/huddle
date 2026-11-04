@@ -1,36 +1,37 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds/components';
 import { api, type BonusDto, type BonusPickDto, type Me, type TeamDto } from '../lib/api';
 import { dayLabel, kickoffLabel } from '../lib/format';
 import { BackLink, Loading } from './shared';
+import { keys } from '../lib/queries';
 
 const pts = (n: number) => `${n} pt${n > 1 ? 's' : ''}`;
 
 /** Bonus de fin de saison : règles, choix (avant la Wild Card), puis révélation et résultats. */
 export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
-  const [d, setD] = useState<BonusDto | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') });
+  const d = q.data;
+  const error = q.error?.message ?? null;
   const [afc, setAfc] = useState<string | null>(null);
   const [nfc, setNfc] = useState<string | null>(null);
   const [sb, setSb] = useState<string | null>(null);
   const [total, setTotal] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const load = () =>
-    api<BonusDto>('/bonus')
-      .then((x) => {
-        setD(x);
-        if (x.mine) {
-          setAfc(x.mine.afc?.abbr ?? null);
-          setNfc(x.mine.nfc?.abbr ?? null);
-          setSb(x.mine.sb?.abbr ?? null);
-          setTotal(String(x.mine.sbTotal));
-        }
-      })
-      .catch((e) => setError(e.message));
+  // Le formulaire part de mes choix enregistrés, une seule fois : un rafraîchissement ne doit pas
+  // écraser ce que je suis en train de modifier.
+  const [filled, setFilled] = useState(false);
   useEffect(() => {
-    void load();
-  }, []);
+    if (filled || !d) return;
+    setFilled(true);
+    if (!d.mine) return;
+    setAfc(d.mine.afc?.abbr ?? null);
+    setNfc(d.mine.nfc?.abbr ?? null);
+    setSb(d.mine.sb?.abbr ?? null);
+    setTotal(String(d.mine.sbTotal));
+  }, [d, filled]);
 
   // Le vainqueur du Super Bowl doit rester un des deux champions choisis.
   useEffect(() => {
@@ -47,7 +48,7 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
     try {
       await api('/bonus', { method: 'PUT', body: { afc, nfc, sb, sbTotal: Number(total) } });
       notify('Choix enregistrés. Secret jusqu’au coup d’envoi !');
-      await load();
+      await qc.invalidateQueries({ queryKey: keys.bonus });
     } catch (e) {
       notify((e as Error).message);
     }

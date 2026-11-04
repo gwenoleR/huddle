@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ds/components';
-import { api, ApiError, type RecapDto } from '../lib/api';
+import { api, type RecapDto } from '../lib/api';
+import { keys } from '../lib/queries';
 import { drawRecap, RECAP_H, RECAP_W } from '../lib/recapImage';
 import { BackLink, Loading } from './shared';
 
 /** Récap de la semaine : image générée sur le téléphone, partagée via le menu Partager du système. */
 export function Recap({ week, notify }: { week?: number; notify: (m: string) => void }) {
-  const [data, setData] = useState<RecapDto | null>(null);
+  const q = useQuery({ queryKey: keys.recap(week), queryFn: () => api<RecapDto>(week ? `/recap?week=${week}` : '/recap') });
+  const data = q.data ?? null;
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api<RecapDto>(week ? `/recap?week=${week}` : '/recap')
-      .then(setData)
-      .catch((e: ApiError) => setError(e.message));
-  }, [week]);
+  const [drawError, setDrawError] = useState<string | null>(null);
+  const error = q.error?.message ?? drawError;
 
   // L'image est préparée à l'avance : le partage doit partir directement du toucher sur le bouton.
   useEffect(() => {
@@ -28,7 +26,7 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
         setFile(f);
         setUrl(objectUrl);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setDrawError(e.message));
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };

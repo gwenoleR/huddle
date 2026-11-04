@@ -9,7 +9,11 @@ import '@fontsource/barlow-condensed/800.css';
 import './ds/tokens.css';
 import './ds/components.css';
 import './app.css';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { App } from './App';
+import { createPersister, queryClient } from './lib/queries';
+import { APP_VERSION } from './lib/version';
 
 registerSW({ immediate: true });
 
@@ -33,4 +37,16 @@ if ((navigator as any).standalone === true) {
   addEventListener('resize', check);
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+// Le cache gardé sur le téléphone est jeté à chaque nouvelle version (le format des données a pu changer).
+const persister = createPersister();
+createRoot(document.getElementById('root')!).render(
+  persister ? (
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 24 * 3600_000, buster: APP_VERSION }}>
+      <App />
+    </PersistQueryClientProvider>
+  ) : (
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  )
+);
