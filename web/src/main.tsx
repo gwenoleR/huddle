@@ -14,14 +14,21 @@ import { App } from './App';
 registerSW({ immediate: true });
 
 /**
- * iOS, appli ajoutée à l'écran d'accueil : la zone web s'arrête avant le bas de l'écran (elle est
- * plus courte que l'écran de la hauteur de la zone de l'heure) et iOS peint le reste avec le fond
- * de la page. La barre d'accueil est alors hors de la zone web : pas de marge à lui laisser, et le
- * fond de page prend la couleur de la navigation pour la prolonger jusqu'en bas.
- * Si iOS corrige ce comportement, innerHeight vaut screen.height et rien ne change.
+ * Applis installées AVANT le passage à la barre d'état « black » (iOS lit ce réglage à l'installation) :
+ * avec « black-translucent », iOS 26 colle en haut une zone web raccourcie de la hauteur de la barre
+ * d'état, et peint le bas de l'écran avec le fond de la page. On le reconnaît à une marge du haut non
+ * nulle (zone web sous la barre d'état) ET une zone web plus courte que l'écran. Dans ce cas la barre
+ * d'accueil est hors de la zone web : pas de marge pour elle, et fond de page couleur navigation.
+ * Avec « black » (nouvelle installation), la zone web va jusqu'en bas : rien ne change.
  */
 if ((navigator as any).standalone === true) {
-  const check = () => document.documentElement.classList.toggle('short-webview', innerHeight < screen.height - 1);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;width:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const check = () => {
+    const underStatusBar = probe.getBoundingClientRect().height > 0;
+    document.documentElement.classList.toggle('short-webview', underStatusBar && innerHeight < screen.height - 1);
+  };
   check();
   addEventListener('resize', check);
 }

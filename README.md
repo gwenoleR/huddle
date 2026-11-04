@@ -32,7 +32,7 @@ Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**.
    Au premier démarrage, l'appli crée les 5 joueurs, télécharge les 32 équipes, leurs logos et les 272 matchs de la saison (environ 30 s).
 5. Ouvrir l'adresse sur le téléphone, choisir son prénom : **le premier code tapé devient son code**.
 6. Installer l'appli :
-   - **iPhone** (Safari) : Partager › *Sur l'écran d'accueil*. Les notifications ne marchent qu'une fois l'appli ouverte depuis l'icône (iOS 16.4 minimum).
+   - **iPhone** (Safari) : Partager › *Sur l'écran d'accueil*. Les notifications ne marchent qu'une fois l'appli ouverte depuis l'icône (iOS 16.4 minimum). Une appli ajoutée avant le 4 novembre 2026 garde une bande en bas d'écran (barre d'état translucide, lue par iOS à l'installation) : supprimer l'icône et la rajouter.
    - **Android** (Chrome) : menu ⋮ › *Installer l'application*.
    - Puis Profil › *Activer les notifications*.
 

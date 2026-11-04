@@ -7,7 +7,9 @@
     <meta name="description" content="Les pronos NFL de la bande" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- « black » et pas « black-translucent » : depuis iOS 26, le mode translucide raccourcit la
+         zone web de la hauteur de la barre d'état et laisse une bande vide en bas de l'écran. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Prono" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
