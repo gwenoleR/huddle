@@ -8,6 +8,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Événement envoyé quand le serveur ne reconnaît plus la session (code remis à zéro, session expirée). */
+export const SESSION_LOST = 'session-lost';
+
+/**
+ * Un 401 veut dire « plus connecté », sauf pour un mauvais code à la connexion (/login)
+ * et pour la vérification au démarrage (/me), qui mène déjà à l'écran de connexion.
+ */
+export function endsSession(path: string, status: number): boolean {
+  return status === 401 && path !== '/login' && path !== '/me';
+}
+
 export async function api<T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   let res: Response;
   try {
@@ -21,6 +32,7 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
     throw new ApiError(0, 'Pas de réseau. Réessaie dans un instant.');
   }
   const data = await res.json().catch(() => null);
+  if (endsSession(path, res.status)) dispatchEvent(new Event(SESSION_LOST));
   if (!res.ok) throw new ApiError(res.status, data?.error ?? 'Oups, le serveur fait des siennes.', data);
   return data as T;
 }
