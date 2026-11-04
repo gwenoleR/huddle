@@ -13,4 +13,19 @@ import { App } from './App';
 
 registerSW({ immediate: true });
 
+/**
+ * Bug iOS (appli ajoutée à l'écran d'accueil, barre d'état translucide) : la hauteur de la fenêtre
+ * ignore la zone de l'heure, ce qui laisse une bande vide sous la navigation. On prend alors la
+ * hauteur réelle de l'écran. Si iOS corrige le bug, innerHeight vaut déjà screen.height : rien ne change.
+ */
+if ((navigator as any).standalone === true) {
+  const fit = () => {
+    const h = Math.max(innerHeight, screen.height);
+    document.documentElement.style.setProperty('--app-h', `${h}px`);
+  };
+  fit();
+  addEventListener('resize', fit);
+  addEventListener('orientationchange', fit);
+}
+
 createRoot(document.getElementById('root')!).render(<App />);
