@@ -84,6 +84,7 @@ describe('cache ESPN', () => {
   });
 
   it('une nouvelle version de l’appli vide le cache (le format a pu changer)', async () => {
+    resetIfNewVersion('dev'); // démarrage du serveur
     await cached('k', async () => ({ v: 'ancien format' }), { ttl: FOREVER });
     resetIfNewVersion('dev'); // même version : on garde
     expect(await cached('k', async () => ({ v: 'nouveau' }), { ttl: MIN })).toEqual({ v: 'ancien format' });

@@ -9,6 +9,10 @@ import { routes } from './routes';
 import { LOGO_DIR, syncTick } from './sync';
 import { notificationsTick } from './push';
 import { bonusTick } from './bonus';
+import { resetIfNewVersion } from './espnCache';
+
+// Nouvelle version de l'appli : le cache ESPN repart de zéro (le format des données a pu changer).
+resetIfNewVersion();
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'warn' }, trustProxy: true });
 

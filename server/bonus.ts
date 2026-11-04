@@ -5,25 +5,12 @@
  */
 import type { BonusPhase, BonusReveal, BonusSettingsDto } from '../shared/api';
 import { SEASON } from './config';
+import { db, getMeta, setMeta } from './db';
+import { fetchStandings } from './espn';
 
 export type { BonusPhase, BonusReveal };
 /** Activation, barème et moment de la révélation, réglés par l'admin. */
 export type BonusSettings = BonusSettingsDto;
-import { db, getMeta, setMeta } from './db';
-import { fetchStandings } from './espn';
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS bonus_picks (
-    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    season INTEGER NOT NULL,
-    afc TEXT NOT NULL,
-    nfc TEXT NOT NULL,
-    sb TEXT NOT NULL,
-    sb_total INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (player_id, season)
-  );
-`);
 
 const DEFAULTS: BonusSettings = { enabled: true, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' };
 

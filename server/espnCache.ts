@@ -9,17 +9,6 @@
  */
 import { db, getMeta, setMeta } from './db';
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS espn_cache (
-    key TEXT PRIMARY KEY,
-    at INTEGER NOT NULL,
-    expires INTEGER,
-    data TEXT NOT NULL
-  );
-`);
-
-// Après une mise à jour de l'appli, le format des données peut avoir changé : on repart de zéro.
-
 /** Durée de vie infinie : la donnée ne change plus (match terminé depuis longtemps). */
 export const FOREVER = Infinity;
 
@@ -34,13 +23,13 @@ const memory = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 let writes = 0;
 
+/** Après une mise à jour de l'appli, le format des données a pu changer : on repart de zéro (appelé au démarrage). */
 export function resetIfNewVersion(version = process.env.APP_VERSION ?? 'dev') {
   if (getMeta('espn_cache_version') === version) return;
   db.exec('DELETE FROM espn_cache');
   memory.clear();
   setMeta('espn_cache_version', version);
 }
-resetIfNewVersion();
 
 function read(key: string): Entry | null {
   const hit = memory.get(key);

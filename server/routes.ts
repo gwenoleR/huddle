@@ -551,7 +551,7 @@ export async function routes(app: FastifyInstance) {
 
   // --- Notifications ---
 
-  app.get('/api/push/public-key', async () => ({ key: vapidPublicKey }));
+  app.get('/api/push/public-key', async () => ({ key: vapidPublicKey() }));
 
   app.post<{ Body: { endpoint?: string; keys?: { p256dh?: string; auth?: string } } }>(
     '/api/push/subscribe',

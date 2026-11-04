@@ -4,22 +4,26 @@ import { db, getMeta, setMeta } from './db';
 import { standings } from './scoring';
 import { bonusLockAt, bonusPhase, bonusPicks, bonusSettings } from './bonus';
 
-let publicKey = process.env.VAPID_PUBLIC_KEY || getMeta('vapid_public');
-let privateKey = process.env.VAPID_PRIVATE_KEY || getMeta('vapid_private');
-if (!publicKey || !privateKey) {
-  const keys = webpush.generateVAPIDKeys();
-  publicKey = keys.publicKey;
-  privateKey = keys.privateKey;
-  setMeta('vapid_public', publicKey);
-  setMeta('vapid_private', privateKey);
-  console.log('[push] clés VAPID générées et enregistrées en base');
+/** Clés VAPID : prises dans l'environnement, sinon en base ; générées au tout premier besoin. */
+let vapid: { publicKey: string; privateKey: string } | null = null;
+function vapidKeys() {
+  if (vapid) return vapid;
+  let publicKey = process.env.VAPID_PUBLIC_KEY || getMeta('vapid_public');
+  let privateKey = process.env.VAPID_PRIVATE_KEY || getMeta('vapid_private');
+  if (!publicKey || !privateKey) {
+    ({ publicKey, privateKey } = webpush.generateVAPIDKeys());
+    setMeta('vapid_public', publicKey);
+    setMeta('vapid_private', privateKey);
+    console.log('[push] clés VAPID générées et enregistrées en base');
+  }
+  // Apple refuse un « subject » en localhost : en prod, l'URL publique (Cloudflare) fait l'affaire.
+  const subject = process.env.VAPID_SUBJECT || (PUBLIC_URL.startsWith('https://') ? PUBLIC_URL : 'mailto:prono@example.com');
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  vapid = { publicKey, privateKey };
+  return vapid;
 }
 
-// Apple refuse un « subject » en localhost : en prod, l'URL publique (Cloudflare) fait l'affaire.
-const subject = process.env.VAPID_SUBJECT || (PUBLIC_URL.startsWith('https://') ? PUBLIC_URL : 'mailto:prono@example.com');
-webpush.setVapidDetails(subject, publicKey, privateKey);
-
-export const vapidPublicKey = publicKey;
+export const vapidPublicKey = () => vapidKeys().publicKey;
 
 export interface PushPayload {
   title: string;
@@ -40,6 +44,7 @@ export function deleteSubscription(endpoint: string) {
 }
 
 export async function sendToPlayer(playerId: number, payload: PushPayload): Promise<number> {
+  vapidKeys();
   const subs = db
     .prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE player_id = ?')
     .all(playerId) as { endpoint: string; p256dh: string; auth: string }[];

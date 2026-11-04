@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { DATA_DIR, DB_FILE, seed } from './config';
+import { migrate } from './schema';
 
 mkdirSync(DATA_DIR, { recursive: true });
 
@@ -9,76 +10,9 @@ export const db = new DatabaseSync(DB_FILE);
 db.exec(`
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
-
-  CREATE TABLE IF NOT EXISTS players (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    start_points INTEGER NOT NULL DEFAULT 0,
-    is_admin INTEGER NOT NULL DEFAULT 0,
-    pin_hash TEXT,
-    failed_attempts INTEGER NOT NULL DEFAULT 0,
-    locked_until INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    token TEXT PRIMARY KEY,
-    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS teams (
-    id TEXT PRIMARY KEY,
-    abbr TEXT NOT NULL,
-    name TEXT NOT NULL,
-    display_name TEXT NOT NULL,
-    color TEXT,
-    alt_color TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS games (
-    id TEXT PRIMARY KEY,
-    season INTEGER NOT NULL,
-    week INTEGER NOT NULL,
-    kickoff INTEGER NOT NULL,
-    status TEXT NOT NULL,
-    detail TEXT,
-    away_id TEXT NOT NULL REFERENCES teams(id),
-    home_id TEXT NOT NULL REFERENCES teams(id),
-    away_score INTEGER,
-    home_score INTEGER,
-    winner TEXT,
-    updated_at INTEGER NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS games_week ON games(season, week);
-  CREATE INDEX IF NOT EXISTS games_kickoff ON games(kickoff);
-
-  CREATE TABLE IF NOT EXISTS picks (
-    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    game_id TEXT NOT NULL REFERENCES games(id),
-    side TEXT NOT NULL CHECK (side IN ('away', 'home')),
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (player_id, game_id)
-  );
-
-  CREATE TABLE IF NOT EXISTS push_subscriptions (
-    endpoint TEXT PRIMARY KEY,
-    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    p256dh TEXT NOT NULL,
-    auth TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS sent_notifications (
-    key TEXT PRIMARY KEY,
-    sent_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS meta (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
 `);
+
+for (const m of migrate(db)) console.log(`[db] migration ${m.version} : ${m.name}`);
 
 /** Premier démarrage : on crée les joueurs du fichier seed avec leurs points repris de l'ancien site. */
 const { n } = db.prepare('SELECT COUNT(*) AS n FROM players').get() as { n: number };
