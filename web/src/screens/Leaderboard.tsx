@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { NflStandings } from './NflStandings';
-import { Button, LeaderboardRow, StatusPill } from '../ds/components';
+import { Button, LeaderboardRow, StatusPill } from '../ds';
 import { api, type BonusDto, type LeaderboardDto, type Me, type StandingRow, type WeeksDto } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';

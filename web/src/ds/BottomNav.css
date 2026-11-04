@@ -1,0 +1,6 @@
+/* BottomNav */
+/* La zone de la barre d'accueil iPhone s'ajoute aux 64 px : elle ne doit pas les manger. */
+.pr-nav { display: flex; flex: none; box-sizing: content-box; height: var(--nav-height); padding-bottom: env(safe-area-inset-bottom); background: var(--surface-100); border-top: 1px solid var(--line); }
+.pr-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--ink-muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+.pr-nav-item svg { flex: none; width: 24px; height: 24px; }
+.pr-nav-on { color: var(--brand); }

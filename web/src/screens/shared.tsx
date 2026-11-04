@@ -1,6 +1,6 @@
 import { openTeam } from '../lib/teamSheet';
 import type { GameDto, TeamDto } from '../lib/api';
-import type { MatchStatus, Team } from '../ds/components';
+import type { MatchStatus, Team } from '../ds';
 
 export function toTeam(t: TeamDto, theme: 'dark' | 'light'): Team {
   return { abbr: t.abbr, name: t.name, color: t.color, textColor: t.textColor, logoUrl: theme === 'dark' ? t.logoDark : t.logo };

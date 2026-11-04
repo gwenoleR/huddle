@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MatchCard, WeekPicker, type Side } from '../ds/components';
+import { MatchCard, WeekPicker, type Side } from '../ds';
 import { api, type BonusDto, type GameDto, type Me, type WeekDto, type WeeksDto } from '../lib/api';
 import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';

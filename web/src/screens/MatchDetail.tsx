@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, MatchCard, type Side } from '../ds/components';
+import { Avatar, MatchCard, type Side } from '../ds';
 import { api, type GameDetailDto, type Me } from '../lib/api';
 import { kickoffLabel } from '../lib/format';
 import { applyPick, keys } from '../lib/queries';

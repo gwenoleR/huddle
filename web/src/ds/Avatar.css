@@ -1,0 +1,12 @@
+/* Avatar */
+.pr-avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: var(--radius-pill); background: var(--surface-200); color: var(--ink); font-weight: 600; overflow: hidden; box-sizing: border-box; }
+.pr-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pr-avatar-sm { width: 28px; height: 28px; font-size: 11px; border: 2px solid var(--surface-100); }
+.pr-avatar-md { width: 40px; height: 40px; font-size: 14px; }
+.pr-avatar-lg { width: 56px; height: 56px; font-size: 18px; }
+.pr-avatar-a { box-shadow: 0 0 0 2px var(--side-a); }
+.pr-avatar-b { box-shadow: 0 0 0 2px var(--side-b); }
+.pr-avatar-me { box-shadow: 0 0 0 2px var(--brand); }
+.pr-stack { display: inline-flex; padding-left: 6px; }
+.pr-stack > .pr-avatar { margin-left: -6px; }
+.pr-more { color: var(--ink-muted); }

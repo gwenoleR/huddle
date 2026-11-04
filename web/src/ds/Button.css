@@ -1,0 +1,7 @@
+/* Button */
+.pr-btn { min-height: var(--tap-min); padding: 0 var(--space-4); border-radius: var(--radius-md); border: 1px solid transparent; font-family: var(--font-body); font-size: 15px; font-weight: 600; cursor: pointer; }
+.pr-btn-primary { background: var(--brand); color: var(--on-brand); }
+.pr-btn-secondary { background: var(--surface-100); color: var(--ink); border-color: var(--line); }
+.pr-btn-ghost { background: transparent; color: var(--ink); }
+.pr-btn-block { width: 100%; }
+.pr-btn:disabled { opacity: .45; cursor: default; }

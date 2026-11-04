@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Avatar } from '../ds/components';
+import { Avatar } from '../ds';
 import { api, ApiError, type Me, type PlayerLite } from '../lib/api';
 
 export function Login({ onLogged }: { onLogged: (me: Me) => void }) {

@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '../ds/components';
+import { Button } from '../ds';
 import { api, type NflStandingsDto, type NflTeamRow } from '../lib/api';
 import { openTeam } from '../lib/teamSheet';
 import { keys } from '../lib/queries';

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '../ds/components';
+import { Button } from '../ds';
 import { api, type RecapDto } from '../lib/api';
 import { keys } from '../lib/queries';
 import { drawRecap, RECAP_H, RECAP_W } from '../lib/recapImage';

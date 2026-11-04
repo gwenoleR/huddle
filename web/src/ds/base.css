@@ -1,0 +1,6 @@
+/* Base commune aux composants du design system. */
+body { margin: 0; background: var(--surface-0); color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+.pr-phone { max-width: 390px; margin: 0 auto; padding: var(--space-4); box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-3); }
+.pr-row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; padding: var(--space-4); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }

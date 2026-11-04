@@ -1,0 +1,13 @@
+/* LeaderboardRow */
+.pr-lb { list-style: none; display: flex; align-items: center; gap: var(--space-3); min-height: 64px; padding: 0 var(--space-4); background: var(--surface-100); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.pr-lb-me { border-color: var(--brand); }
+.pr-rank { width: 32px; height: 32px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--ink-muted); }
+.pr-rank-1 { background: var(--gold); color: var(--on-gold); }
+.pr-rank-2, .pr-rank-3 { background: var(--surface-200); color: var(--ink); }
+.pr-lb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pr-lb-name { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-lb-you { color: var(--brand); }
+.pr-lb-rec { font-size: 13px; color: var(--ink-muted); }
+.pr-lb-pts { font-family: var(--font-display); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pr-lb-pts small { font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+.pr-list { margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }

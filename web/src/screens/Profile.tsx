@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, Button } from '../ds/components';
+import { Avatar, Button } from '../ds';
 import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type ProfileDto, type SyncStatusDto } from '../lib/api';
 import { espnLine } from '../lib/labels';
 import { ordinal } from '../lib/format';

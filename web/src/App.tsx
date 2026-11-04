@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BottomNav } from './ds/components';
+import { BottomNav } from './ds';
 import { api, SESSION_LOST, type Me } from './lib/api';
 import { go, useRoute } from './lib/router';
 import { claimCache, forgetEverything } from './lib/queries';

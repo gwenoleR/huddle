@@ -1,0 +1,12 @@
+/* TeamBadge */
+.pr-team { display: inline-flex; align-items: center; gap: var(--space-2); }
+.pr-team-end { flex-direction: row-reverse; text-align: right; }
+.pr-logo { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: var(--radius-pill); font-family: var(--font-display); font-weight: 800; letter-spacing: .3px; overflow: hidden; }
+.pr-logo-img { background: transparent; }
+.pr-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pr-logo-sm { width: 28px; height: 28px; font-size: 11px; }
+.pr-logo-md { width: 40px; height: 40px; font-size: 14px; }
+.pr-logo-lg { width: 56px; height: 56px; font-size: 18px; }
+.pr-team-text { display: flex; flex-direction: column; }
+.pr-team-abbr { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 22px; }
+.pr-team-name { font-size: 13px; color: var(--ink-muted); }

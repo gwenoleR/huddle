@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '../ds/components';
+import { Button } from '../ds';
 import { useUpdateCheck } from '../lib/useUpdateCheck';
 import { reloadLatest } from '../lib/version';
 

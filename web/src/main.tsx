@@ -7,7 +7,8 @@ import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/barlow-condensed/700.css';
 import '@fontsource/barlow-condensed/800.css';
 import './ds/tokens.css';
-import './ds/components.css';
+// Le design system (et ses styles) avant app.css : l'appli peut surcharger ses styles.
+import './ds';
 import './app.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';

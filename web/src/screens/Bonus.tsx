@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, Button } from '../ds/components';
+import { Avatar, Button } from '../ds';
 import { api, type BonusDto, type BonusPickDto, type Me, type TeamDto } from '../lib/api';
 import { dayLabel, kickoffLabel } from '../lib/format';
 import { BackLink, Loading } from './shared';

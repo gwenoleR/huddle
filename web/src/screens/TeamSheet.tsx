@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '../ds/components';
+import { Button } from '../ds';
 import { api, type Me, type TeamSheetDto } from '../lib/api';
 import { dayLabel } from '../lib/format';
 import { standingText, withByes } from '../lib/labels';

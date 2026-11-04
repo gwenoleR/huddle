@@ -82,7 +82,10 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 | Dossier | Contenu |
 | --- | --- |
 | `server/` | Fastify, SQLite (`node:sqlite`), synchro ESPN, points, connexion, notifications |
-| `web/src/ds/` | Tokens et composants du design system ([artefact](https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh)) |
+| `server/routes/` | Routes de l'API, un fichier par domaine (connexion, matchs, classement, bonus, NFL, admin, notifications) |
+| `server/schema.ts` | Tables de la base, en migrations numérotées : pour changer la base, **ajouter** une migration à la fin |
+| `shared/api.ts` | Forme des réponses de l'API, partagée par le serveur et l'appli |
+| `web/src/ds/` | Tokens et composants du design system, un fichier par composant avec son CSS ([artefact](https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh)) |
 | `web/src/screens/` | Les écrans ([maquettes](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
 | `web/src/sw.ts` | Service worker : cache hors ligne et notifications |
 | `tests/` | Tests Vitest : base SQLite en mémoire, réponses ESPN enregistrées dans `tests/fixtures/espn` |
