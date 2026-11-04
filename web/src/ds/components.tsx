@@ -209,7 +209,7 @@ export function MatchCard({
   awayPickers?: string[];
   homePickers?: string[];
   onPick?: (side: Side) => void;
-  /** Ajout de l'appli : lien « Voir qui a pris quoi » sous la répartition. */
+  /** Ajout de l'appli : lien vers la fiche match sous la répartition. */
   footer?: ReactNode;
   /** Texte de la répartition quand personne n'a joué. */
   emptyText?: string;

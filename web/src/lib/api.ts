@@ -136,3 +136,18 @@ export interface SeasonDto {
   rows: StandingRow[];
   awards: AwardDto[];
 }
+
+export interface PreviewSideDto {
+  record: string | null;
+  venueRecord: string | null;
+  form: { result: 'V' | 'D' | 'N'; opponent: string; home: boolean; score: string }[];
+  winChance: number | null;
+  injuries: { name: string; position: string | null; status: 'out' | 'doubtful' | 'questionable'; part: string | null }[];
+  injuredReserve: number;
+}
+
+export interface PreviewDto {
+  away: PreviewSideDto;
+  home: PreviewSideDto;
+  odds: { favorite: 'away' | 'home' | null; spread: number | null; provider: string } | null;
+}

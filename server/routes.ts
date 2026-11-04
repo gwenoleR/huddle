@@ -18,6 +18,7 @@ import {
 import { awards, latestRecapWeek, liveProjection, pointsFor, recap, standings, streak, weeklyResults } from './scoring';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from './push';
 import { forceSync, syncStatus } from './sync';
+import { fetchPreview, type Preview } from './espn';
 
 // ---------- Mise en forme ----------
 
@@ -214,6 +215,25 @@ export async function routes(app: FastifyInstance) {
       .map((p) => p.name)
       .filter((n) => !done.has(n));
     return { ...game, weekLabel: weekLabel(row.week, true), waiting };
+  });
+
+  // Avant-match : bilan, forme, favori et blessés, pris chez ESPN à la demande et gardés 20 min en mémoire.
+  const previews = new Map<string, { at: number; data: Preview }>();
+  app.get<{ Params: { id: string } }>('/api/games/:id/preview', { preHandler: requireAuth }, async (req, reply) => {
+    const row = db.prepare('SELECT id FROM games WHERE id = ?').get(req.params.id) as { id: string } | undefined;
+    if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
+    const hit = previews.get(row.id);
+    if (hit && Date.now() - hit.at < 20 * 60_000) return hit.data;
+    try {
+      const data = await fetchPreview(row.id);
+      if (previews.size > 200) previews.clear();
+      previews.set(row.id, { at: Date.now(), data });
+      return data;
+    } catch (e) {
+      req.log.warn({ err: e }, 'avant-match indisponible');
+      if (hit) return hit.data;
+      return reply.code(502).send({ error: 'Infos d’avant-match indisponibles pour le moment.' });
+    }
   });
 
   app.put<{ Params: { id: string }; Body: { side?: string } }>('/api/picks/:id', { preHandler: requireAuth }, async (req, reply) => {

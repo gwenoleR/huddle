@@ -169,7 +169,7 @@ export function Matches({
                 footer={
                   counted && (
                     <a className="detail-link" href={`#/match/${g.id}`}>
-                      Voir qui a pris quoi
+                      {g.status === 'scheduled' ? 'Favori, forme, blessés et pronos' : 'Voir qui a pris quoi'}
                     </a>
                   )
                 }

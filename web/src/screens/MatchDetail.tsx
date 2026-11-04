@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Avatar, MatchCard, type Side } from '../ds/components';
 import { api, type GameDto, type Me } from '../lib/api';
 import { kickoffLabel } from '../lib/format';
+import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
 
 type Detail = GameDto & { weekLabel: string; waiting: string[] };
@@ -57,6 +58,8 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
           homePickers={g.pickers.home}
           onPick={g.locked ? undefined : pick}
         />
+
+        {(g.status === 'scheduled' || g.status === 'postponed') && <MatchPreview game={g} />}
 
         <section className="grid-2">
           {(['away', 'home'] as const).map((side) => (
