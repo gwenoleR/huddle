@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TeamLink } from './shared';
+import { standingText } from '../lib/labels';
 import { api, type GameDto, type PreviewDto, type PreviewSideDto, type TeamStandingDto } from '../lib/api';
 
 const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
@@ -161,11 +162,3 @@ function Injuries({ name, side, color }: { name: string; side: PreviewSideDto; c
   );
 }
 
-/** « 1er AFC Est · 3e tête de série » ou « 3e NFC Nord · hors playoffs ». */
-export function standingText(st: TeamStandingDto | null): string {
-  if (!st) return '–';
-  const div = `${st.divRank === 1 ? '1er' : `${st.divRank}e`} ${st.division}`;
-  if (st.clinch === 'out') return `${div} · éliminé`;
-  if (!st.seed) return div;
-  return st.seed <= 7 ? `${div} · ${st.seed === 1 ? '1re' : `${st.seed}e`} tête de série` : `${div} · hors playoffs (${st.seed}e)`;
-}

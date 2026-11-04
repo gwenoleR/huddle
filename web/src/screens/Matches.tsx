@@ -3,6 +3,7 @@ import { MatchCard, WeekPicker, type Side } from '../ds/components';
 import { api, type BonusDto, type GameDto, type Me, type WeeksDto } from '../lib/api';
 import { dayLabel, kickoffLabel, plural } from '../lib/format';
 import { go } from '../lib/router';
+import { detailLabel } from '../lib/labels';
 import { cardStatus, Loading, toTeam } from './shared';
 
 interface WeekData {
@@ -181,13 +182,6 @@ export function Matches({
       </main>
     </div>
   );
-}
-
-function detailLabel(status: GameDto['status'], counted: boolean): string {
-  const pronos = counted ? ' et pronos' : '';
-  if (status === 'final') return `Stats du match${pronos}`;
-  if (status === 'live') return `Suivre le match${pronos}`;
-  return counted ? 'Favori, forme, blessés et pronos' : 'Favori, forme et blessés';
 }
 
 /** Carte du bonus de fin de saison : visible quand les choix sont ouverts, puis pendant les playoffs. */

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ds/components';
 import { api, type Me, type TeamSheetDto } from '../lib/api';
 import { dayLabel } from '../lib/format';
-import { standingText } from './MatchPreview';
+import { standingText, withByes } from '../lib/labels';
 
 /** Fiche équipe en feuille : on la ferme et on retrouve l'écran (et son prono) tel quel. */
 export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
@@ -139,13 +139,4 @@ export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
       </div>
     </dialog>
   );
-}
-
-/** Ajoute la semaine sans match (bye) dans la saison régulière, entre deux matchs joués ou prévus. */
-function withByes(schedule: TeamSheetDto['schedule']): (TeamSheetDto['schedule'][number] | { bye: true; week: number })[] {
-  const weeks = new Set(schedule.map((g) => g.week));
-  const last = Math.max(0, ...schedule.filter((g) => g.week <= 18).map((g) => g.week));
-  const out: (TeamSheetDto['schedule'][number] | { bye: true; week: number })[] = [];
-  for (let w = 1; w <= last; w++) if (!weeks.has(w)) out.push({ bye: true, week: w });
-  return [...out, ...schedule].sort((a, b) => a.week - b.week);
 }
