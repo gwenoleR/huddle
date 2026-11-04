@@ -12,19 +12,19 @@ Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**.
 ## Mise en route sur le serveur
 
 1. **Brancher le tunnel Cloudflare existant** : dans Zero Trust › Networks › Tunnels › ton tunnel › *Public Hostname*, ajouter `prono.ton-domaine.fr` → service `HTTP`, URL `<ip-du-serveur>:3847`. Si ton cloudflared est sur un réseau Docker partagé, voir la variante commentée dans `docker-compose.yml` : l'URL devient alors `prono:3000`.
-2. **Récupérer les fichiers et se connecter au registre** (le dépôt et l'image sont privés). Il faut un jeton GitHub *classic* avec le droit `read:packages` (Settings › Developer settings › Personal access tokens).
-   ```bash
-   git clone git@github.com:gwenoleR/pronos.git && cd pronos
-   ```
+2. **Se connecter au registre** (l'image est privée), une seule fois par serveur. Il faut un jeton GitHub *classic* avec le droit `read:packages` (Settings › Developer settings › Personal access tokens), collé comme mot de passe :
    ```bash
    docker login ghcr.io -u gwenoleR
    ```
-   (coller le jeton comme mot de passe ; une seule fois par serveur).
-3. **Configurer** :
+3. **Préparer un dossier** : pas besoin de cloner le dépôt, tout est dans l'image (code, joueurs de départ). Il suffit de `docker-compose.yml` et d'un `.env` :
    ```bash
-   cp .env.example .env
+   mkdir -p ~/prono && cd ~/prono
    ```
-   puis remplir `PUBLIC_URL` (l'adresse ci-dessus).
+   Y copier [`docker-compose.yml`](docker-compose.yml) (par `scp` depuis le Mac, ou en copiant-collant son contenu), puis créer le `.env` :
+   ```bash
+   echo "PUBLIC_URL=https://prono.ton-domaine.fr" > .env
+   ```
+   Si `docker compose pull` répond `unauthorized`, c'est que l'étape 2 manque.
 4. **Lancer** :
    ```bash
    docker compose pull && docker compose up -d
@@ -44,7 +44,7 @@ Chaque push sur `main` déclenche GitHub Actions, qui construit l'image et la pu
 docker compose pull && docker compose up -d
 ```
 
-Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` dans `docker-compose.yml`. Pour construire sur le serveur sans passer par GitHub : `docker compose up -d --build`.
+Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` dans `docker-compose.yml`. Pour tester une image construite en local sans passer par GitHub : `docker build -t ghcr.io/gwenoler/pronos:latest .` dans le dépôt, puis `docker compose up -d`.
 
 ## Admin
 

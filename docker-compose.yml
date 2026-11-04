@@ -1,9 +1,7 @@
 services:
   prono:
-    # Image publiée par GitHub Actions à chaque push sur main.
-    # Pour construire en local à la place : docker compose up -d --build
+    # Image publiée par GitHub Actions à chaque push sur main (nécessite « docker login ghcr.io »).
     image: ghcr.io/gwenoler/pronos:latest
-    build: .
     container_name: prono
     restart: unless-stopped
     environment:
