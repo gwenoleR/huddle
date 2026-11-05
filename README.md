@@ -89,6 +89,7 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 | `web/src/screens/` | Les écrans ([maquettes](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
 | `web/src/sw.ts` | Service worker : cache hors ligne et notifications |
 | `tests/` | Tests Vitest : base SQLite en mémoire, réponses ESPN enregistrées dans `tests/fixtures/espn` |
+| `seed/pronos-2026.csv` | Pronos des semaines 1 à 8 de l'ancien site, importés une seule fois au démarrage (dès que les matchs sont en base) |
 | `seed/joueurs.json` | Joueurs et points de départ (lu au tout premier démarrage) |
 
 ### Tests

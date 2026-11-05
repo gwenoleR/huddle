@@ -1,5 +1,5 @@
 /** Petites fonctions d'affichage sans React, partagées par les écrans (et testées). */
-import type { EspnStatsDto, GameDto, TeamSheetDto, TeamStandingDto } from './api';
+import type { EspnStatsDto, GameDto, StandingRow, TeamSheetDto, TeamStandingDto } from './api';
 
 export type { EspnStatsDto };
 
@@ -38,4 +38,24 @@ export function espnLine(e: EspnStatsDto): string {
   if (e.pausedUntil) return `ESPN demande de ralentir : appels en pause jusqu’à ${hourOnly.format(e.pausedUntil)}`;
   const errors = e.errorsLastHour ? ` · ${e.errorsLastHour} en erreur` : '';
   return `${e.lastHour} appel${e.lastHour > 1 ? 's' : ''} ESPN sur la dernière heure${errors} · ${e.lastDay} sur 24 h`;
+}
+
+type Row = Pick<StandingRow, 'good' | 'played' | 'startPoints' | 'bonus'>;
+
+/**
+ * Ligne sous le nom au classement de la saison : « 81 / 135 », avec les points repris
+ * seulement pour qui en a (joueur arrivé en cours de saison) et le bonus s'il y en a.
+ */
+export function seasonRecord(r: Row, startWeek: number): string {
+  const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
+  if (!r.played) return r.startPoints ? `${r.startPoints} pts repris de l’ancien site${bonus}` : `Pas encore de match terminé${bonus}`;
+  const since = startWeek > 1 ? ` depuis la S${startWeek}` : '';
+  const kept = r.startPoints ? ` · ${r.startPoints} repris` : '';
+  return `${r.good} / ${r.played}${since}${kept}${bonus}`;
+}
+
+/** Bilan de saison : d'où viennent les points. */
+export function pointsOrigin(r: Row & { points: number }): string {
+  if (r.startPoints) return `${r.startPoints} repris + ${r.points - r.startPoints} dans l’appli`;
+  return `${r.good} bon${r.good > 1 ? 's' : ''} prono${r.good > 1 ? 's' : ''}${r.bonus ? ` + ${r.bonus} de bonus` : ''}`;
 }

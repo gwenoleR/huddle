@@ -65,7 +65,7 @@ export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
                 La bande et les {d.team.name}
               </span>
               {played.length === 0 && (
-                <span className="muted small">Personne n’a encore eu de prono terminé sur un de leurs matchs depuis la reprise.</span>
+                <span className="muted small">Personne n’a encore eu de prono terminé sur un de leurs matchs.</span>
               )}
               {played.map((b) => (
                 <div key={b.name} className="team-bande">

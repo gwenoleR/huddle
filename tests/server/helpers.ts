@@ -86,3 +86,5 @@ export function subscribe(name: string, endpoint = `https://push.example/${name}
 }
 
 export { db, setMeta };
+
+export const getMetaValue = (key: string) => (db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined)?.value;

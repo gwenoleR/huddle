@@ -15,7 +15,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
 
   app.get<{ Querystring: { week?: string }; Reply: Replies<RecapDto> }>('/api/recap', { preHandler: requireAuth }, async (req, reply) => {
     const week = req.query.week ? Number(req.query.week) : latestRecapWeek();
-    if (!week) return reply.code(404).send({ error: 'Pas encore de match terminé depuis la reprise.' });
+    if (!week) return reply.code(404).send({ error: 'Pas encore de match terminé.' });
     return recap(week);
   });
 

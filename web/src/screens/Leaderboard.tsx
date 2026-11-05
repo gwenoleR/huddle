@@ -5,6 +5,7 @@ import { type Me, type StandingRow } from '../lib/api';
 import { plural } from '../lib/format';
 import { go } from '../lib/router';
 import { useBonus, useLeaderboard, useWeeks } from '../lib/data';
+import { seasonRecord } from '../lib/labels';
 import { Loading } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
@@ -55,10 +56,7 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
       return `${now} · ✓${l.winning} ✗${l.losing}${arrow}`;
     }
     if (scope === 'week') return r.played ? `${r.good} bon${r.good > 1 ? 's' : ''} sur ${r.played}` : 'Pas encore de match terminé';
-    const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
-    return r.played
-      ? `${r.good} / ${r.played} depuis la S${weeks?.startWeek} · ${r.startPoints} repris${bonus}`
-      : `${r.startPoints} pts repris de l’ancien site${bonus}`;
+    return seasonRecord(r, weeks?.startWeek ?? 1);
   }
 
   return (
@@ -66,7 +64,8 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
       <header className="head" style={{ gap: 12, paddingBottom: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="eyebrow">
-            Saison {weeks?.season ?? ''} · reprise en semaine {weeks?.startWeek ?? ''}
+            Saison {weeks?.season ?? ''}
+            {weeks && weeks.startWeek > 1 ? ` · reprise en semaine ${weeks.startWeek}` : ' · 1 pt par bon prono, 2 en playoffs'}
           </span>
           <h1 className="h1">Classement</h1>
         </div>

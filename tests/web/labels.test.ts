@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dayLabel, kickoffLabel, ordinal, plural } from '../../web/src/lib/format';
-import { detailLabel, espnLine, standingText, withByes } from '../../web/src/lib/labels';
+import { detailLabel, espnLine, pointsOrigin, seasonRecord, standingText, withByes } from '../../web/src/lib/labels';
 import { parseHash } from '../../web/src/lib/router';
 
 describe('dates à l’heure de Paris', () => {
@@ -86,5 +86,27 @@ describe('ligne ESPN de l’écran admin', () => {
     expect(espnLine({ lastHour: 12, lastDay: 40, errorsLastHour: 1, pausedUntil: Date.parse('2026-11-08T18:40:00Z') })).toBe(
       'ESPN demande de ralentir : appels en pause jusqu’à 19:40'
     );
+  });
+});
+
+describe('ligne sous le nom au classement', () => {
+  const r = (o: object) => ({ good: 0, played: 0, startPoints: 0, bonus: 0, points: 0, ...o });
+
+  it('saison complète dans l’appli', () => {
+    expect(seasonRecord(r({ good: 81, played: 135 }), 1)).toBe('81 / 135');
+    expect(seasonRecord(r({ good: 81, played: 135, bonus: 8 }), 1)).toBe('81 / 135 · +8 bonus');
+    expect(seasonRecord(r({}), 1)).toBe('Pas encore de match terminé');
+  });
+
+  it('avec une reprise en cours de saison', () => {
+    expect(seasonRecord(r({ good: 5, played: 8, startPoints: 73 }), 9)).toBe('5 / 8 depuis la S9 · 73 repris');
+    expect(seasonRecord(r({ startPoints: 73 }), 9)).toBe('73 pts repris de l’ancien site');
+  });
+
+  it('bilan : d’où viennent les points', () => {
+    expect(pointsOrigin(r({ good: 81, points: 81 }))).toBe('81 bons pronos');
+    expect(pointsOrigin(r({ good: 1, points: 1 }))).toBe('1 bon prono');
+    expect(pointsOrigin(r({ good: 81, bonus: 8, points: 89 }))).toBe('81 bons pronos + 8 de bonus');
+    expect(pointsOrigin(r({ good: 5, startPoints: 40, points: 45 }))).toBe('40 repris + 5 dans l’appli');
   });
 });

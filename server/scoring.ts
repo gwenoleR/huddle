@@ -17,7 +17,7 @@ export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? PLAYOFF
 /** La même règle, pour les requêtes SQL (g = la table games). */
 const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN ${PLAYOFF_POINTS} ELSE ${REGULAR_POINTS} END)`;
 
-/** Classement : points des bons pronos depuis la semaine de reprise, + points repris de l'ancien site (saison). */
+/** Classement : points des bons pronos (depuis la première semaine comptée), + points de départ éventuels (saison). */
 export function standings(week?: number): StandingRow[] {
   const weekFilter = week ? 'AND g.week = ?' : '';
   const params: number[] = [SEASON, START_WEEK, ...(week ? [week] : [])];
@@ -86,7 +86,7 @@ export function streak(playerId: number): number {
   return n;
 }
 
-/** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés depuis la reprise comptent. */
+/** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés comptent. */
 const TROPHIES: { id: string; title: string; rule: string }[] = [
   { id: 'best-week', title: 'Meilleure semaine', rule: 'Le plus grand nombre de bons pronos en une seule semaine. À égalité, la semaine avec le moins de matchs l’emporte (13 sur 13 bat 13 sur 16).' },
   { id: 'sniper', title: 'Le sniper', rule: 'Le meilleur taux de réussite de la saison. Il faut au moins 10 matchs joués pour être classé, histoire que 2 sur 2 ne suffise pas.' },

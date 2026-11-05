@@ -25,7 +25,7 @@ const seedPath = process.env.SEED_FILE ?? path.join(ROOT, 'seed', 'joueurs.json'
 export const seed: Seed = JSON.parse(readFileSync(seedPath, 'utf8'));
 
 export const SEASON = Number(process.env.SEASON ?? seed.saison);
-/** Première semaine dont les pronos comptent dans l'appli (avant : points repris de l'ancien site). */
+/** Première semaine dont les pronos comptent (1 : toute la saison, historique de l'ancien site importé). */
 export const START_WEEK = Number(process.env.START_WEEK ?? seed.semaineDeReprise);
 
 /** Semaines de l'appli : 1 à 18 = saison régulière, puis 19 Wild Card, 20 Div., 21 Conf., 22 Super Bowl. */

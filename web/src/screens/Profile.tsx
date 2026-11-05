@@ -45,7 +45,7 @@ export function Profile({
         <section className="grid-3">
           <div className="card stat">
             <b>{p.good}</b>
-            <span className="muted small">bons pronos depuis la S{p.startWeek}</span>
+            <span className="muted small">{p.startWeek > 1 ? `bons pronos depuis la S${p.startWeek}` : 'bons pronos cette saison'}</span>
           </div>
           <div className="card stat">
             <b>{pct}</b>
@@ -76,11 +76,13 @@ export function Profile({
                 </li>
               );
             })}
-            <li>
-              <span className="wk">S1–S{p.startWeek - 1}</span>
-              <span className="muted small">Repris de l’ancien site</span>
-              <span className="val">{p.startPoints} pts</span>
-            </li>
+            {p.startPoints > 0 && (
+              <li>
+                <span className="wk">{p.startWeek > 1 ? `S1–S${p.startWeek - 1}` : 'Avant'}</span>
+                <span className="muted small">Repris de l’ancien site</span>
+                <span className="val">{p.startPoints} pts</span>
+              </li>
+            )}
           </ol>
           <p className="muted small" style={{ margin: 0 }}>
             En vert, les semaines à 70 % ou plus. En playoffs, un bon prono vaut 2 pts.

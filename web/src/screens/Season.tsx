@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Avatar, Button, Icon, LeaderboardRow } from '../ds';
 import { type AwardDto, type Me } from '../lib/api';
 import { BackLink, Loading } from './shared';
+import { pointsOrigin } from '../lib/labels';
 import { useSeason } from '../lib/data';
 
 export function Season({ me }: { me: Me }) {
@@ -23,7 +24,7 @@ export function Season({ me }: { me: Me }) {
       <main className="stack" style={{ gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="eyebrow">
-            Saison {s.season} {s.finished ? 'terminée' : 'en cours'} · {s.finalGames} matchs joués dans l’appli
+            Saison {s.season} {s.finished ? 'terminée' : 'en cours'} · {s.finalGames} matchs joués
           </span>
           <h1 className="h1">Bilan de saison</h1>
         </div>
@@ -55,7 +56,7 @@ export function Season({ me }: { me: Me }) {
                 name={r.name}
                 points={r.points}
                 me={r.id === me.id}
-                record={`${r.startPoints} repris + ${r.points - r.startPoints} dans l’appli`}
+                record={pointsOrigin(r)}
               />
             ))}
           </ol>
@@ -66,7 +67,7 @@ export function Season({ me }: { me: Me }) {
             Les trophées de la bande
           </h2>
           {won.length === 0 && (
-            <div className="card card-pad muted small">Les trophées arrivent après les premiers matchs joués dans l’appli.</div>
+            <div className="card card-pad muted small">Les trophées arrivent après les premiers matchs joués.</div>
           )}
           {won.map((a) => (
             <AwardRow key={a.id} award={a} onOpen={() => setOpen(a)} />
@@ -158,7 +159,7 @@ function TrophyDialog({ award, me, onClose }: { award: AwardDto | null; me: Me; 
             </span>
             <p style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>{award.rule}</p>
             <p className="muted small" style={{ margin: 0 }}>
-              Seuls les matchs terminés depuis la reprise comptent. Le trophée peut changer de main à tout moment.
+              Seuls les matchs terminés comptent. Le trophée peut changer de main à tout moment.
             </p>
           </div>
           <Button block onClick={onClose}>
