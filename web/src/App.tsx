@@ -6,6 +6,7 @@ import { claimCache, forgetEverything } from './lib/queries';
 import { useTheme } from './lib/theme';
 import { Leaderboard } from './screens/Leaderboard';
 import { TeamSheet } from './screens/TeamSheet';
+import { Admin } from './screens/Admin';
 import { Bonus } from './screens/Bonus';
 import { Login } from './screens/Login';
 import { MatchDetail } from './screens/MatchDetail';
@@ -78,7 +79,7 @@ export function App() {
     );
 
   const tab =
-    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' || route.name === 'bonus' ? 'classement' : route.name;
+    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' || route.name === 'bonus' ? 'classement' : route.name === 'admin' ? 'profil' : route.name;
   const screenKey = route.name === 'match' ? `match-${route.id}` : route.name === 'classement' && route.nfl ? 'classement-nfl' : route.name;
 
   return (
@@ -90,6 +91,7 @@ export function App() {
         {route.name === 'bilan' && <Season me={me} />}
         {route.name === 'bonus' && <Bonus me={me} theme={theme} notify={notify} />}
         {route.name === 'recap' && <Recap week={route.week} notify={notify} />}
+        {route.name === 'admin' && <Admin me={me} notify={notify} />}
         {route.name === 'profil' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
       </div>
       <BottomNav active={tab} onChange={(id) => go(id)} />

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
@@ -15,18 +15,28 @@ export const IS_PROD = process.env.NODE_ENV === 'production';
 export const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? (IS_PROD ? 'true' : 'false')) === 'true';
 export const SYNC_ENABLED = process.env.SYNC !== 'off';
 
+/**
+ * Joueurs à créer au premier démarrage, optionnel (SEED_FILE) : sans fichier, l'appli démarre vide et
+ * le premier venu crée le groupe depuis son téléphone (il en devient l'admin).
+ */
 export interface Seed {
-  saison: number;
-  semaineDeReprise: number;
+  saison?: number;
+  semaineDeReprise?: number;
   joueurs: { prenom: string; pointsDeDepart: number; admin?: boolean }[];
 }
 
-const seedPath = process.env.SEED_FILE ?? path.join(ROOT, 'seed', 'joueurs.json');
-export const seed: Seed = JSON.parse(readFileSync(seedPath, 'utf8'));
+const seedPath = process.env.SEED_FILE;
+export const seed: Seed | null = seedPath && existsSync(seedPath) ? JSON.parse(readFileSync(seedPath, 'utf8')) : null;
 
-export const SEASON = Number(process.env.SEASON ?? seed.saison);
-/** Première semaine dont les pronos comptent (1 : toute la saison, historique de l'ancien site importé). */
-export const START_WEEK = Number(process.env.START_WEEK ?? seed.semaineDeReprise);
+/** Saison NFL en cours à une date : celle qui démarre en septembre (les playoffs de février comptent pour l'année d'avant). */
+export function seasonAt(t: number): number {
+  const d = new Date(t);
+  return d.getUTCMonth() < 2 ? d.getUTCFullYear() - 1 : d.getUTCFullYear();
+}
+
+export const SEASON = Number(process.env.SEASON ?? seed?.saison ?? seasonAt(Date.now()));
+/** Première semaine dont les pronos comptent (1 : toute la saison). */
+export const START_WEEK = Number(process.env.START_WEEK ?? seed?.semaineDeReprise ?? 1);
 
 /** Semaines de l'appli : 1 à 18 = saison régulière, puis 19 Wild Card, 20 Div., 21 Conf., 22 Super Bowl. */
 export const WEEK_LABELS: Record<number, { short: string; long: string }> = {

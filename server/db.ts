@@ -14,9 +14,9 @@ db.exec(`
 
 for (const m of migrate(db)) console.log(`[db] migration ${m.version} : ${m.name}`);
 
-/** Premier démarrage : on crée les joueurs du fichier seed avec leurs points repris de l'ancien site. */
+/** Premier démarrage avec un fichier seed : on crée ses joueurs. Sans seed, le groupe se crée depuis l'appli. */
 const { n } = db.prepare('SELECT COUNT(*) AS n FROM players').get() as { n: number };
-if (n === 0) {
+if (n === 0 && seed) {
   const insert = db.prepare('INSERT INTO players (name, start_points, is_admin, created_at) VALUES (?, ?, ?, ?)');
   for (const j of seed.joueurs) insert.run(j.prenom, j.pointsDeDepart, j.admin ? 1 : 0, Date.now());
   console.log(`[db] ${seed.joueurs.length} joueurs importés depuis le seed`);

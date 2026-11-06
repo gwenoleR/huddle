@@ -1,12 +1,10 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 // Comme en prod après l'import : toute la saison compte, dès la semaine 1.
 // (Lu au chargement de config.ts : à poser avant d'importer le serveur.)
 process.env.START_WEEK = '1';
-const { historyTick, importHistory, parseHistory } = await import('../../server/history');
+const { importHistory, parseHistory } = await import('../../server/history');
 const { standings } = await import('../../server/scoring');
 const { DAY, NOW, addGame, db, getMetaValue, pid, resetDb } = await import('./helpers');
 
@@ -106,22 +104,29 @@ describe('import', () => {
   });
 });
 
-describe('import automatique (chaque minute)', () => {
-  const file = path.join(tmpdir(), `prono-histo-${process.pid}.csv`);
-
-  it('attend que les matchs soient synchronisés, importe une seule fois', () => {
-    writeFileSync(file, CSV);
-    expect(historyTick(file)).toBeNull(); // pas encore de matchs
+describe('import à blanc', () => {
+  it('vérifie et compte sans rien écrire', () => {
     games();
-    expect(historyTick(file)).toMatchObject({ games: 3, picks: 14 });
-    expect(getMetaValue('history_import:2026')).toBeTruthy();
-    db.exec('DELETE FROM picks');
-    expect(historyTick(file)).toBeNull(); // déjà fait : on ne réimporte pas
+    expect(importHistory(parseHistory(CSV), { dryRun: true })).toEqual({ games: 3, picks: 14, players: ['Bea', 'Audrey', 'Gwen', 'Bud', 'Max'] });
     expect((db.prepare('SELECT COUNT(*) AS n FROM picks').get() as { n: number }).n).toBe(0);
+    expect(standings().find((r) => r.name === 'Gwen')!.points).toBe(73);
+    expect(getMetaValue('history_import:2026')).toBeUndefined();
   });
 
-  it('pas de fichier : rien à faire', () => {
-    expect(historyTick('/nulle/part.csv')).toBeNull();
+  it('les erreurs sortent aussi à blanc', () => {
+    expect(() => importHistory(parseHistory(CSV), { dryRun: true })).toThrow('match introuvable');
+  });
+
+  it('fichier vide', () => {
+    expect(() => parseHistory(',Home,Away,Prono GW\n')).toThrow('Fichier vide');
+  });
+});
+
+describe('import réel', () => {
+  it('note la date de l’import', () => {
+    games();
+    importHistory(parseHistory(CSV));
+    expect(JSON.parse(getMetaValue('history_import:2026')!)).toMatchObject({ games: 3, picks: 14 });
   });
 });
 
@@ -142,7 +147,7 @@ describe('le vrai fichier de l’ancien site', () => {
          VALUES (?, 2026, 8, ?, 'final', ?, ?, ?, ?, ?, 0)`
       ).run(e.id, Date.parse(e.date), away.team.id, home.team.id, Number(away.score), Number(home.score), away.winner ? 'away' : 'home');
     }
-    const week8 = parseHistory(readFileSync('seed/pronos-2026.csv', 'utf8')).filter((l) => l.week === 8);
+    const week8 = parseHistory(readFileSync('tests/fixtures/pronos-2026.csv', 'utf8')).filter((l) => l.week === 8);
     expect(week8).toHaveLength(14);
     importHistory(week8);
     const good = Object.fromEntries(standings(8).map((r) => [r.name, r.good]));
@@ -150,9 +155,35 @@ describe('le vrai fichier de l’ancien site', () => {
   });
 
   it('le fichier entier se lit : 8 semaines, 121 matchs, 2 pronos manquants (Audrey)', () => {
-    const lines = parseHistory(readFileSync('seed/pronos-2026.csv', 'utf8'));
+    const lines = parseHistory(readFileSync('tests/fixtures/pronos-2026.csv', 'utf8'));
     expect(new Set(lines.map((l) => l.week))).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8]));
     expect(lines).toHaveLength(121);
     expect(lines.filter((l) => !l.picks.AU).map((l) => l.week)).toEqual([5, 6]);
+  });
+});
+
+describe('initiales', () => {
+  it('sans accents ni casse', async () => {
+    const { initials } = await import('../../server/history');
+    expect([initials('Léa'), initials('élodie'), initials('gw')]).toEqual(['LE', 'EL', 'GW']);
+  });
+});
+
+describe('messages d’erreur', () => {
+  it('un joueur inconnu est signalé une seule fois, pas à chaque match', () => {
+    games();
+    let message = '';
+    try {
+      importHistory(parseHistory(CSV.replace('Prono BU', 'Prono ZZ')));
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message.match(/« ZZ »/g)).toHaveLength(1);
+  });
+
+  it('deux joueurs avec les mêmes initiales : on dit lesquels', () => {
+    db.prepare("INSERT INTO players (name, start_points, created_at) VALUES ('Benoît', 0, 0)").run();
+    games();
+    expect(() => importHistory(parseHistory(CSV))).toThrow('« BE » ambigu : Bea, Benoît');
   });
 });

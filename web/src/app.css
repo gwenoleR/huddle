@@ -325,6 +325,60 @@ a {
   flex: 1;
   font-weight: 600;
 }
+summary.admin-player {
+  cursor: pointer;
+  list-style: none;
+}
+summary.admin-player::-webkit-details-marker {
+  display: none;
+}
+.admin-player-box + .admin-player-box {
+  border-top: 1px solid var(--line);
+}
+.admin-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-10, 40px) var(--space-3) var(--space-4);
+  color: var(--ink);
+  text-decoration: none;
+  position: relative;
+}
+/* Chevron : la carte mène à une autre page. */
+.admin-link::after {
+  content: '';
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--ink-muted);
+  border-right: 2px solid var(--ink-muted);
+  transform: translateY(-50%) rotate(45deg);
+}
+/* Choix du CSV : le vrai champ fichier est caché, le libellé fait office de bouton. */
+.file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.file-btn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.file-btn.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 0 var(--space-3);
+}
 .empty {
   padding: var(--space-6) var(--space-4);
   text-align: center;

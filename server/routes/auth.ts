@@ -26,6 +26,20 @@ export async function authRoutes(app: FastifyInstance) {
     }[]).map((p) => ({ id: p.id, name: p.name, hasPin: !!p.hasPin }))
   );
 
+  // Premier lancement, base vide : le premier venu crée le groupe et en devient l'admin.
+  app.post<{ Body: { name?: string; pin?: string }; Reply: Replies<OkDto> }>('/api/setup', async (req, reply) => {
+    const name = String(req.body?.name ?? '').trim();
+    const pin = req.body?.pin;
+    if (!name || name.length > 30) return reply.code(400).send({ error: 'Prénom invalide.' });
+    if (!isValidPin(pin)) return reply.code(400).send({ error: 'Le code fait 4 chiffres.' });
+    if (db.prepare('SELECT 1 FROM players LIMIT 1').get()) return reply.code(409).send({ error: 'Le groupe existe déjà : connecte-toi.' });
+    const { lastInsertRowid } = db
+      .prepare('INSERT INTO players (name, start_points, is_admin, pin_hash, created_at) VALUES (?, 0, 1, ?, ?)')
+      .run(name, hashPin(pin), Date.now());
+    createSession(reply, Number(lastInsertRowid));
+    return { ok: true, created: true };
+  });
+
   app.post<{ Body: { playerId?: number; pin?: string }; Reply: Replies<OkDto> }>('/api/login', async (req, reply) => {
     const ip = clientIp(req);
     if (ipBlocked(ip)) return reply.code(429).send({ error: 'Trop d’essais depuis cette connexion, réessaie dans une heure.' });

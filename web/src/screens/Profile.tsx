@@ -1,10 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { Avatar, Button } from '../ds';
-import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type SyncStatusDto } from '../lib/api';
-import { espnLine } from '../lib/labels';
+import { api } from '../lib/api';
 import { ordinal } from '../lib/format';
-import { keys } from '../lib/queries';
 import { useProfile } from '../lib/data';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
@@ -124,7 +121,12 @@ export function Profile({
           </div>
         </section>
 
-        {p.isAdmin && <AdminPanel notify={notify} />}
+        {p.isAdmin && (
+          <a href="#/admin" className="card admin-link">
+            <span className="label">Administration</span>
+            <span className="muted small">Joueurs, bonus, données ESPN, import de l’historique</span>
+          </a>
+        )}
 
         <Button variant="secondary" block onClick={onLogout}>
           Se déconnecter
@@ -214,226 +216,5 @@ function PushSettings({ notify }: { notify: (m: string) => void }) {
         </div>
       )}
     </div>
-  );
-}
-
-const syncTime = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit' });
-
-function SyncRow({ notify }: { notify: (m: string) => void }) {
-  const [status, setStatus] = useState<SyncStatusDto | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    api<SyncStatusDto>('/admin/sync').then(setStatus).catch(() => {});
-  }, []);
-
-  async function run() {
-    setBusy(true);
-    try {
-      const s = await api<SyncStatusDto>('/admin/sync', { method: 'POST' });
-      setStatus(s);
-      notify(`Synchro faite : ${s.games} matchs`);
-    } catch (e) {
-      const err = e as ApiError;
-      if (err.data?.at !== undefined) setStatus(err.data as SyncStatusDto);
-      notify(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="settings-row">
-      <span className="label">Données ESPN</span>
-      {status && (
-        <span className="small" style={{ color: status.ok ? 'var(--ink-muted)' : 'var(--wrong)' }}>
-          {status.at ? `${status.ok ? 'Dernière synchro' : 'Échec'} ${syncTime.format(status.at)} · ` : ''}
-          {status.ok ? `${status.games} matchs en base` : status.message}
-        </span>
-      )}
-      {status?.espn && (
-        <span className="small" style={{ color: status.espn.pausedUntil ? 'var(--wrong)' : 'var(--ink-muted)' }}>
-          {espnLine(status.espn)}
-        </span>
-      )}
-      <Button variant="secondary" disabled={busy} onClick={run}>
-        {busy ? 'Synchro en cours… (≈ 15 s)' : 'Synchroniser maintenant'}
-      </Button>
-    </div>
-  );
-}
-
-/** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
-function BonusAdmin({ notify }: { notify: (m: string) => void }) {
-  const qc = useQueryClient();
-  const [s, setS] = useState<BonusSettingsDto | null>(null);
-  const [draft, setDraft] = useState({ afc: '', nfc: '', sb: '' });
-  useEffect(() => {
-    api<BonusSettingsDto>('/admin/bonus')
-      .then((x) => {
-        setS(x);
-        setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
-      })
-      .catch(() => {});
-  }, []);
-  if (!s) return null;
-
-  async function save(body: Partial<BonusSettingsDto>, msg: string) {
-    try {
-      const x = await api<BonusSettingsDto>('/admin/bonus', { method: 'PUT', body });
-      setS(x);
-      setDraft({ afc: String(x.points.afc), nfc: String(x.points.nfc), sb: String(x.points.sb) });
-      // Le barème change les points de tout le monde : bonus, classement et profil sont à recharger.
-      void qc.invalidateQueries({ queryKey: keys.bonus });
-      void qc.invalidateQueries({ queryKey: ['leaderboard'] });
-      void qc.invalidateQueries({ queryKey: keys.profile });
-      void qc.invalidateQueries({ queryKey: keys.season });
-      notify(msg);
-    } catch (e) {
-      notify((e as Error).message);
-    }
-  }
-
-  const changed = draft.afc !== String(s.points.afc) || draft.nfc !== String(s.points.nfc) || draft.sb !== String(s.points.sb);
-  const fields = [
-    ['afc', 'Champion AFC'],
-    ['nfc', 'Champion NFC'],
-    ['sb', 'Vainqueur du Super Bowl']
-  ] as const;
-
-  return (
-    <form
-      className="settings-row"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save({ points: { afc: Number(draft.afc), nfc: Number(draft.nfc), sb: Number(draft.sb) } }, 'Barème du bonus enregistré');
-      }}
-    >
-      <span className="label">Bonus de fin de saison</span>
-      <span className="small muted">
-        {s.enabled ? 'Activé : visible par tous, points comptés au classement.' : 'Désactivé : caché pour tout le monde, aucun point compté.'}
-      </span>
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => save({ enabled: !s.enabled }, s.enabled ? 'Bonus désactivé' : 'Bonus activé')}
-      >
-        {s.enabled ? 'Désactiver le bonus' : 'Activer le bonus'}
-      </Button>
-      {s.enabled && (
-        <>
-          {fields.map(([k, label]) => (
-            <div key={k} className="bonus-admin-row">
-              <label htmlFor={`bonus-${k}`} className="small">
-                {label}
-              </label>
-              <input
-                id={`bonus-${k}`}
-                className="field bonus-admin-input"
-                inputMode="numeric"
-                value={draft[k]}
-                onChange={(e) => setDraft({ ...draft, [k]: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-              />
-              <span className="small muted">pts</span>
-            </div>
-          ))}
-          <Button type="submit" disabled={!changed || Object.values(draft).some((v) => v === '')}>
-            Enregistrer le barème
-          </Button>
-          <span className="small">Révéler les choix de la bande</span>
-          <div className="segmented">
-            {(
-              [
-                ['wildcard', 'À la Wild Card'],
-                ['superbowl', 'Au Super Bowl']
-              ] as const
-            ).map(([v, label]) => (
-              <Button
-                key={v}
-                type="button"
-                variant={s.reveal === v ? 'primary' : 'secondary'}
-                onClick={() => s.reveal !== v && save({ reveal: v }, `Choix révélés ${v === 'wildcard' ? 'à la Wild Card' : 'au Super Bowl'}`)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <span className="small muted">
-            {s.reveal === 'wildcard'
-              ? 'Dès la clôture des choix : on suit qui est encore en course pendant les playoffs.'
-              : 'Au coup d’envoi du Super Bowl : suspense jusqu’au bout, points bonus ajoutés à ce moment-là.'}
-          </span>
-        </>
-      )}
-    </form>
-  );
-}
-
-function AdminPanel({ notify }: { notify: (m: string) => void }) {
-  const [players, setPlayers] = useState<AdminPlayerDto[]>([]);
-  const [name, setName] = useState('');
-  const [points, setPoints] = useState('0');
-  const load = () => api<AdminPlayerDto[]>('/admin/players').then(setPlayers).catch((e) => notify(e.message));
-  useEffect(() => {
-    void load();
-  }, []);
-
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    try {
-      await api('/admin/players', { method: 'POST', body: { name, startPoints: Number(points) } });
-      notify(`${name} ajouté`);
-      setName('');
-      setPoints('0');
-      void load();
-    } catch (err) {
-      notify((err as Error).message);
-    }
-  }
-
-  async function reset(p: AdminPlayerDto) {
-    if (!confirm(`Effacer le code de ${p.name} ? Il en choisira un nouveau à sa prochaine connexion.`)) return;
-    await api(`/admin/players/${p.id}/reset-pin`, { method: 'POST' });
-    notify(`Code de ${p.name} effacé`);
-    void load();
-  }
-
-  return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h2 className="section-title" style={{ margin: 0 }}>
-        Admin
-      </h2>
-      <div className="card">
-        <SyncRow notify={notify} />
-        <BonusAdmin notify={notify} />
-        <div className="settings-row">
-          {players.map((p) => (
-            <div key={p.id} className="admin-player">
-              <Avatar name={p.name} size="sm" />
-              <span>{p.name}</span>
-              {p.hasPin ? (
-                <Button variant="ghost" onClick={() => reset(p)}>
-                  Effacer le code
-                </Button>
-              ) : (
-                <span className="muted small">Pas encore connecté</span>
-              )}
-            </div>
-          ))}
-        </div>
-        <form className="settings-row" onSubmit={add}>
-          <span className="label">Ajouter un joueur</span>
-          <label className="muted small" htmlFor="new-name">
-            Prénom
-          </label>
-          <input id="new-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required maxLength={30} />
-          <label className="muted small" htmlFor="new-points">
-            Points de départ
-          </label>
-          <input id="new-points" className="field" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value.replace(/\D/g, ''))} />
-          <Button type="submit">Ajouter</Button>
-        </form>
-      </div>
-    </section>
   );
 }

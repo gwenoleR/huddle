@@ -266,6 +266,15 @@ export interface AdminPlayerDto {
   hasPin: boolean;
 }
 
+/** /api/admin/history : ce qui est (ou serait, à blanc) importé. */
+export interface HistoryImportDto {
+  games: number;
+  picks: number;
+  /** Joueurs dont les points de départ sont remplacés par l'historique. */
+  players: string[];
+  dryRun: boolean;
+}
+
 /** Toute erreur renvoyée par l'API. */
 export interface ErrorDto {
   error: string;

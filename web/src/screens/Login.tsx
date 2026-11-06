@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Avatar } from '../ds';
+import { Avatar, Button } from '../ds';
 import { api, ApiError, type Me, type PlayerLite } from '../lib/api';
 
 export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
   const [players, setPlayers] = useState<PlayerLite[] | null>(null);
   const [who, setWho] = useState<PlayerLite | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Base vide (nouvelle installation) : on crée le groupe, son créateur en devient l'admin.
+  const setup = players?.length === 0;
 
   useEffect(() => {
     api<PlayerLite[]>('/players')
@@ -13,7 +15,8 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
       .catch((e) => setError(e.message));
   }, []);
 
-  if (who) return <PinStep player={who} onBack={() => setWho(null)} onLogged={onLogged} />;
+  if (who) return <PinStep player={who} setup={setup} onBack={() => setWho(null)} onLogged={onLogged} />;
+  if (setup) return <SetupName onNext={(name) => setWho({ id: 0, name, hasPin: false })} />;
 
   return (
     <div className="app">
@@ -42,7 +45,52 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
   );
 }
 
-function PinStep({ player, onBack, onLogged }: { player: PlayerLite; onBack: () => void; onLogged: (me: Me) => void }) {
+/** Nouvelle installation : le prénom de celui qui crée le groupe (son code vient juste après). */
+function SetupName({ onNext }: { onNext: (name: string) => void }) {
+  const [name, setName] = useState('');
+  const trimmed = name.trim();
+  return (
+    <div className="app">
+      <main className="login">
+        <header style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span className="brand-line">PRONO NFL ENTRE POTES</span>
+          <h1 className="display">Crée ton groupe</h1>
+          <p className="muted" style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>
+            Tu en seras l’admin : tu ajouteras ensuite ta bande depuis ton profil.
+          </p>
+        </header>
+        <form
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (trimmed) onNext(trimmed);
+          }}
+        >
+          <label className="muted small" htmlFor="setup-name">
+            Ton prénom
+          </label>
+          <input id="setup-name" className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} autoFocus autoComplete="given-name" />
+          <Button type="submit" block disabled={!trimmed}>
+            Continuer
+          </Button>
+        </form>
+      </main>
+    </div>
+  );
+}
+
+function PinStep({
+  player,
+  setup = false,
+  onBack,
+  onLogged
+}: {
+  player: PlayerLite;
+  /** Création du groupe : le code confirmé crée le joueur admin. */
+  setup?: boolean;
+  onBack: () => void;
+  onLogged: (me: Me) => void;
+}) {
   const creating = !player.hasPin;
   const [pin, setPinState] = useState('');
   const pinRef = useRef('');
@@ -76,7 +124,8 @@ function PinStep({ player, onBack, onLogged }: { player: PlayerLite; onBack: () 
       }
       setBusy(true);
       try {
-        await api('/login', { method: 'POST', body: { playerId: player.id, pin: code } });
+        if (setup) await api('/setup', { method: 'POST', body: { name: player.name, pin: code } });
+        else await api('/login', { method: 'POST', body: { playerId: player.id, pin: code } });
         onLogged(await api<Me>('/me'));
       } catch (e) {
         fail(e instanceof ApiError ? e.message : 'Erreur inattendue.');
@@ -84,7 +133,7 @@ function PinStep({ player, onBack, onLogged }: { player: PlayerLite; onBack: () 
         setBusy(false);
       }
     },
-    [creating, first, player.id, onLogged]
+    [creating, first, player.id, player.name, setup, onLogged]
   );
 
   const press = useCallback(
@@ -127,7 +176,7 @@ function PinStep({ player, onBack, onLogged }: { player: PlayerLite; onBack: () 
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Pas toi ?
+            {setup ? 'Changer de prénom' : 'Pas toi ?'}
           </button>
         </div>
         <Avatar name={player.name} size="lg" me />

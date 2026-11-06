@@ -3,14 +3,13 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { HOST, PORT, SEASON, START_WEEK, SYNC_ENABLED, WEB_DIR } from './config';
-import './db';
+import { HOST, PORT, PUBLIC_URL, SEASON, START_WEEK, SYNC_ENABLED, WEB_DIR } from './config';
+import { db } from './db';
 import { routes } from './routes';
 import { LOGO_DIR, syncTick } from './sync';
 import { notificationsTick } from './push';
 import { bonusTick } from './bonus';
 import { resetIfNewVersion } from './espnCache';
-import { historyTick } from './history';
 
 // Nouvelle version de l'appli : le cache ESPN repart de zéro (le format des données a pu changer).
 resetIfNewVersion();
@@ -50,6 +49,7 @@ if (existsSync(WEB_DIR)) {
 
 await app.listen({ port: PORT, host: HOST });
 console.log(`[prono] saison ${SEASON}, pronos comptés dès la semaine ${START_WEEK}, à l'écoute sur ${HOST}:${PORT}`);
+if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[prono] aucun joueur : ouvre ${PUBLIC_URL} pour créer ton groupe (tu en seras l'admin)`);
 
 let running = false;
 async function tick() {
@@ -59,11 +59,6 @@ async function tick() {
     if (SYNC_ENABLED) await syncTick();
   } catch (e) {
     console.error('[sync] erreur', (e as Error).message);
-  }
-  try {
-    historyTick();
-  } catch (e) {
-    console.error('[historique] erreur', (e as Error).message);
   }
   try {
     await bonusTick();

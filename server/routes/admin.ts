@@ -1,8 +1,9 @@
-/** Administration : joueurs, codes et synchro ESPN. */
+/** Administration : joueurs, codes, historique et synchro ESPN. */
 import type { FastifyInstance } from 'fastify';
-import type { AdminPlayerDto, OkDto, Replies, SyncStatusDto } from '../../shared/api';
+import type { AdminPlayerDto, HistoryImportDto, OkDto, Replies, SyncStatusDto } from '../../shared/api';
 import { db } from '../db';
 import { espnStats } from '../espn';
+import { importHistory, parseHistory } from '../history';
 import { forceSync, syncStatus } from '../sync';
 import { requireAdmin } from './guards';
 
@@ -35,6 +36,61 @@ export async function adminRoutes(app: FastifyInstance) {
     db.prepare('DELETE FROM sessions WHERE player_id = ?').run(id);
     return { ok: true };
   });
+
+  app.patch<{ Params: { id: string }; Body: { name?: string; isAdmin?: boolean; startPoints?: number }; Reply: Replies<OkDto> }>(
+    '/api/admin/players/:id',
+    { preHandler: requireAdmin },
+    async (req, reply) => {
+      const id = Number(req.params.id);
+      if (!db.prepare('SELECT 1 FROM players WHERE id = ?').get(id)) return reply.code(404).send({ error: 'Joueur inconnu.' });
+      const { name, isAdmin, startPoints } = req.body ?? {};
+      if (name !== undefined) {
+        const n = String(name).trim();
+        if (!n || n.length > 30) return reply.code(400).send({ error: 'Prénom invalide.' });
+        try {
+          db.prepare('UPDATE players SET name = ? WHERE id = ?').run(n, id);
+        } catch {
+          return reply.code(409).send({ error: 'Ce prénom existe déjà.' });
+        }
+      }
+      if (isAdmin !== undefined) {
+        // On ne se retire pas soi-même les droits : le groupe garde toujours au moins un admin.
+        if (!isAdmin && id === req.me.id) return reply.code(400).send({ error: 'Tu ne peux pas te retirer tes propres droits d’admin.' });
+        db.prepare('UPDATE players SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id);
+      }
+      if (startPoints !== undefined) {
+        const pts = Number(startPoints);
+        if (!Number.isInteger(pts) || pts < 0 || pts > 999) return reply.code(400).send({ error: 'Points de départ invalides.' });
+        db.prepare('UPDATE players SET start_points = ? WHERE id = ?').run(pts, id);
+      }
+      return { ok: true };
+    }
+  );
+
+  // Supprime le joueur et tout ce qui va avec (pronos, bonus, sessions, notifications : ON DELETE CASCADE).
+  app.delete<{ Params: { id: string }; Reply: Replies<OkDto> }>('/api/admin/players/:id', { preHandler: requireAdmin }, async (req, reply) => {
+    const id = Number(req.params.id);
+    if (id === req.me.id) return reply.code(400).send({ error: 'Tu ne peux pas te supprimer toi-même.' });
+    const { changes } = db.prepare('DELETE FROM players WHERE id = ?').run(id);
+    if (!changes) return reply.code(404).send({ error: 'Joueur inconnu.' });
+    return { ok: true };
+  });
+
+  // Historique d'un autre site, en CSV : d'abord à blanc (dryRun) pour vérifier, puis pour de vrai.
+  app.post<{ Body: { csv?: string; dryRun?: boolean }; Reply: Replies<HistoryImportDto> }>(
+    '/api/admin/history',
+    { preHandler: requireAdmin, bodyLimit: 2 * 1024 * 1024 },
+    async (req, reply) => {
+      const dryRun = req.body?.dryRun === true;
+      try {
+        const r = importHistory(parseHistory(String(req.body?.csv ?? '')), { dryRun });
+        if (!dryRun) console.log(`[historique] ${r.picks} pronos importés sur ${r.games} matchs (${r.players.join(', ')})`);
+        return { ...r, dryRun };
+      } catch (e) {
+        return reply.code(400).send({ error: (e as Error).message });
+      }
+    }
+  );
 
   const status = (): SyncStatusDto => ({ ...syncStatus(), espn: espnStats() });
 

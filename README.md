@@ -7,7 +7,7 @@ L'appli de pronos NFL de la bande : une PWA mobile à installer sur l'écran d'a
 - **Classement** saison / semaine, **profil** semaine par semaine, **bilan de saison** avec trophées.
 - **Notifications** : rappel 1 h avant un match sans prono, résultats quand une semaine est terminée.
 
-Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**. Les points des semaines 1 à 8 sont repris de l'ancien site (`seed/joueurs.json`).
+Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**. Les pronos des semaines 1 à 8 viennent de l'ancien site (importés en CSV depuis l'écran admin).
 
 ## Mise en route sur le serveur
 
@@ -16,7 +16,7 @@ Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**.
    ```bash
    docker login ghcr.io -u gwenoleR
    ```
-3. **Préparer un dossier** : pas besoin de cloner le dépôt, tout est dans l'image (code, joueurs de départ). Il suffit de `docker-compose.yml` et d'un `.env` :
+3. **Préparer un dossier** : pas besoin de cloner le dépôt, tout est dans l'image. Il suffit de `docker-compose.yml` et d'un `.env` :
    ```bash
    mkdir -p ~/prono && cd ~/prono
    ```
@@ -29,8 +29,8 @@ Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**.
    ```bash
    docker compose pull && docker compose up -d
    ```
-   Au premier démarrage, l'appli crée les 5 joueurs, télécharge les 32 équipes, leurs logos et les 272 matchs de la saison (environ 30 s).
-5. Ouvrir l'adresse sur le téléphone, choisir son prénom : **le premier code tapé devient son code**.
+   Au premier démarrage, l'appli télécharge les 32 équipes, leurs logos et les 272 matchs de la saison (environ 30 s). La base est vide : les logs disent « aucun joueur : ouvre … pour créer ton groupe ».
+5. **Créer le groupe** : le premier qui ouvre l'adresse choisit son prénom et son code, et devient l'admin. Il ajoute ensuite les autres depuis Profil › Admin. Chacun choisit son prénom : **le premier code tapé devient son code**. Tant que le groupe n'est pas créé, n'importe qui ayant l'adresse peut le créer : fais-le juste après le premier démarrage.
 6. Installer l'appli :
    - **iPhone** (Safari) : Partager › *Sur l'écran d'accueil*. Les notifications ne marchent qu'une fois l'appli ouverte depuis l'icône (iOS 16.4 minimum). Une appli ajoutée avant le 4 novembre 2026 garde une bande en bas d'écran (barre d'état translucide, lue par iOS à l'installation) : supprimer l'icône et la rajouter.
    - **Android** (Chrome) : menu ⋮ › *Installer l'application*.
@@ -48,9 +48,10 @@ Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` d
 
 ## Admin
 
-Le compte marqué `admin` dans `seed/joueurs.json` (Gwen) voit une section Admin dans son profil :
-- **Effacer le code** d'un joueur qui l'a oublié : il en choisit un nouveau à sa prochaine connexion.
-- **Ajouter un joueur** avec ses points de départ.
+Le créateur du groupe est admin, et peut nommer d'autres admins. Les admins voient une section Admin dans leur profil :
+- **Ajouter un joueur**, avec des points de départ s'il arrive en cours de saison.
+- Pour chaque joueur (toucher son nom) : **renommer**, **effacer le code** (il en choisit un nouveau à sa prochaine connexion), **nommer / retirer admin**, **supprimer** (ses pronos disparaissent avec lui). On ne peut ni se supprimer ni se retirer ses propres droits : il reste toujours un admin.
+- **Importer l'historique** : les semaines jouées ailleurs, en CSV. Une ligne d'en-têtes `,Home,Away,Prono GW,Prono AU,…` (les deux premières lettres du prénom, sans tenir compte des accents), puis une ligne par match avec les noms complets des équipes (`Kansas City Chiefs`), `Week1` en première colonne sur le premier match de chaque semaine, une case vide pour un prono manquant. Le fichier est d'abord vérifié à blanc (combien de pronos, pour qui), puis importé sur confirmation. C'est tout ou rien : à la moindre erreur, rien n'est écrit et tous les problèmes sont listés. Les points de départ des joueurs du fichier repassent à 0.
 
 Sécurité du code PIN : 5 erreurs bloquent le prénom 15 minutes, et 20 erreurs depuis une même connexion la bloquent une heure.
 
@@ -89,8 +90,6 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 | `web/src/screens/` | Les écrans ([maquettes](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
 | `web/src/sw.ts` | Service worker : cache hors ligne et notifications |
 | `tests/` | Tests Vitest : base SQLite en mémoire, réponses ESPN enregistrées dans `tests/fixtures/espn` |
-| `seed/pronos-2026.csv` | Pronos des semaines 1 à 8 de l'ancien site, importés une seule fois au démarrage (dès que les matchs sont en base) |
-| `seed/joueurs.json` | Joueurs et points de départ (lu au tout premier démarrage) |
 
 ### Tests
 
