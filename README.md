@@ -16,16 +16,16 @@ You need a machine that runs Docker (a home server, a NAS, a Raspberry Pi, a sma
 
 1. **A folder with two files**:
    ```bash
-   mkdir -p ~/prono && cd ~/prono
+   mkdir -p ~/huddle && cd ~/huddle
    curl -O https://raw.githubusercontent.com/gwenoleR/pronos/main/docker-compose.yml
-   echo "PUBLIC_URL=https://prono.example.com" > .env
+   echo "PUBLIC_URL=https://huddle.example.com" > .env
    ```
    `PUBLIC_URL` is the address everyone will type on their phone. The other settings are optional (see [Settings](#settings) and [`.env.example`](.env.example)).
 2. **Start it**:
    ```bash
    docker compose up -d
    ```
-   The app listens on port 3000. On first start it downloads the 32 teams, their logos and the season's 272 games (about 30 s); the logs (`docker compose logs prono`) then say there are no players yet.
+   The app listens on port 3000. On first start it downloads the 32 teams, their logos and the season's 272 games (about 30 s); the logs (`docker compose logs huddle`) then say there are no players yet.
 3. **Put it behind HTTPS** so that `PUBLIC_URL` reaches port 3000: see [HTTPS](#https).
 4. **Create the group**: the first person to open the address picks their first name and a 4-digit PIN, and becomes the admin. Do it right after the first start: until the group exists, anyone with the address could create it. The admin then adds the others from Profile › Administration; each player picks their name and **the first PIN they type becomes theirs**.
 5. **Install the app** on each phone:
@@ -39,8 +39,8 @@ Already have picks from earlier weeks somewhere else? The admin can import them 
 
 Pick whichever fits your setup:
 
-- **Caddy** (simplest with a domain name and ports 80/443 open): [`examples/docker-compose.caddy.yml`](examples/docker-compose.caddy.yml) runs the app and Caddy, which gets the certificate by itself. Put `DOMAIN=prono.example.com` in `.env` instead of `PUBLIC_URL`, then `docker compose -f docker-compose.caddy.yml up -d`.
-- **Cloudflare Tunnel** (nothing to open on your router): in Zero Trust › Networks › Tunnels › your tunnel › *Public Hostname*, add your hostname → service `HTTP`, URL `<server-ip>:3000` (or `prono:3000` if cloudflared runs on the same Docker network).
+- **Caddy** (simplest with a domain name and ports 80/443 open): [`examples/docker-compose.caddy.yml`](examples/docker-compose.caddy.yml) runs the app and Caddy, which gets the certificate by itself. Put `DOMAIN=huddle.example.com` in `.env` instead of `PUBLIC_URL`, then `docker compose -f docker-compose.caddy.yml up -d`.
+- **Cloudflare Tunnel** (nothing to open on your router): in Zero Trust › Networks › Tunnels › your tunnel › *Public Hostname*, add your hostname → service `HTTP`, URL `<server-ip>:3000` (or `huddle:3000` if cloudflared runs on the same Docker network).
 - **Your own reverse proxy** (Traefik, nginx, Nginx Proxy Manager…): forward the hostname to port 3000. The app trusts `X-Forwarded-*` headers, so the real client address is used for the login rate limit.
 - **Just trying it on your LAN**: `PUBLIC_URL=http://192.168.1.10:3000` works for logging in and making picks in a browser, but phones won't install the app nor get notifications without HTTPS.
 
@@ -52,7 +52,7 @@ docker compose pull && docker compose up -d
 
 The database migrates by itself on start; a copy beforehand never hurts:
 ```bash
-docker compose cp prono:/data/prono.db ./prono-backup.db
+docker compose cp huddle:/data/huddle.db ./huddle-backup.db
 ```
 
 What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md) (and on the GitHub releases page). Versions follow semver: a **major** version (2.0.0) may need something from you, and its changelog says exactly what; minor and patch versions never do. The app notices when the server is newer and offers to reload.
@@ -99,10 +99,10 @@ PIN security: 5 wrong attempts lock that name for 15 minutes, and 20 wrong attem
 - Source: ESPN's public API (unofficial, free, no key). Everything goes through `server/espn.ts`; if ESPN changes its format, that's the only file to adapt. As a fallback, the `games.csv` file from [nflverse](https://github.com/nflverse/nfldata) has the same games along with the ESPN IDs.
 - Tracked season: the current one based on the date (see above). To pin it (tests, demo), set `SEASON=2026`.
 - Sync: full season once a day, current weeks every hour, **every 2 minutes during games**.
-- SQLite database in the `prono-data` Docker volume (`/data/prono.db`).
+- SQLite database in the `huddle-data` Docker volume (`/data/huddle.db`; installs from before the rename keep `/data/prono.db`).
   Backup:
   ```bash
-  docker compose cp prono:/data/prono.db ./prono-backup.db
+  docker compose cp huddle:/data/huddle.db ./huddle-backup.db
   ```
 
 ## Development

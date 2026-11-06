@@ -6,7 +6,14 @@ const ROOT = process.cwd();
 
 export const DATA_DIR = process.env.DATA_DIR ?? path.join(ROOT, 'data');
 /** SQLite file; ":memory:" for tests. */
-export const DB_FILE = process.env.DB_FILE ?? path.join(DATA_DIR, 'prono.db');
+export const DB_FILE = process.env.DB_FILE ?? defaultDbFile(DATA_DIR);
+
+/** huddle.db, or prono.db for installs made before the app was renamed (their data stays where it is). */
+export function defaultDbFile(dataDir: string): string {
+  const legacy = path.join(dataDir, 'prono.db');
+  return existsSync(legacy) ? legacy : path.join(dataDir, 'huddle.db');
+}
+
 export const WEB_DIR = process.env.WEB_DIR ?? path.join(ROOT, 'dist', 'web');
 export const PORT = Number(process.env.PORT ?? 3000);
 export const HOST = process.env.HOST ?? '0.0.0.0';

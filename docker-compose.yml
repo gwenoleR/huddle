@@ -1,10 +1,10 @@
-# Prono: the app alone, on port 3000. Put it behind HTTPS (phones need it to install the app and
+# Huddle: the app alone, on port 3000. Put it behind HTTPS (phones need it to install the app and
 # receive notifications): see the README, "HTTPS", or examples/docker-compose.caddy.yml.
 #
-#   echo "PUBLIC_URL=https://prono.example.com" > .env
+#   echo "PUBLIC_URL=https://huddle.example.com" > .env
 #   docker compose up -d
 services:
-  prono:
+  huddle:
     # `latest` = the last release. Pin a version with :1 or :1.0, or follow main with :edge.
     image: ghcr.io/gwenoler/pronos:latest
     restart: unless-stopped
@@ -19,9 +19,9 @@ services:
       POINTS_PLAYOFFS: ${POINTS_PLAYOFFS:-2}
       TZ: ${TZ:-Europe/Paris}
     volumes:
-      - prono-data:/data
+      - huddle-data:/data
     ports:
       - "3000:3000"
 
 volumes:
-  prono-data:
+  huddle-data:

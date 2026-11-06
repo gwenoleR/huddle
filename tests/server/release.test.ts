@@ -2,7 +2,11 @@
  * What a self-hoster's setup changes: the version shown and compared by the app, and whether the
  * session cookie requires HTTPS (it follows PUBLIC_URL, so a plain-http LAN test still logs in).
  */
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { defaultDbFile } from '../../server/config';
 
 vi.mock('web-push', () => ({
   default: { generateVAPIDKeys: () => ({ publicKey: 'pub', privateKey: 'priv' }), setVapidDetails: () => {}, sendNotification: vi.fn() }
@@ -53,5 +57,18 @@ describe('session cookie', () => {
   it('COOKIE_SECURE overrides it', async () => {
     const { login } = await serverWith({ PUBLIC_URL: 'http://192.168.1.10:3000', COOKIE_SECURE: 'true' });
     expect((await login()).headers['set-cookie']).toMatch(/; Secure/);
+  });
+});
+
+describe('database file', () => {
+  it('a new install uses huddle.db', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'huddle-db-'));
+    expect(defaultDbFile(dir)).toBe(path.join(dir, 'huddle.db'));
+  });
+
+  it('an install from before the rename keeps its prono.db', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'huddle-db-'));
+    writeFileSync(path.join(dir, 'prono.db'), '');
+    expect(defaultDbFile(dir)).toBe(path.join(dir, 'prono.db'));
   });
 });

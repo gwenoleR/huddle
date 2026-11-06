@@ -6,6 +6,13 @@ from whoever hosts the app (it is always spelled out here), minor and patch vers
 
 ## [Unreleased]
 
+### Changed
+- Install names follow the app's name: folder `~/huddle`, Compose service `huddle`, volume
+  `huddle-data`, database file `/data/huddle.db`. **Existing installs**: nothing to do, an existing
+  `/data/prono.db` keeps being used. If you replace your `docker-compose.yml` with the new one, keep
+  your old volume by renaming `huddle-data` back to your volume's name (e.g. `prono-data`), or the
+  app will start on a new, empty volume.
+
 ## [1.0.0] - 2026-11-06
 
 First public release of Huddle, the NFL picks app for a group of friends: the app the original group
