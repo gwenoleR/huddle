@@ -1,8 +1,36 @@
-# Huddle
+<p align="center">
+  <a href="https://gwenoler.github.io/huddle/">
+    <img src=".github/assets/banner.png" alt="Huddle — NFL picks with your crew: the pick'em app you host yourself" width="100%">
+  </a>
+</p>
 
-**[Website and documentation](https://gwenoler.github.io/huddle/)** · [Releases](https://github.com/gwenoleR/huddle/releases) · [Changelog](CHANGELOG.md)
+<p align="center">
+  <a href="https://github.com/gwenoleR/huddle/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/gwenoleR/huddle?style=flat-square&color=39c97a&labelColor=0d131d"></a>
+  <a href="https://github.com/gwenoleR/huddle/actions/workflows/docker.yml"><img alt="Tests and image" src="https://img.shields.io/github/actions/workflow/status/gwenoleR/huddle/docker.yml?branch=main&style=flat-square&label=build&labelColor=0d131d"></a>
+  <a href="https://github.com/gwenoleR/huddle/pkgs/container/huddle"><img alt="Docker image for amd64 and arm64" src="https://img.shields.io/badge/docker-amd64%20%7C%20arm64-2496ed?style=flat-square&logo=docker&logoColor=white&labelColor=0d131d"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-f2c14e?style=flat-square&labelColor=0d131d"></a>
+  <img alt="English and French" src="https://img.shields.io/badge/lang-English%20%7C%20Fran%C3%A7ais-9aa4b6?style=flat-square&labelColor=0d131d">
+</p>
 
-An NFL picks app for a group of friends: a mobile PWA you install on your home screen, that you host yourself with Docker. One instance = one group.
+<h3 align="center">Pick every NFL game with your friends, on a server you own.</h3>
+
+<p align="center">
+  Live scores, standings that move during games, trophies and a weekly recap for the group chat.<br>
+  One Docker container, no accounts to create, no ads, no betting.
+</p>
+
+<p align="center">
+  <a href="https://gwenoler.github.io/huddle/"><b>Website</b></a> ·
+  <a href="https://gwenoler.github.io/huddle/guide/"><b>Install in 5 minutes</b></a> ·
+  <a href="https://gwenoler.github.io/huddle/#see-it-in-action">Screenshots &amp; video</a> ·
+  <a href="https://github.com/gwenoleR/huddle/releases">Releases</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="https://gwenoler.github.io/huddle/fr/">Français</a>
+</p>
+
+---
+
+Huddle is a mobile web app (PWA) you install on your home screen and host yourself with Docker. One instance = one group.
 
 - **Games** of the week with team logos, one tap to make a pick, and the group's split under each game.
 - **Locking** at kickoff (server-side), **live scores**, points computed automatically.

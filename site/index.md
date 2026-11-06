@@ -41,7 +41,7 @@ features:
 ---
 
 <section class="hd-section">
-  <h2 class="hd-section-title">See it in action</h2>
+  <h2 id="see-it-in-action" class="hd-section-title">See it in action</h2>
   <p class="hd-section-lead">Made for phones, built around the Sunday ritual: pick, watch, argue, repeat.</p>
   <Screens />
 </section>

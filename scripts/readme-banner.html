@@ -1,0 +1,56 @@
+<!doctype html>
+<!--
+  Source of .github/assets/banner.png, the header of the README (1600×560).
+  To regenerate, from the repository root (headless Chrome):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+      --allow-file-access-from-files --window-size=1600,560 --virtual-time-budget=3000 \
+      --default-background-color=00000000 --screenshot=.github/assets/banner.png "file://$PWD/scripts/readme-banner.html"
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Huddle README banner</title>
+    <style>
+      @font-face { font-family: 'Barlow'; font-weight: 500; src: url(../node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2) format('woff2'); }
+      @font-face { font-family: 'Barlow'; font-weight: 600; src: url(../node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2) format('woff2'); }
+      @font-face { font-family: 'Barlow Condensed'; font-weight: 800; src: url(../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2) format('woff2'); }
+      html, body { margin: 0; width: 1600px; height: 560px; overflow: hidden; }
+      body {
+        position: relative;
+        background:
+          radial-gradient(700px 420px at 78% 55%, rgba(57, 201, 122, 0.24), transparent 65%),
+          radial-gradient(500px 300px at 10% 0%, rgba(242, 193, 78, 0.07), transparent 70%),
+          #0d131d;
+        color: #f1efe8;
+        font-family: 'Barlow', sans-serif;
+        border-radius: 28px;
+      }
+      /* Faint yard lines, like a field seen from above. */
+      .field { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(241, 239, 232, 0.035) 0 2px, transparent 2px 120px); mask-image: linear-gradient(90deg, transparent, #000 40%, #000 80%, transparent); }
+      .text { position: absolute; left: 96px; top: 50%; transform: translateY(-50%); width: 640px; display: flex; flex-direction: column; gap: 18px; }
+      .brand { display: flex; align-items: center; gap: 22px; }
+      .brand img { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 16px 40px rgba(57, 201, 122, 0.25); }
+      .brand span { font-family: 'Barlow Condensed'; font-weight: 800; font-size: 120px; line-height: 0.9; }
+      h1 { margin: 6px 0 0; font-family: 'Barlow Condensed'; font-weight: 800; font-size: 64px; line-height: 1; color: #39c97a; }
+      p { margin: 0; font-size: 27px; line-height: 1.4; color: #9aa4b6; font-weight: 500; max-width: 600px; }
+      .phones { position: absolute; right: 70px; top: 0; width: 760px; height: 560px; }
+      .phone { position: absolute; width: 230px; border-radius: 32px; border: 8px solid #222c3d; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6); }
+      .p1 { left: 20px; top: 120px; transform: rotate(-9deg); }
+      .p2 { left: 260px; top: 50px; z-index: 2; width: 250px; }
+      .p3 { left: 510px; top: 120px; transform: rotate(9deg); }
+    </style>
+  </head>
+  <body>
+    <div class="field"></div>
+    <div class="text">
+      <div class="brand"><img src="../site/public/logo.svg" alt="" /><span>Huddle</span></div>
+      <h1>NFL picks with your crew</h1>
+      <p>The pick’em app you host yourself. Live scores, standings and trophies. No ads, no betting.</p>
+    </div>
+    <div class="phones">
+      <img class="phone p1" src="../site/public/screens/standings.jpg" alt="" />
+      <img class="phone p2" src="../site/public/screens/games.jpg" alt="" />
+      <img class="phone p3" src="../site/public/screens/trophies.jpg" alt="" />
+    </div>
+  </body>
+</html>
