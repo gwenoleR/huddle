@@ -7,6 +7,13 @@ services:
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?Renseigne PUBLIC_URL dans .env}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # Réglages facultatifs de l'instance (voir le README, « Réglages ») :
+      APP_NAME: ${APP_NAME:-}
+      APP_SHORT_NAME: ${APP_SHORT_NAME:-}
+      APP_LANG: ${APP_LANG:-fr}
+      POINTS_REGULAR: ${POINTS_REGULAR:-1}
+      POINTS_PLAYOFFS: ${POINTS_PLAYOFFS:-2}
+      TZ: ${TZ:-Europe/Paris}
     volumes:
       - prono-data:/data
     # Le cloudflared de ton infra pointe vers http://<ip-du-serveur>:3847

@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { PUBLIC_URL, currentSeason, weekLabel } from './config';
+import { PUBLIC_URL, currentSeason, t, weekLabel } from './config';
 import { db, getMeta, setMeta, startWeek } from './db';
 import { standings } from './scoring';
 import { bonusLockAt, bonusPhase, bonusPicks, bonusSettings } from './bonus';
@@ -68,7 +68,8 @@ const alreadySent = (key: string) => !!db.prepare('SELECT 1 FROM sent_notificati
 const markSent = (key: string) =>
   db.prepare('INSERT OR IGNORE INTO sent_notifications (key, sent_at) VALUES (?, ?)').run(key, Date.now());
 
-const hourFmt = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
+// Heure dans le fuseau du serveur (TZ, Europe/Paris dans l'image Docker) : celui de la bande.
+const hourFmt = new Intl.DateTimeFormat(t.common.locale, { hour: '2-digit', minute: '2-digit' });
 
 function subscribedPlayers(): { id: number; name: string }[] {
   return db
@@ -94,10 +95,10 @@ async function reminders(now: number) {
     );
     if (!missing.length) continue;
     const first = missing[0];
-    const matchs = missing.map((g) => `${g.away} @ ${g.home}`).join(', ');
+    const matchs = missing.map((g) => `${g.away} @ ${g.home}`);
     await sendToPlayer(p.id, {
-      title: missing.length > 1 ? `Il te manque ${missing.length} pronos` : 'Il te manque un prono',
-      body: `Coup d'envoi à ${hourFmt.format(first.kickoff)} : ${matchs}`,
+      title: t.notifications.reminderTitle(missing.length),
+      body: t.notifications.reminderBody(hourFmt.format(first.kickoff), matchs),
       url: '/#/matchs',
       tag: `remind-${first.kickoff}`
     });
@@ -128,8 +129,8 @@ async function weekResults(now: number) {
       const mine = weekRows.find((r) => r.id === p.id);
       if (!me || !mine) continue;
       await sendToPlayer(p.id, {
-        title: `${weekLabel(w.week, true)} terminée`,
-        body: `Tu as fait ${mine.good} sur ${w.total}. Tu es ${me.rank === 1 ? '1er' : `${me.rank}e`} avec ${me.points} pts.`,
+        title: t.notifications.weekDoneTitle(weekLabel(w.week, true)),
+        body: t.notifications.weekDoneBody(mine.good, w.total, me.rank, me.points),
         url: '/#/classement',
         tag: key
       });
@@ -167,7 +168,7 @@ async function flips() {
     const key = `lead:${g.id}`;
     const prev = getMeta(key);
     const lead = g.a > g.h ? 'away' : g.h > g.a ? 'home' : null;
-    const late = g.status === 'final' || /^(Q4|Fin Q4|Prol)/.test(g.detail ?? '');
+    const late = g.status === 'final' || t.espn.detail.isLate(g.detail);
 
     if (lead && prev && lead !== prev && late) {
       const leadName = lead === 'away' ? g.awayName : g.homeName;
@@ -183,10 +184,8 @@ async function flips() {
         const good = p.side === lead;
         const done = g.status === 'final';
         await sendToPlayer(p.id, {
-          title: good ? (done ? 'Renversement final, ton prono passe !' : 'Ça tourne pour toi !') : done ? 'Crucifié sur le fil…' : 'Aïe, ça bascule…',
-          body: done
-            ? `Les ${leadName} l’emportent sur le fil : ${score}. ${good ? 'Ton prono est bon !' : `Ton prono sur les ${mine} tombe à l’eau.`}`
-            : `Les ${leadName} passent devant : ${score} (${g.detail}). ${good ? 'Ton prono redevient bon.' : `Ton prono sur les ${mine} est en danger.`}`,
+          title: t.notifications.flipTitle(good, done),
+          body: t.notifications.flipBody({ done, good, leader: leadName, picked: mine, score, detail: g.detail }),
           url: `/#/match/${g.id}`,
           tag: `flip-${g.id}`
         });
@@ -209,8 +208,8 @@ async function bonusNotifications(now: number) {
     markSent(openKey);
     for (const p of subscribedPlayers())
       await sendToPlayer(p.id, {
-        title: 'Bonus de fin de saison ouvert 🏆',
-        body: `Champion AFC, champion NFC et vainqueur du Super Bowl : jusqu'à ${max} pts. À choisir avant la Wild Card.`,
+        title: t.notifications.bonusOpenTitle,
+        body: t.notifications.bonusOpenBody(max),
         url: '/#/bonus',
         tag: openKey
       });
@@ -222,8 +221,8 @@ async function bonusNotifications(now: number) {
     if (done.has(p.id) || alreadySent(key)) continue;
     markSent(key);
     await sendToPlayer(p.id, {
-      title: 'Ton bonus de fin de saison 🏆',
-      body: `Plus qu'une heure pour choisir tes champions (jusqu'à ${max} pts).`,
+      title: t.notifications.bonusReminderTitle,
+      body: t.notifications.bonusReminderBody(max),
       url: '/#/bonus',
       tag: `bonus-remind-${currentSeason()}`
     });

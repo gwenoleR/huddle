@@ -8,7 +8,7 @@ L'appli de pronos NFL de la bande : une PWA mobile à installer sur l'écran d'a
 - **Saison après saison** : la nouvelle saison prend le relais toute seule le 1er juin (calendrier ESPN publié, on peut déjà pronostiquer la semaine 1). Jusque-là, la saison finie reste affichée. Les saisons passées restent consultables : lien « Saisons précédentes » en bas du Classement, vers leur bilan (classement final et trophées).
 - **Notifications** : rappel 1 h avant un match sans prono, résultats quand une semaine est terminée.
 
-Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**. Les pronos des semaines 1 à 8 viennent de l'ancien site (importés en CSV depuis l'écran admin).
+Barème : 1 point par bon prono en saison régulière, **2 points en playoffs** (réglable, voir « Réglages »). Les pronos des semaines 1 à 8 viennent de l'ancien site (importés en CSV depuis l'écran admin).
 
 ## Mise en route sur le serveur
 
@@ -46,6 +46,25 @@ docker compose pull && docker compose up -d
 ```
 
 Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` dans `docker-compose.yml`. Pour tester une image construite en local sans passer par GitHub : `docker build -t ghcr.io/gwenoler/pronos:latest .` dans le dépôt, puis `docker compose up -d`.
+
+## Réglages
+
+Tous facultatifs, dans le `.env` à côté de `docker-compose.yml` (puis `docker compose up -d`) :
+
+| Variable | Par défaut | Rôle |
+| --- | --- | --- |
+| `APP_NAME` | Prono NFL entre potes | Nom de l'appli : titre, écran de connexion, appli installée |
+| `APP_SHORT_NAME` | Prono | Nom sous l'icône de l'écran d'accueil |
+| `APP_LANG` | `fr` | Langue des textes et des notifications (seul le français existe pour l'instant) |
+| `POINTS_REGULAR` | 1 | Points d'un bon prono en saison régulière |
+| `POINTS_PLAYOFFS` | 2 | Points d'un bon prono en playoffs (Wild Card à Super Bowl) |
+| `TZ` | Europe/Paris | Fuseau des heures dans les notifications. Dans l'appli, chacun voit les heures de son téléphone |
+
+Le barème s'applique à toute la saison, matchs déjà joués compris : le changer en cours de route recalcule le classement. Une appli déjà ouverte sur un téléphone prend un nouveau nom ou une nouvelle langue au lancement suivant.
+
+### Traduire l'appli
+
+Tous les textes sont dans `shared/i18n/fr/`, un fichier par partie de l'appli (matchs, classement, profil, notifications…). Pour une nouvelle langue : copier `fr/` en `en/`, traduire, l'ajouter à `DICTIONARIES` dans `shared/i18n/index.ts`, puis `APP_LANG=en`. Les textes avec des valeurs sont des fonctions (pluriels, noms, nombres) : on traduit la phrase entière. Le typecheck refuse une traduction à laquelle il manque un texte.
 
 ## Admin
 
@@ -87,6 +106,7 @@ L'interface tourne sur http://localhost:5173 et l'API sur le port 3000. Autres c
 | `server/` | Fastify, SQLite (`node:sqlite`), synchro ESPN, points, connexion, notifications |
 | `server/routes/` | Routes de l'API, un fichier par domaine (connexion, matchs, classement, bonus, NFL, admin, notifications) |
 | `server/schema.ts` | Tables de la base, en migrations numérotées : pour changer la base, **ajouter** une migration à la fin |
+| `shared/i18n/` | Textes de l'appli et du serveur, un dictionnaire par langue (seul `fr/` existe) |
 | `shared/api.ts` | Forme des réponses de l'API, partagée par le serveur et l'appli |
 | `web/src/ds/` | Tokens et composants du design system, un fichier par composant avec son CSS ([artefact](https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh)) |
 | `web/src/screens/` | Les écrans ([maquettes](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |

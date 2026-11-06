@@ -6,6 +6,7 @@ import { useProfile } from '../lib/data';
 import { disablePush, enablePush, isIos, isStandalone, pushState, type PushState } from '../lib/push';
 import type { ThemePref } from '../lib/theme';
 import { APP_VERSION, reloadLatest } from '../lib/version';
+import { config, t } from '../lib/i18n';
 import { Loading } from './shared';
 
 export function Profile({
@@ -24,7 +25,7 @@ export function Profile({
   const error = q.error?.message ?? null;
 
   if (!p) return error ? <p className="error-box">{error}</p> : <Loading />;
-  const pct = p.played ? `${Math.round((p.good * 100) / p.played)} %` : '–';
+  const pct = p.played ? t.profile.percent(Math.round((p.good * 100) / p.played)) : '–';
 
   return (
     <div className="screen-inner">
@@ -34,7 +35,7 @@ export function Profile({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <h1 className="h1">{p.name}</h1>
             <span className="muted small">
-              {ordinal(p.rank)} sur {p.players} · {p.points} pts · saison {p.season}
+              {t.profile.subtitle(ordinal(p.rank), p.players, p.points, p.season)}
             </span>
           </div>
         </header>
@@ -42,21 +43,21 @@ export function Profile({
         <section className="grid-3">
           <div className="card stat">
             <b>{p.good}</b>
-            <span className="muted small">{p.startWeek > 1 ? `bons pronos depuis la S${p.startWeek}` : 'bons pronos cette saison'}</span>
+            <span className="muted small">{t.profile.goodPicksLabel(p.startWeek)}</span>
           </div>
           <div className="card stat">
             <b>{pct}</b>
-            <span className="muted small">de réussite</span>
+            <span className="muted small">{t.profile.successLabel}</span>
           </div>
           <div className="card stat">
             <b style={{ color: 'var(--brand)' }}>{p.streak}</b>
-            <span className="muted small">bons d’affilée</span>
+            <span className="muted small">{t.profile.streakLabel}</span>
           </div>
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h2 className="section-title" style={{ margin: 0 }}>
-            Semaine par semaine
+            {t.profile.byWeek}
           </h2>
           <ol className="week-rows card">
             {p.weeks.map((w) => {
@@ -75,30 +76,30 @@ export function Profile({
             })}
             {p.startPoints > 0 && (
               <li>
-                <span className="wk">{p.startWeek > 1 ? `S1–S${p.startWeek - 1}` : 'Avant'}</span>
-                <span className="muted small">Repris de l’ancien site</span>
-                <span className="val">{p.startPoints} pts</span>
+                <span className="wk">{t.profile.carriedWeeks(p.startWeek)}</span>
+                <span className="muted small">{t.profile.carriedFrom}</span>
+                <span className="val">{t.profile.carriedPoints(p.startPoints)}</span>
               </li>
             )}
           </ol>
           <p className="muted small" style={{ margin: 0 }}>
-            En vert, les semaines à 70 % ou plus. En playoffs, un bon prono vaut 2 pts.
+            {t.profile.byWeekHelp(config.points.playoffs)}
           </p>
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <h2 className="section-title" style={{ margin: 0 }}>
-            Réglages
+            {t.profile.settings}
           </h2>
           <div className="card">
             <div className="settings-row">
-              <span className="label">Thème</span>
+              <span className="label">{t.profile.theme}</span>
               <div className="segmented">
                 {(
                   [
-                    ['dark', 'Nuit'],
-                    ['light', 'Jour'],
-                    ['auto', 'Auto']
+                    ['dark', t.profile.themeDark],
+                    ['light', t.profile.themeLight],
+                    ['auto', t.profile.themeAuto]
                   ] as const
                 ).map(([v, l]) => (
                   <Button key={v} variant={themePref === v ? 'primary' : 'secondary'} onClick={() => setThemePref(v)}>
@@ -110,11 +111,11 @@ export function Profile({
             <PushSettings notify={notify} />
             {!isStandalone() && (
               <div className="settings-row">
-                <span className="label">Mettre l’appli sur l’écran d’accueil</span>
+                <span className="label">{t.profile.install}</span>
                 <span className="muted small">
                   {isIos()
-                    ? 'Dans Safari : bouton Partager, puis « Sur l’écran d’accueil ».'
-                    : 'Dans Chrome : menu ⋮, puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».'}
+                    ? t.profile.installIos
+                    : t.profile.installOther}
                 </span>
               </div>
             )}
@@ -123,13 +124,13 @@ export function Profile({
 
         {p.isAdmin && (
           <a href="#/admin" className="card admin-link">
-            <span className="label">Administration</span>
-            <span className="muted small">Joueurs, bonus, données ESPN, import de l’historique</span>
+            <span className="label">{t.profile.admin}</span>
+            <span className="muted small">{t.profile.adminHelp}</span>
           </a>
         )}
 
         <Button variant="secondary" block onClick={onLogout}>
-          Se déconnecter
+          {t.profile.logout}
         </Button>
         <VersionRow />
       </main>
@@ -151,12 +152,11 @@ function VersionRow() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       {outdated && (
         <Button block onClick={reloadLatest}>
-          Nouvelle version dispo : recharger
+          {t.profile.newVersion}
         </Button>
       )}
       <span className="muted small">
-        Version {APP_VERSION}
-        {outdated ? ` · serveur ${server}` : ''}
+        {t.profile.version(APP_VERSION, outdated ? server : null)}
       </span>
     </div>
   );
@@ -175,27 +175,27 @@ function PushSettings({ notify }: { notify: (m: string) => void }) {
     try {
       setState(await fn());
     } catch (e) {
-      notify((e as Error).message || 'Impossible d’activer les notifications.');
+      notify((e as Error).message || t.profile.pushError);
     } finally {
       setBusy(false);
     }
   };
 
   const text: Record<PushState, string> = {
-    on: 'Activées : rappel 1 h avant un match sans prono, et résultats en fin de semaine.',
-    off: 'Un rappel 1 h avant un match sans prono, et les résultats en fin de semaine.',
-    denied: 'Bloquées dans les réglages du téléphone. Autorise-les pour ce site, puis reviens ici.',
-    'needs-install': 'Sur iPhone, ajoute d’abord l’appli à l’écran d’accueil, puis ouvre-la depuis l’icône.',
-    unsupported: 'Ce navigateur ne gère pas les notifications.'
+    on: t.profile.pushOn,
+    off: t.profile.pushOff,
+    denied: t.profile.pushDenied,
+    'needs-install': t.profile.pushNeedsInstall,
+    unsupported: t.profile.pushUnsupported
   };
 
   return (
     <div className="settings-row">
-      <span className="label">Notifications</span>
+      <span className="label">{t.profile.notifications}</span>
       {state && <span className="muted small">{text[state]}</span>}
       {state === 'off' && (
         <Button disabled={busy} onClick={() => run(enablePush)}>
-          Activer les notifications
+          {t.profile.pushEnable}
         </Button>
       )}
       {state === 'on' && (
@@ -205,13 +205,13 @@ function PushSettings({ notify }: { notify: (m: string) => void }) {
             disabled={busy}
             onClick={async () => {
               const { sent } = await api<{ sent: number }>('/push/test', { method: 'POST' });
-              notify(sent ? 'Notification envoyée' : 'Aucun appareil abonné');
+              notify(sent ? t.profile.pushTestSent : t.profile.pushTestNoDevice);
             }}
           >
-            M’envoyer un test
+            {t.profile.pushTest}
           </Button>
           <Button variant="ghost" disabled={busy} onClick={() => run(disablePush)}>
-            Désactiver
+            {t.profile.pushDisable}
           </Button>
         </div>
       )}

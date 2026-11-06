@@ -1,18 +1,19 @@
 import { openTeam } from '../lib/teamSheet';
 import type { GameDto, TeamDto } from '../lib/api';
 import type { MatchStatus, Team } from '../ds';
+import { t } from '../lib/i18n';
 
-export function toTeam(t: TeamDto, theme: 'dark' | 'light'): Team {
-  return { abbr: t.abbr, name: t.name, color: t.color, textColor: t.textColor, logoUrl: theme === 'dark' ? t.logoDark : t.logo };
+export function toTeam(team: TeamDto, theme: 'dark' | 'light'): Team {
+  return { abbr: team.abbr, name: team.name, color: team.color, textColor: team.textColor, logoUrl: theme === 'dark' ? team.logoDark : team.logo };
 }
 
 /** Statut affiché sur la carte à partir de l'état du match côté serveur. */
 export function cardStatus(g: GameDto): { status: MatchStatus; statusText?: string } {
-  if (g.status === 'live') return { status: 'live', statusText: g.detail ? `En direct · ${g.detail}` : undefined };
+  if (g.status === 'live') return { status: 'live', statusText: g.detail ? t.matches.live(g.detail) : undefined };
   if (g.status === 'final') return { status: 'final', statusText: g.detail ?? undefined };
-  if (g.status === 'postponed') return { status: 'locked', statusText: 'Reporté' };
+  if (g.status === 'postponed') return { status: 'locked', statusText: t.matches.postponed };
   if (g.locked) return { status: 'locked' };
-  return { status: 'open', statusText: g.points > 1 ? `Ouvert · ${g.points} pts` : undefined };
+  return { status: 'open', statusText: g.points > 1 ? t.matches.openPoints(g.points) : undefined };
 }
 
 export function BackLink({ href, label }: { href: string; label: string }) {
@@ -45,7 +46,7 @@ export function OtherSeasons({ seasons, shown, current, label }: { seasons: numb
   if (!others.length) return null;
   return (
     <p className="muted small other-seasons">
-      {label} :{' '}
+      {t.ds.listLabel(label)}{' '}
       {others.map((s, i) => (
         <span key={s}>
           {i > 0 && ' · '}
@@ -57,7 +58,7 @@ export function OtherSeasons({ seasons, shown, current, label }: { seasons: numb
 }
 
 export function Loading() {
-  return <p className="empty">Chargement…</p>;
+  return <p className="empty">{t.ds.loading}</p>;
 }
 
 /** Nom d'équipe cliquable qui ouvre sa fiche (jamais sur les boutons de prono). */

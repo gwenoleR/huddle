@@ -2,10 +2,10 @@ import { type ReactNode, useState } from 'react';
 import { NflStandings } from './NflStandings';
 import { Button, LeaderboardRow, StatusPill } from '../ds';
 import { type Me, type StandingRow } from '../lib/api';
-import { plural } from '../lib/format';
 import { go } from '../lib/router';
 import { useBonus, useLeaderboard, useWeeks } from '../lib/data';
 import { seasonRecord } from '../lib/labels';
+import { config, t } from '../lib/i18n';
 import { Loading, OtherSeasons } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
@@ -15,12 +15,12 @@ export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: '
 /** Bascule entre le classement de la bande (par défaut) et celui de la NFL. */
 function LeagueTabs({ nfl }: { nfl: boolean }) {
   return (
-    <nav className="league-tabs" aria-label="Quel classement">
+    <nav className="league-tabs" aria-label={t.leaderboard.tabsLabel}>
       <a href="#/classement" aria-current={nfl ? undefined : 'page'}>
-        La bande
+        {t.leaderboard.tabBand}
       </a>
       <a href="#/classement/nfl" aria-current={nfl ? 'page' : undefined}>
-        NFL
+        {t.leaderboard.tabNfl}
       </a>
     </nav>
   );
@@ -48,14 +48,10 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   function record(r: StandingRow): string {
     if (live) {
       const l = live.rows.find((x) => x.id === r.id)!;
-      const move = l.rank - l.projectedRank;
-      const arrow = move > 0 ? ` · ↑${move}` : move < 0 ? ` · ↓${-move}` : '';
-      const now = `${l.points} pts maintenant`;
-      if (!l.winning && !l.losing) return `${now} · rien en jeu${arrow}`;
-      // ✓ pronos en bonne voie, ✗ mal partis, dans les matchs en cours
-      return `${now} · ✓${l.winning} ✗${l.losing}${arrow}`;
+      // ✓ pronos en bonne voie, ✗ mal partis, dans les matchs en cours ; flèche = places gagnées ou perdues
+      return t.leaderboard.liveRecord(l.points, l.winning, l.losing, l.rank - l.projectedRank);
     }
-    if (scope === 'week') return r.played ? `${r.good} bon${r.good > 1 ? 's' : ''} sur ${r.played}` : 'Pas encore de match terminé';
+    if (scope === 'week') return t.leaderboard.weekRecord(r.good, r.played);
     return seasonRecord(r, weeks?.startWeek ?? 1);
   }
 
@@ -64,18 +60,17 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
       <header className="head" style={{ gap: 12, paddingBottom: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="eyebrow">
-            Saison {weeks?.season ?? ''}
-            {weeks && weeks.startWeek > 1 ? ` · reprise en semaine ${weeks.startWeek}` : ' · 1 pt par bon prono, 2 en playoffs'}
+            {t.leaderboard.eyebrow(weeks?.season ?? '', weeks?.startWeek ?? 1, t.common.scoring(config.points.regular, config.points.playoffs))}
           </span>
-          <h1 className="h1">Classement</h1>
+          <h1 className="h1">{t.leaderboard.title}</h1>
         </div>
         {tabs}
         <div className="segmented">
           <Button variant={scope === 'season' ? 'primary' : 'secondary'} onClick={() => setScope('season')}>
-            Saison
+            {t.leaderboard.scopeSeason}
           </Button>
           <Button variant={scope === 'week' ? 'primary' : 'secondary'} onClick={() => setScope('week')}>
-            {currentLabel || 'Semaine'}
+            {currentLabel || t.leaderboard.scopeWeek}
           </Button>
         </div>
       </header>
@@ -85,21 +80,19 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
         {!rows && !error && <Loading />}
         {live && (
           <section className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <StatusPill status="live">En direct · {plural(live.games, 'match')}</StatusPill>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>Si ça finit comme ça…</span>
-            <span className="muted small">
-              Le classement tient compte des scores en cours et se met à jour tout seul. ✓ pronos en bonne voie, ✗ mal partis.
-            </span>
+            <StatusPill status="live">{t.leaderboard.liveBadge(live.games)}</StatusPill>
+            <span style={{ fontSize: 15, fontWeight: 600 }}>{t.leaderboard.liveTitle}</span>
+            <span className="muted small">{t.leaderboard.liveHelp}</span>
           </section>
         )}
         {mine && leader && scope === 'season' && (
           <section className="card highlight">
             <span className="big-rank">
               {mine.rank}
-              <sup>{mine.rank === 1 ? 'er' : 'e'}</sup>
+              <sup>{t.leaderboard.rankSuffix(mine.rank)}</sup>
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>{headline(mine.rank, !!live)}</span>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>{t.leaderboard.headline(mine.rank, !!live)}</span>
               <span className="muted small">{gapText(rows!, mine)}</span>
             </div>
           </section>
@@ -112,37 +105,31 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
           </ol>
         )}
         <Button block onClick={() => go('recap')}>
-          Récap de la semaine à partager
+          {t.leaderboard.recapButton}
         </Button>
         <Button variant="secondary" block onClick={() => go('bilan')}>
-          Bilan de saison
+          {t.leaderboard.seasonButton}
         </Button>
         {bonusOn && (
           <Button variant="secondary" block onClick={() => go('bonus')}>
-            Bonus de fin de saison
+            {t.leaderboard.bonusButton}
           </Button>
         )}
-        {data && <OtherSeasons seasons={data.seasons} shown={data.season} current={data.season} label="Saisons précédentes" />}
+        {data && <OtherSeasons seasons={data.seasons} shown={data.season} current={data.season} label={t.leaderboard.previousSeasons} />}
       </main>
     </div>
   );
 }
 
-function headline(rank: number, live: boolean) {
-  if (live) return rank === 1 ? 'Tu finirais en tête' : rank <= 3 ? `Tu finirais ${rank}e, sur le podium` : `Tu finirais ${rank}e`;
-  return rank === 1 ? 'Tu mènes la danse' : rank <= 3 ? 'Tu es sur le podium' : 'Accroche-toi';
-}
-
 function gapText(rows: StandingRow[], mine: StandingRow) {
   if (mine.rank === 1) {
     const second = rows.find((r) => r.id !== mine.id);
-    if (!second) return 'Seul en piste';
+    if (!second) return t.leaderboard.aloneInFront;
     const gap = mine.points - second.points;
-    return gap === 0 ? `À égalité avec ${second.name}` : `${plural(gap, 'pt')} d’avance sur ${second.name}`;
+    return gap === 0 ? t.leaderboard.tiedWith(second.name) : t.leaderboard.aheadOf(gap, second.name);
   }
   const leader = rows[0];
   const gap = leader.points - mine.points;
   const below = rows.find((r) => r.points < mine.points);
-  const behind = below ? ` · ${plural(mine.points - below.points, 'pt')} devant ${below.name}` : '';
-  return `À ${plural(gap, 'pt')} de ${leader.name}${behind}`;
+  return t.leaderboard.behind(gap, leader.name, below ? { gap: mine.points - below.points, name: below.name } : null);
 }

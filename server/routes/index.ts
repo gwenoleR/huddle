@@ -3,12 +3,14 @@ import type { FastifyInstance } from 'fastify';
 import { adminRoutes } from './admin';
 import { authRoutes } from './auth';
 import { bonusRoutes } from './bonus';
+import { configRoutes } from './config';
 import { gamesRoutes } from './games';
 import { leaderboardRoutes } from './leaderboard';
 import { nflRoutes } from './nfl';
 import { pushRoutes } from './push';
 
 export async function routes(app: FastifyInstance) {
+  await app.register(configRoutes);
   await app.register(authRoutes);
   await app.register(gamesRoutes);
   await app.register(nflRoutes);

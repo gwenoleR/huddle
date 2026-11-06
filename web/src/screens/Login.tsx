@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Avatar, Button } from '../ds';
 import { api, ApiError, type Me, type PlayerLite } from '../lib/api';
+import { config, t } from '../lib/i18n';
 
 export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
   const [players, setPlayers] = useState<PlayerLite[] | null>(null);
@@ -22,10 +23,10 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
     <div className="app">
       <main className="login">
         <header style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span className="brand-line">PRONO NFL ENTRE POTES</span>
-          <h1 className="display">Qui es-tu ?</h1>
+          <span className="brand-line">{config.appName.toLocaleUpperCase(t.common.locale)}</span>
+          <h1 className="display">{t.login.whoTitle}</h1>
           <p className="muted" style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>
-            Touche ton prénom, puis ton code.
+            {t.login.whoHelp}
           </p>
         </header>
         {error && <p className="error-box card">{error}</p>}
@@ -38,7 +39,7 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
           ))}
         </div>
         <p className="muted small" style={{ margin: 0 }}>
-          Pas dans la liste ? Demande à l’admin de t’ajouter.
+          {t.login.notInList}
         </p>
       </main>
     </div>
@@ -53,10 +54,10 @@ function SetupName({ onNext }: { onNext: (name: string) => void }) {
     <div className="app">
       <main className="login">
         <header style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span className="brand-line">PRONO NFL ENTRE POTES</span>
-          <h1 className="display">Crée ton groupe</h1>
+          <span className="brand-line">{config.appName.toLocaleUpperCase(t.common.locale)}</span>
+          <h1 className="display">{t.login.setupTitle}</h1>
           <p className="muted" style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>
-            Tu en seras l’admin : tu ajouteras ensuite ta bande depuis ton profil.
+            {t.login.setupHelp}
           </p>
         </header>
         <form
@@ -67,11 +68,11 @@ function SetupName({ onNext }: { onNext: (name: string) => void }) {
           }}
         >
           <label className="muted small" htmlFor="setup-name">
-            Ton prénom
+            {t.login.setupName}
           </label>
           <input id="setup-name" className="field" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} autoFocus autoComplete="given-name" />
           <Button type="submit" block disabled={!trimmed}>
-            Continuer
+            {t.login.next}
           </Button>
         </form>
       </main>
@@ -115,12 +116,12 @@ function PinStep({
       if (creating && first === null) {
         setFirst(code);
         setPin('');
-        setMsg({ text: 'Retape-le pour confirmer', tone: 'info' });
+        setMsg({ text: t.login.retypeToConfirm, tone: 'info' });
         return;
       }
       if (creating && first !== code) {
         setFirst(null);
-        return fail('Les deux codes ne correspondent pas. On recommence.');
+        return fail(t.login.pinMismatch);
       }
       setBusy(true);
       try {
@@ -128,7 +129,7 @@ function PinStep({
         else await api('/login', { method: 'POST', body: { playerId: player.id, pin: code } });
         onLogged(await api<Me>('/me'));
       } catch (e) {
-        fail(e instanceof ApiError ? e.message : 'Erreur inattendue.');
+        fail(e instanceof ApiError ? e.message : t.common.errors.unexpected);
       } finally {
         setBusy(false);
       }
@@ -165,8 +166,8 @@ function PinStep({
     return () => removeEventListener('keydown', onKey);
   }, [press, onBack]);
 
-  const title = creating ? (first === null ? 'Choisis ton code' : 'Confirme ton code') : `Salut ${player.name}`;
-  const sub = creating ? '4 chiffres, rien que pour toi' : 'Ton code à 4 chiffres';
+  const title = creating ? (first === null ? t.login.choosePin : t.login.confirmPin) : t.login.hello(player.name);
+  const sub = creating ? t.login.newPinHelp : t.login.pinHelp;
 
   return (
     <div className="app">
@@ -176,7 +177,7 @@ function PinStep({
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            {setup ? 'Changer de prénom' : 'Pas toi ?'}
+            {setup ? t.login.changeName : t.login.notYou}
           </button>
         </div>
         <Avatar name={player.name} size="lg" me />
@@ -186,7 +187,7 @@ function PinStep({
             {sub}
           </p>
         </div>
-        <div className={`dots${shake ? ' shake' : ''}`} role="img" aria-label={`${pin.length} chiffres sur 4`}>
+        <div className={`dots${shake ? ' shake' : ''}`} role="img" aria-label={t.login.pinProgress(pin.length)}>
           {[0, 1, 2, 3].map((i) => (
             <span key={i} className={i < pin.length ? 'on' : undefined} />
           ))}
@@ -204,12 +205,12 @@ function PinStep({
           <button type="button" className="key" onClick={() => press('0')}>
             0
           </button>
-          <button type="button" className="key key-text" aria-label="Effacer le dernier chiffre" onClick={() => press('del')}>
-            Effacer
+          <button type="button" className="key key-text" aria-label={t.login.eraseLabel} onClick={() => press('del')}>
+            {t.login.erase}
           </button>
         </div>
         <p className="muted small" style={{ margin: 0 }}>
-          Tu restes connecté sur ce téléphone.
+          {t.login.staysLogged}
         </p>
       </main>
     </div>

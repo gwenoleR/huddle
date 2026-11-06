@@ -1,5 +1,5 @@
 import type { AwardDto, LeaderboardDto, LiveRow, ProfileDto, RecapDto, StandingRow } from '../shared/api';
-import { currentSeason, weekLabel } from './config';
+import { POINTS_PLAYOFFS, POINTS_REGULAR, currentSeason, t, weekLabel } from './config';
 import { db, startWeek } from './db';
 import { bonusPicks, bonusPointsByPlayer, bonusResult, bonusSettings, tiebreakDistances } from './bonus';
 
@@ -9,10 +9,10 @@ export type Award = AwardDto;
 export type LiveProjection = NonNullable<LeaderboardDto['live']>;
 export type Recap = RecapDto;
 
-/** Barème : 1 point par bon prono en saison régulière, 2 points en playoffs (semaines 19 à 22). */
+/** Barème : POINTS_REGULAR par bon prono en saison régulière (1), POINTS_PLAYOFFS en playoffs, semaines 19 à 22 (2). */
 export const FIRST_PLAYOFF_WEEK = 19;
-export const REGULAR_POINTS = 1;
-export const PLAYOFF_POINTS = 2;
+export const REGULAR_POINTS = POINTS_REGULAR;
+export const PLAYOFF_POINTS = POINTS_PLAYOFFS;
 export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? PLAYOFF_POINTS : REGULAR_POINTS);
 /** La même règle, pour les requêtes SQL (g = la table games). */
 const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN ${PLAYOFF_POINTS} ELSE ${REGULAR_POINTS} END)`;
@@ -95,21 +95,11 @@ export function streak(playerId: number): number {
 }
 
 /** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés comptent. */
-const TROPHIES: { id: string; title: string; rule: string }[] = [
-  { id: 'best-week', title: 'Meilleure semaine', rule: 'Le plus grand nombre de bons pronos en une seule semaine. À égalité, la semaine avec le moins de matchs l’emporte (13 sur 13 bat 13 sur 16).' },
-  { id: 'sniper', title: 'Le sniper', rule: 'Le meilleur taux de réussite de la saison. Il faut au moins 10 matchs joués pour être classé, histoire que 2 sur 2 ne suffise pas.' },
-  { id: 'streak', title: 'Inarrêtable', rule: 'La plus longue série de bons pronos d’affilée, dans l’ordre des coups d’envoi. Il faut au moins 5 bons de suite. Un match sans prono ne casse pas la série.' },
-  { id: 'contrarian', title: 'À contre-courant', rule: 'Le plus de pronos contre l’avis de la majorité de la bande, bons ou mauvais. Les matchs où la bande est partagée à égalité ne comptent pas.' },
-  { id: 'heart', title: 'Le cœur avant la tête', rule: 'L’équipe choisie le plus souvent par un même joueur. Il faut l’avoir prise au moins 3 fois.' },
-  { id: 'black-cat', title: 'Le chat noir', rule: 'L’équipe qui a fait perdre le plus de pronos à un même joueur : il l’a prise et elle a perdu. À partir de 3 trahisons.' },
-  { id: 'last-minute', title: 'Sur le fil', rule: 'Le plus de pronos faits (ou changés) dans les 15 dernières minutes avant le coup d’envoi. À partir de 3.' },
-  { id: 'nostradamus', title: 'Nostradamus', rule: 'Avoir annoncé le vainqueur du Super Bowl dans le bonus de fin de saison, avant même la Wild Card. Si plusieurs l’ont trouvé, le plus proche du total de points du Super Bowl l’emporte.' }
-];
-
-const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+type TrophyId = keyof typeof t.trophies;
+const TROPHY_IDS: TrophyId[] = ['best-week', 'sniper', 'streak', 'contrarian', 'heart', 'black-cat', 'last-minute', 'nostradamus'];
 
 /** Calcule chaque trophée : le gagnant et une ligne de détail, ou null si personne ne le mérite encore. */
-function computeTrophy(id: string, season: number): { who: string; detail: string } | null {
+function computeTrophy(id: TrophyId, season: number): { who: string; detail: string } | null {
   const args = [season, startWeek(season)] as const;
   switch (id) {
     case 'best-week': {
@@ -121,7 +111,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
            GROUP BY p.id, g.week ORDER BY good DESC, finals ASC LIMIT 1`
         )
         .get(...args) as { name: string; week: number; good: number; finals: number } | undefined;
-      return r && r.good > 0 ? { who: r.name, detail: `${r.good} sur ${r.finals} en ${weekLabel(r.week, true).toLowerCase()}` } : null;
+      return r && r.good > 0 ? { who: r.name, detail: t.trophies['best-week'].detail(r.good, r.finals, weekLabel(r.week, true)) } : null;
     }
     case 'sniper': {
       const r = db
@@ -132,7 +122,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
            GROUP BY p.id HAVING played >= 10 ORDER BY good * 1.0 / played DESC, played DESC LIMIT 1`
         )
         .get(...args) as { name: string; good: number; played: number } | undefined;
-      return r ? { who: r.name, detail: `${Math.round((r.good * 100) / r.played)} % de réussite (${r.good} sur ${r.played})` } : null;
+      return r ? { who: r.name, detail: t.trophies.sniper.detail(r.good, r.played) } : null;
     }
     case 'streak': {
       const rows = db
@@ -150,7 +140,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
         cur.n = r.ok ? cur.n + 1 : 0;
         if (cur.n > best.n) best = { ...cur };
       }
-      return best.n >= 5 ? { who: best.name, detail: `${best.n} bons pronos d’affilée` } : null;
+      return best.n >= 5 ? { who: best.name, detail: t.trophies.streak.detail(best.n) } : null;
     }
     case 'contrarian': {
       const r = db
@@ -165,7 +155,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
            GROUP BY p.id ORDER BY n DESC LIMIT 1`
         )
         .get(...args) as { name: string; n: number } | undefined;
-      return r && r.n > 0 ? { who: r.name, detail: `${plural(r.n, 'prono')} contre la majorité` } : null;
+      return r && r.n > 0 ? { who: r.name, detail: t.trophies.contrarian.detail(r.n) } : null;
     }
     case 'heart':
     case 'black-cat': {
@@ -180,7 +170,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
         )
         .get(...args) as { name: string; team: string; n: number } | undefined;
       if (!r || r.n < 3) return null;
-      return id === 'heart' ? { who: r.name, detail: `les ${r.team}, ${r.n} fois` } : { who: r.name, detail: `les ${r.team} l’ont trahi ${r.n} fois` };
+      return id === 'heart' ? { who: r.name, detail: t.trophies.heart.detail(r.team, r.n) } : { who: r.name, detail: t.trophies['black-cat'].detail(r.team, r.n) };
     }
     case 'last-minute': {
       const r = db
@@ -192,7 +182,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
            GROUP BY p.id ORDER BY n DESC LIMIT 1`
         )
         .get(...args, Date.now()) as { name: string; n: number } | undefined;
-      return r && r.n >= 3 ? { who: r.name, detail: `${plural(r.n, 'prono')} dans le dernier quart d’heure` } : null;
+      return r && r.n >= 3 ? { who: r.name, detail: t.trophies['last-minute'].detail(r.n) } : null;
     }
     case 'nostradamus': {
       const res = bonusResult(season);
@@ -204,7 +194,7 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
       const name = (db.prepare('SELECT name FROM players WHERE id = ?').get(best.playerId) as { name: string }).name;
       const team = (db.prepare('SELECT name FROM teams WHERE id = ?').get(res.sb) as { name: string } | undefined)?.name ?? '?';
       const gap = Math.abs(best.sbTotal - res.sbTotal);
-      return { who: name, detail: `Les ${team} champions, annoncés avant la Wild Card · ${best.sbTotal} pts au total (${gap ? `écart ${gap}` : 'pile poil !'})` };
+      return { who: name, detail: t.trophies.nostradamus.detail(team, best.sbTotal, gap) };
     }
   }
   return null;
@@ -214,9 +204,10 @@ function computeTrophy(id: string, season: number): { who: string; detail: strin
 export function awards(season = currentSeason()): Award[] {
   // Nostradamus n'existe que si le bonus de fin de saison est activé.
   const on = bonusSettings().enabled;
-  return TROPHIES.filter((t) => on || t.id !== 'nostradamus').map((t) => {
-    const won = computeTrophy(t.id, season);
-    return { ...t, who: won?.who ?? null, detail: won?.detail ?? null };
+  return TROPHY_IDS.filter((id) => on || id !== 'nostradamus').map((id) => {
+    const won = computeTrophy(id, season);
+    const { title, rule } = t.trophies[id];
+    return { id, title, rule, who: won?.who ?? null, detail: won?.detail ?? null };
   });
 }
 

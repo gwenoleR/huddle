@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ds';
 import { useUpdateCheck } from '../lib/useUpdateCheck';
 import { reloadLatest } from '../lib/version';
+import { t } from '../lib/i18n';
 
 /** Feuille « Nouvelle version » : proposée à l'ouverture dès que le serveur a été mis à jour. */
 export function UpdatePrompt() {
@@ -20,10 +21,10 @@ export function UpdatePrompt() {
     <dialog ref={ref} className="sheet" aria-labelledby="update-title" onClose={later} onClick={(e) => e.target === ref.current && later()}>
       <div className="sheet-body">
         <h2 id="update-title" className="h1" style={{ textAlign: 'center', margin: 0 }}>
-          Nouvelle version de l’appli
+          {t.app.updateTitle}
         </h2>
         <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 15 }}>
-          Une mise à jour est disponible. Ça prend deux secondes, et tes pronos restent bien au chaud.
+          {t.app.updateText}
         </p>
         <Button
           block
@@ -33,10 +34,10 @@ export function UpdatePrompt() {
             void reloadLatest();
           }}
         >
-          {busy ? 'Mise à jour…' : 'Mettre à jour'}
+          {busy ? t.app.updating : t.app.update}
         </Button>
         <Button block variant="secondary" onClick={later}>
-          Plus tard
+          {t.app.later}
         </Button>
       </div>
     </dialog>

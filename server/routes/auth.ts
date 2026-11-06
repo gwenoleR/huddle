@@ -2,6 +2,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { HealthDto, Me, OkDto, PlayerLite, Replies } from '../../shared/api';
 import { LOCK_MINUTES, MAX_ATTEMPTS, clientIp, createSession, destroySession, hashPin, ipBlocked, isValidPin, recordIpFailure, verifyPin } from '../auth';
+import { t } from '../config';
 import { db } from '../db';
 import { requireAuth } from './guards';
 
@@ -30,9 +31,9 @@ export async function authRoutes(app: FastifyInstance) {
   app.post<{ Body: { name?: string; pin?: string }; Reply: Replies<OkDto> }>('/api/setup', async (req, reply) => {
     const name = String(req.body?.name ?? '').trim();
     const pin = req.body?.pin;
-    if (!name || name.length > 30) return reply.code(400).send({ error: 'Prénom invalide.' });
-    if (!isValidPin(pin)) return reply.code(400).send({ error: 'Le code fait 4 chiffres.' });
-    if (db.prepare('SELECT 1 FROM players LIMIT 1').get()) return reply.code(409).send({ error: 'Le groupe existe déjà : connecte-toi.' });
+    if (!name || name.length > 30) return reply.code(400).send({ error: t.api.invalidName });
+    if (!isValidPin(pin)) return reply.code(400).send({ error: t.api.invalidPin });
+    if (db.prepare('SELECT 1 FROM players LIMIT 1').get()) return reply.code(409).send({ error: t.api.groupExists });
     const { lastInsertRowid } = db
       .prepare('INSERT INTO players (name, is_admin, pin_hash, created_at) VALUES (?, 1, ?, ?)')
       .run(name, hashPin(pin), Date.now());
@@ -42,19 +43,19 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { playerId?: number; pin?: string }; Reply: Replies<OkDto> }>('/api/login', async (req, reply) => {
     const ip = clientIp(req);
-    if (ipBlocked(ip)) return reply.code(429).send({ error: 'Trop d’essais depuis cette connexion, réessaie dans une heure.' });
+    if (ipBlocked(ip)) return reply.code(429).send({ error: t.api.tooManyTriesFromIp });
 
     const { playerId, pin } = req.body ?? {};
-    if (!isValidPin(pin)) return reply.code(400).send({ error: 'Le code fait 4 chiffres.' });
+    if (!isValidPin(pin)) return reply.code(400).send({ error: t.api.invalidPin });
     const p = db.prepare('SELECT id, pin_hash, failed_attempts, locked_until FROM players WHERE id = ?').get(Number(playerId)) as
       | PlayerRow
       | undefined;
-    if (!p) return reply.code(404).send({ error: 'Joueur inconnu.' });
+    if (!p) return reply.code(404).send({ error: t.api.unknownPlayer });
 
     const now = Date.now();
     if (p.locked_until > now) {
       const min = Math.ceil((p.locked_until - now) / 60_000);
-      return reply.code(429).send({ error: `Trop d’essais. Réessaie dans ${min} min.`, retryInMinutes: min });
+      return reply.code(429).send({ error: t.api.tooManyTries(min), retryInMinutes: min });
     }
 
     // Première connexion : le code tapé devient celui du joueur.
@@ -69,11 +70,11 @@ export async function authRoutes(app: FastifyInstance) {
       const attempts = p.failed_attempts + 1;
       if (attempts >= MAX_ATTEMPTS) {
         db.prepare('UPDATE players SET failed_attempts = 0, locked_until = ? WHERE id = ?').run(now + LOCK_MINUTES * 60_000, p.id);
-        return reply.code(429).send({ error: `Trop d’essais. Réessaie dans ${LOCK_MINUTES} min.`, retryInMinutes: LOCK_MINUTES });
+        return reply.code(429).send({ error: t.api.tooManyTries(LOCK_MINUTES), retryInMinutes: LOCK_MINUTES });
       }
       db.prepare('UPDATE players SET failed_attempts = ? WHERE id = ?').run(attempts, p.id);
       const left = MAX_ATTEMPTS - attempts;
-      return reply.code(401).send({ error: `Code incorrect. Encore ${left} essai${left > 1 ? 's' : ''}.`, attemptsLeft: left });
+      return reply.code(401).send({ error: t.api.wrongPin(left), attemptsLeft: left });
     }
 
     db.prepare('UPDATE players SET failed_attempts = 0, locked_until = 0 WHERE id = ?').run(p.id);

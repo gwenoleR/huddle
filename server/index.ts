@@ -3,7 +3,7 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { HOST, PORT, PUBLIC_URL, SYNC_ENABLED, WEB_DIR, currentSeason } from './config';
+import { HOST, PORT, PUBLIC_URL, SYNC_ENABLED, WEB_DIR, currentSeason, t } from './config';
 import { db, startWeek } from './db';
 import { routes } from './routes';
 import { LOGO_DIR, syncTick } from './sync';
@@ -40,7 +40,7 @@ if (existsSync(WEB_DIR)) {
   });
   // Toute URL qui n'est ni l'API ni un fichier renvoie l'appli (routage côté téléphone).
   app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith('/api/') || req.url.startsWith('/logos/')) return reply.code(404).send({ error: 'Introuvable' });
+    if (req.url.startsWith('/api/') || req.url.startsWith('/logos/')) return reply.code(404).send({ error: t.api.notFound });
     return reply.header('cache-control', 'no-cache').sendFile('index.html');
   });
 } else {

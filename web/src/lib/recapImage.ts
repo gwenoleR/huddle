@@ -1,4 +1,5 @@
 import type { RecapDto } from './api';
+import { config, t } from './i18n';
 
 /** Couleurs du thème « Nuit de match » : l'image est toujours sombre, quel que soit le thème du téléphone. */
 const C = {
@@ -19,16 +20,11 @@ const BODY = 'Barlow, system-ui, sans-serif';
 export const RECAP_W = 1080;
 export const RECAP_H = 1350;
 
-function names(list: string[]): string {
-  if (list.length <= 1) return list[0] ?? '';
-  return `${list.slice(0, -1).join(', ')} et ${list.at(-1)}`;
-}
-
 function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
   if (ctx.measureText(text).width <= max) return text;
-  let t = text;
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
-  return `${t}…`;
+  let s = text;
+  while (s.length > 1 && ctx.measureText(`${s}…`).width > max) s = s.slice(0, -1);
+  return `${s}…`;
 }
 
 function initials(n: string) {
@@ -59,13 +55,13 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = C.brand;
   ctx.font = `700 36px ${DISPLAY}`;
-  ctx.fillText('PRONO NFL ENTRE POTES', pad, 112);
+  ctx.fillText(config.appName.toLocaleUpperCase(t.common.locale), pad, 112);
   ctx.fillStyle = C.ink;
   ctx.font = `800 120px ${DISPLAY}`;
   ctx.fillText(r.label, pad, 232);
   ctx.fillStyle = C.muted;
   ctx.font = `500 34px ${BODY}`;
-  ctx.fillText(r.complete ? `Le récap · ${r.total} matchs` : `Le récap provisoire · ${r.finals} matchs sur ${r.total}`, pad, 292);
+  ctx.fillText(t.recap.image.subtitle(r.complete, r.finals, r.total), pad, 292);
 
   // Podium de la semaine : 2e, 1er, 3e
   const podium = r.rows.slice(0, 3);
@@ -104,7 +100,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
     ctx.fillText(`${p.points}`, s.x, top + 86);
     ctx.font = `600 28px ${BODY}`;
     ctx.fillStyle = first ? C.onGold : C.muted;
-    ctx.fillText(p.points > 1 ? 'points' : 'point', s.x, top + 124);
+    ctx.fillText(t.recap.image.points(p.points), s.x, top + 124);
   }
   ctx.textAlign = 'left';
 
@@ -112,7 +108,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
   let y = 810;
   ctx.fillStyle = C.muted;
   ctx.font = `600 28px ${BODY}`;
-  ctx.fillText('CLASSEMENT GÉNÉRAL', pad, y);
+  ctx.fillText(t.recap.image.general, pad, y);
   y += 20;
   const general = [...r.rows].sort((a, b) => a.seasonRank - b.seasonRank).slice(0, 6);
   const rowH = 54;
@@ -142,21 +138,19 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
     ctx.fill();
     ctx.fillStyle = C.wrong;
     ctx.font = `700 28px ${DISPLAY}`;
-    ctx.fillText('✗ LA BOULETTE', pad + 16, top + 48);
+    ctx.fillText(t.recap.image.blunderTitle, pad + 16, top + 48);
     ctx.fillStyle = C.ink;
     ctx.font = `600 34px ${BODY}`;
     const everyone = b.wrong.length === b.total && b.total > 2;
-    const who = everyone ? 'Toute la bande' : names(b.wrong);
-    const verb = !everyone && b.wrong.length > 1 ? 'ont pris' : 'a pris';
-    ctx.fillText(fit(ctx, `${who} ${verb} les ${b.wrongTeam}`, RECAP_W - 2 * pad - 32), pad + 16, top + 96);
+    ctx.fillText(fit(ctx, t.recap.image.blunder(b.wrong, everyone, b.wrongTeam), RECAP_W - 2 * pad - 32), pad + 16, top + 96);
     ctx.fillStyle = C.muted;
     ctx.font = `500 30px ${BODY}`;
     ctx.fillText(`${b.away} ${b.awayScore} – ${b.homeScore} ${b.home}`, pad + 16, top + 134);
   } else {
     ctx.fillStyle = C.muted;
     ctx.font = `500 30px ${BODY}`;
-    ctx.fillText('Aucune boulette cette semaine. Respect.', pad, RECAP_H - 120);
+    ctx.fillText(t.recap.image.noBlunder, pad, RECAP_H - 120);
   }
 
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image impossible'))), 'image/png'));
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(t.recap.image.failed))), 'image/png'));
 }

@@ -1,5 +1,6 @@
 import { cx } from './cx';
 import './WeekPicker.css';
+import { t } from '../lib/i18n';
 
 export function WeekPicker({
   weeks,
@@ -11,7 +12,7 @@ export function WeekPicker({
   onChange?: (id: number) => void;
 }) {
   return (
-    <nav className="pr-weeks" aria-label="Semaine">
+    <nav className="pr-weeks" aria-label={t.ds.weekPickerLabel}>
       {weeks.map((w) => {
         const on = w.id === value;
         return (

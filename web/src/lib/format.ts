@@ -1,21 +1,20 @@
-const TZ = 'Europe/Paris';
+/** Dates et petits mots, dans la langue de l'instance et le fuseau horaire du téléphone. */
+import { t } from './i18n';
 
-const parts = (ms: number, opts: Intl.DateTimeFormatOptions) =>
-  Object.fromEntries(new Intl.DateTimeFormat('fr-FR', { timeZone: TZ, ...opts }).formatToParts(ms).map((p) => [p.type, p.value]));
+const fmt = (ms: number, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(t.common.locale, opts).format(ms);
 
 /** « dim. 22:25 » */
-export function kickoffLabel(ms: number): string {
-  const p = parts(ms, { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${p.weekday} ${p.hour}:${p.minute}`;
-}
+export const kickoffLabel = (ms: number) => fmt(ms, { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 
 /** « dim. 9 nov. » */
-export function dayLabel(ms: number): string {
-  const p = parts(ms, { weekday: 'short', day: 'numeric', month: 'short' });
-  return `${p.weekday} ${p.day} ${p.month}`;
-}
+export const dayLabel = (ms: number) => fmt(ms, { weekday: 'short', day: 'numeric', month: 'short' });
+
+/** « 19:40 » */
+export const timeLabel = (ms: number) => fmt(ms, { hour: '2-digit', minute: '2-digit' });
+
+/** « mar. 19:40 » (jour court et heure) */
+export const dayTimeLabel = (ms: number) => fmt(ms, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 
 /** « 1er », « 2e » */
-export const ordinal = (n: number) => (n === 1 ? '1er' : `${n}e`);
+export const ordinal = (n: number) => t.common.ordinal(n);
 
-export const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;

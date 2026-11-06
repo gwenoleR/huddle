@@ -4,6 +4,7 @@ import { api, SESSION_LOST, type Me } from './lib/api';
 import { go, useRoute } from './lib/router';
 import { claimCache, forgetEverything } from './lib/queries';
 import { useTheme } from './lib/theme';
+import { t } from './lib/i18n';
 import { Leaderboard } from './screens/Leaderboard';
 import { TeamSheet } from './screens/TeamSheet';
 import { Admin } from './screens/Admin';
@@ -43,7 +44,7 @@ export function App() {
     const onLost = () => {
       forgetEverything();
       setMe(null);
-      notify('Ta session a expiré, reconnecte-toi.');
+      notify(t.app.sessionExpired);
     };
     addEventListener(SESSION_LOST, onLost);
     return () => removeEventListener(SESSION_LOST, onLost);

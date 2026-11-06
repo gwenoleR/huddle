@@ -1,23 +1,19 @@
 /** Petites fonctions d'affichage sans React, partagées par les écrans (et testées). */
 import type { EspnStatsDto, GameDto, StandingRow, TeamSheetDto, TeamStandingDto } from './api';
+import { timeLabel } from './format';
+import { t } from './i18n';
 
 export type { EspnStatsDto };
 
 /** « 1er AFC Est · 3e tête de série » ou « 3e NFC Nord · hors playoffs ». */
 export function standingText(st: TeamStandingDto | null): string {
   if (!st) return '–';
-  const div = `${st.divRank === 1 ? '1er' : `${st.divRank}e`} ${st.division}`;
-  if (st.clinch === 'out') return `${div} · éliminé`;
-  if (!st.seed) return div;
-  return st.seed <= 7 ? `${div} · ${st.seed === 1 ? '1re' : `${st.seed}e`} tête de série` : `${div} · hors playoffs (${st.seed}e)`;
+  return t.team.standing(st.divRank, st.division, st.seed, st.clinch === 'out');
 }
 
 /** Libellé du lien vers la fiche match, selon l'état du match et si les pronos comptent. */
 export function detailLabel(status: GameDto['status'], counted: boolean): string {
-  const pronos = counted ? ' et pronos' : '';
-  if (status === 'final') return `Stats du match${pronos}`;
-  if (status === 'live') return `Suivre le match${pronos}`;
-  return counted ? 'Favori, forme, blessés et pronos' : 'Favori, forme et blessés';
+  return t.matches.detailLink(status, counted);
 }
 
 type ScheduleGame = TeamSheetDto['schedule'][number];
@@ -31,13 +27,9 @@ export function withByes(schedule: ScheduleGame[]): (ScheduleGame | { bye: true;
   return [...out, ...schedule].sort((a, b) => a.week - b.week);
 }
 
-const hourOnly = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
-
 /** « 12 appels ESPN sur la dernière heure · 140 sur 24 h », ou la pause si ESPN a demandé de ralentir. */
 export function espnLine(e: EspnStatsDto): string {
-  if (e.pausedUntil) return `ESPN demande de ralentir : appels en pause jusqu’à ${hourOnly.format(e.pausedUntil)}`;
-  const errors = e.errorsLastHour ? ` · ${e.errorsLastHour} en erreur` : '';
-  return `${e.lastHour} appel${e.lastHour > 1 ? 's' : ''} ESPN sur la dernière heure${errors} · ${e.lastDay} sur 24 h`;
+  return t.admin.espn(e.lastHour, e.lastDay, e.errorsLastHour, e.pausedUntil ? timeLabel(e.pausedUntil) : null);
 }
 
 type Row = Pick<StandingRow, 'good' | 'played' | 'startPoints' | 'bonus'>;
@@ -47,15 +39,10 @@ type Row = Pick<StandingRow, 'good' | 'played' | 'startPoints' | 'bonus'>;
  * seulement pour qui en a (joueur arrivé en cours de saison) et le bonus s'il y en a.
  */
 export function seasonRecord(r: Row, startWeek: number): string {
-  const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
-  if (!r.played) return r.startPoints ? `${r.startPoints} pts repris de l’ancien site${bonus}` : `Pas encore de match terminé${bonus}`;
-  const since = startWeek > 1 ? ` depuis la S${startWeek}` : '';
-  const kept = r.startPoints ? ` · ${r.startPoints} repris` : '';
-  return `${r.good} / ${r.played}${since}${kept}${bonus}`;
+  return t.leaderboard.seasonRecord(r, startWeek);
 }
 
 /** Bilan de saison : d'où viennent les points. */
 export function pointsOrigin(r: Row & { points: number }): string {
-  if (r.startPoints) return `${r.startPoints} repris + ${r.points - r.startPoints} dans l’appli`;
-  return `${r.good} bon${r.good > 1 ? 's' : ''} prono${r.good > 1 ? 's' : ''}${r.bonus ? ` + ${r.bonus} de bonus` : ''}`;
+  return t.season.pointsOrigin(r);
 }

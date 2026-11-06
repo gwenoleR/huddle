@@ -1,7 +1,7 @@
 /** Semaines, matchs, pronos, avant-match et direct. */
 import type { FastifyInstance } from 'fastify';
 import type { GameDetailDto, LiveDto, OkDto, PreviewDto, Replies, WeekDto, WeeksDto } from '../../shared/api';
-import { currentSeason, weekLabel } from '../config';
+import { currentSeason, t, weekLabel } from '../config';
 import { db, startWeek } from '../db';
 import { fetchLive, fetchPreview } from '../espn';
 import { FOREVER, cached } from '../espnCache';
@@ -39,7 +39,7 @@ export async function gamesRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { id: string }; Reply: Replies<GameDetailDto> }>('/api/games/:id', { preHandler: requireAuth }, async (req, reply) => {
     const row = db.prepare('SELECT * FROM games WHERE id = ?').get(req.params.id) as unknown as GameRow | undefined;
-    if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
+    if (!row) return reply.code(404).send({ error: t.api.gameNotFound });
     const [game] = gamesDto([row], req.me);
     const done = new Set([...game.pickers.away, ...game.pickers.home]);
     const waiting = (db.prepare('SELECT name FROM players ORDER BY name COLLATE NOCASE').all() as { name: string }[])
@@ -53,10 +53,10 @@ export async function gamesRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (req, reply) => {
       const side = req.body?.side;
-      if (side !== 'away' && side !== 'home') return reply.code(400).send({ error: 'Choix invalide.' });
+      if (side !== 'away' && side !== 'home') return reply.code(400).send({ error: t.api.invalidPick });
       const g = db.prepare('SELECT * FROM games WHERE id = ?').get(req.params.id) as unknown as GameRow | undefined;
-      if (!g) return reply.code(404).send({ error: 'Match introuvable.' });
-      if (isLocked(g)) return reply.code(409).send({ error: 'Trop tard, le match a commencé.' });
+      if (!g) return reply.code(404).send({ error: t.api.gameNotFound });
+      if (isLocked(g)) return reply.code(409).send({ error: t.api.gameStarted });
       db.prepare(
         `INSERT INTO picks (player_id, game_id, side, updated_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(player_id, game_id) DO UPDATE SET side = excluded.side, updated_at = excluded.updated_at`
@@ -71,13 +71,13 @@ export async function gamesRoutes(app: FastifyInstance) {
     const game = db.prepare('SELECT id, away_id, home_id FROM games WHERE id = ?').get(req.params.id) as
       | { id: string; away_id: string; home_id: string }
       | undefined;
-    if (!game) return reply.code(404).send({ error: 'Match introuvable.' });
+    if (!game) return reply.code(404).send({ error: t.api.gameNotFound });
     let data;
     try {
       data = await cached(`preview:${game.id}`, () => fetchPreview(game.id), { ttl: 20 * MIN, swr: 6 * HOUR });
     } catch (e) {
       req.log.warn({ err: e }, 'avant-match indisponible');
-      return reply.code(502).send({ error: 'Infos d’avant-match indisponibles pour le moment.' });
+      return reply.code(502).send({ error: t.api.previewUnavailable });
     }
     // La place au classement est un bonus : si ESPN ne répond pas, l'avant-match s'affiche sans.
     const s = await nflStandings().catch(() => null);
@@ -91,8 +91,8 @@ export async function gamesRoutes(app: FastifyInstance) {
     const row = db.prepare('SELECT id, week, status, kickoff FROM games WHERE id = ?').get(req.params.id) as
       | { id: string; week: number; status: string; kickoff: number }
       | undefined;
-    if (!row) return reply.code(404).send({ error: 'Match introuvable.' });
-    if (row.status !== 'live' && row.status !== 'final') return reply.code(409).send({ error: 'Le match n’a pas commencé.' });
+    if (!row) return reply.code(404).send({ error: t.api.gameNotFound });
+    if (row.status !== 'live' && row.status !== 'final') return reply.code(409).send({ error: t.api.gameNotStarted });
     const final = row.status === 'final';
     const settled = final && row.kickoff < Date.now() - 24 * HOUR;
     try {
@@ -102,7 +102,7 @@ export async function gamesRoutes(app: FastifyInstance) {
       });
     } catch (e) {
       req.log.warn({ err: e }, 'direct indisponible');
-      return reply.code(502).send({ error: 'Le direct ESPN ne répond pas pour le moment.' });
+      return reply.code(502).send({ error: t.api.liveUnavailable });
     }
   });
 }

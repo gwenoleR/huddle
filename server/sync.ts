@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { SyncStatusDto } from '../shared/api';
-import { DATA_DIR, currentSeason } from './config';
+import { DATA_DIR, currentSeason, t } from './config';
 
 export type SyncStatus = Omit<SyncStatusDto, 'espn'>;
 import { db, getMeta, setMeta, transaction } from './db';
@@ -70,7 +70,7 @@ export async function syncSeason() {
     try {
       total += await syncWeek(w);
     } catch (e) {
-      errors.push(`S${w} : ${(e as Error).message}`);
+      errors.push(t.sync.weekFailed(w, (e as Error).message));
     }
     await sleep(PAUSE_MS);
   }
@@ -118,7 +118,7 @@ function recordStatus(ok: boolean, message: string) {
 export function syncStatus(): SyncStatus {
   const raw = getMeta('sync_status');
   const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(currentSeason()) as { n: number }).n;
-  if (!raw) return { at: null, ok: false, message: 'Pas encore de synchro', games };
+  if (!raw) return { at: null, ok: false, message: t.sync.never, games };
   return { ...(JSON.parse(raw) as SyncStatus), games };
 }
 
@@ -128,7 +128,7 @@ async function fullSync(now: number) {
     const games = await syncSeason();
     lastFull = lastHourly = now;
     lastSeason = currentSeason(now);
-    const msg = `${teams} équipes, ${games} matchs`;
+    const msg = t.sync.done(teams, games);
     console.log(`[sync] saison ${currentSeason()} : ${msg}`);
     recordStatus(true, msg);
   } catch (e) {

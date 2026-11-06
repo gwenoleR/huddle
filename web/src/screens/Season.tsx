@@ -4,6 +4,7 @@ import { type AwardDto, type Me } from '../lib/api';
 import { BackLink, Loading, OtherSeasons } from './shared';
 import { pointsOrigin } from '../lib/labels';
 import { useSeason } from '../lib/data';
+import { t } from '../lib/i18n';
 
 export function Season({ me, season }: { me: Me; season?: number }) {
   const q = useSeason(season);
@@ -19,34 +20,34 @@ export function Season({ me, season }: { me: Me; season?: number }) {
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/classement" label="Classement" />
+        <BackLink href="#/classement" label={t.leaderboard.title} />
       </header>
       <main className="stack" style={{ gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="eyebrow">
-            Saison {s.season} {s.finished ? 'terminée' : 'en cours'} · {s.finalGames} matchs joués
+            {t.season.eyebrow(s.season, s.finished, s.finalGames)}
           </span>
-          <h1 className="h1">Bilan de saison</h1>
+          <h1 className="h1">{t.season.title}</h1>
         </div>
 
         {leader && (
           <section className="champion">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                {s.finished ? 'Titre de la saison' : 'En tête pour l’instant'}
+                {t.season.championTitle(s.finished)}
               </span>
               <span className="who">{leader.name}</span>
             </div>
             <span className="pts">
               {leader.points}
-              <small> pts</small>
+              <small>{t.season.pointsUnit}</small>
             </span>
           </section>
         )}
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h2 className="section-title" style={{ margin: 0 }}>
-            {s.finished ? 'Classement final' : 'Classement actuel'}
+            {t.season.standingsTitle(s.finished)}
           </h2>
           <ol style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {s.rows.map((r) => (
@@ -57,9 +58,9 @@ export function Season({ me, season }: { me: Me; season?: number }) {
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h2 className="section-title" style={{ margin: 0 }}>
-            Les trophées de la bande
+            {t.season.trophiesTitle}
           </h2>
-          {won.length === 0 && <div className="card card-pad muted small">Les trophées arrivent après les premiers matchs joués.</div>}
+          {won.length === 0 && <div className="card card-pad muted small">{t.season.noTrophiesYet}</div>}
           {won.map((a) => (
             <AwardRow key={a.id} award={a} finished={s.finished} onOpen={() => setOpen(a)} />
           ))}
@@ -68,7 +69,7 @@ export function Season({ me, season }: { me: Me; season?: number }) {
         {toWin.length > 0 && (
           <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <h2 className="section-title" style={{ margin: 0 }}>
-              {s.finished ? 'Pas attribués cette saison' : 'Encore à gagner'}
+              {t.season.toWinTitle(s.finished)}
             </h2>
             {toWin.map((a) => (
               <AwardRow key={a.id} award={a} finished={s.finished} onOpen={() => setOpen(a)} />
@@ -79,7 +80,7 @@ export function Season({ me, season }: { me: Me; season?: number }) {
           seasons={s.seasons}
           shown={s.season}
           current={s.seasons[0]}
-          label={s.season === s.seasons[0] ? 'Saisons précédentes' : 'Autres saisons'}
+          label={s.season === s.seasons[0] ? t.season.previousSeasons : t.season.otherSeasons}
         />
       </main>
       <TrophyDialog award={open} me={me} finished={s.finished} onClose={() => setOpen(null)} />
@@ -102,7 +103,7 @@ function AwardRow({ award, finished, onOpen }: { award: AwardDto; finished: bool
       {won ? <Avatar name={award.who!} /> : <TrophyBadge won={false} />}
       <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1, textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 600 }}>{award.title}</span>
-        <span className="muted small">{won ? `${award.who} · ${award.detail}` : finished ? 'Personne' : 'Personne pour l’instant'}</span>
+        <span className="muted small">{t.season.awardLine(award.who ?? null, award.detail, finished)}</span>
       </span>
       <svg
         width="20"
@@ -146,26 +147,26 @@ function TrophyDialog({ award, me, finished, onClose }: { award: AwardDto | null
             <div className="sheet-holder">
               <Avatar name={award.who!} me={mine} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>{mine ? 'C’est toi !' : award.who}</span>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>{mine ? t.season.itsYou : award.who}</span>
                 <span className="muted small">{award.detail}</span>
               </span>
             </div>
           ) : (
             <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 15 }}>
-              {finished ? 'Personne ne l’a décroché cette saison.' : 'Personne ne le mérite encore. La place est libre.'}
+              {t.season.nobody(finished)}
             </p>
           )}
           <div className="sheet-rule">
             <span className="section-title" style={{ margin: 0 }}>
-              Comment on le gagne
+              {t.season.howToWin}
             </span>
             <p style={{ margin: 0, fontSize: 15, lineHeight: '22px' }}>{award.rule}</p>
             <p className="muted small" style={{ margin: 0 }}>
-              Seuls les matchs terminés comptent. Le trophée peut changer de main à tout moment.
+              {t.season.ruleNote}
             </p>
           </div>
           <Button block onClick={onClose}>
-            Compris
+            {t.season.close}
           </Button>
         </div>
       )}

@@ -2,6 +2,7 @@
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { DEFAULT_LANG, messages } from '../../shared/i18n';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any };
 
@@ -22,6 +23,8 @@ registerRoute(
 self.addEventListener('install', () => void self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
+// Le serveur envoie toujours un titre (nom de l'instance) ; le service worker ne lit pas les réglages
+// de l'instance, d'où ce nom court par défaut.
 self.addEventListener('push', (event) => {
   let data: { title?: string; body?: string; url?: string; tag?: string } = {};
   try {
@@ -30,7 +33,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data?.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title ?? 'Prono', {
+    self.registration.showNotification(data.title ?? messages(DEFAULT_LANG).common.appShortName, {
       body: data.body,
       tag: data.tag,
       data: { url: data.url ?? '/' },

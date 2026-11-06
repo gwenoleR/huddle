@@ -1,8 +1,7 @@
 import { type GameDto, type LiveDto } from '../lib/api';
 import { TeamLink } from './shared';
 import { useLive } from '../lib/data';
-
-const periodLabel = (p: number) => (p > 4 ? 'Prol.' : `Q${p}`);
+import { t } from '../lib/i18n';
 
 /** Pendant et après le match : situation en cours, courbe des chances de victoire et actions qui ont marqué. */
 export function MatchLive({ game }: { game: GameDto }) {
@@ -25,16 +24,15 @@ export function MatchLive({ game }: { game: GameDto }) {
             <div className="live-ball">
               <span className={`live-dot ${sit.possession === 'away' ? 'pr-split-a' : 'pr-split-b'}`} aria-hidden />
               <span>
-                Les <b>{team(sit.possession)!.name}</b> ont la balle
+                {t.match.hasBall(<b key="team">{team(sit.possession)!.name}</b>)}
                 {sit.down && <span className="muted"> · {sit.down}</span>}
               </span>
-              {sit.redZone && <span className="live-redzone">Zone rouge</span>}
+              {sit.redZone && <span className="live-redzone">{t.match.redZone}</span>}
             </div>
           )}
           {sit.lastPlay && (
             <span className="muted small">
-              Dernière action : {sit.lastPlay}
-              {sit.lastSide && ` (${team(sit.lastSide)!.abbr})`}
+              {t.match.lastPlay(sit.lastPlay, sit.lastSide ? team(sit.lastSide)!.abbr : null)}
             </span>
           )}
         </section>
@@ -44,22 +42,22 @@ export function MatchLive({ game }: { game: GameDto }) {
         <section className="card card-pad live-chart">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
             <span className="section-title" style={{ margin: 0 }}>
-              {live ? 'Chances de victoire' : 'Le scénario du match'}
+              {live ? t.match.winChances : t.match.gameStory}
             </span>
-            {live && <span className="muted small">selon ESPN</span>}
+            {live && <span className="muted small">{t.match.byEspn}</span>}
           </div>
           {live && (
             <div className="live-now">
               <span>
-                <b className="pr-a">{Math.round(now.away)} %</b> {game.away.abbr}
+                <b className="pr-a">{t.match.percent(Math.round(now.away))}</b> {game.away.abbr}
               </span>
               {game.myPick && (
                 <span className="muted small">
-                  Ton prono : {Math.round(game.myPick === 'away' ? now.away : 100 - now.away)} % de chances
+                  {t.match.myPickChances(Math.round(game.myPick === 'away' ? now.away : 100 - now.away))}
                 </span>
               )}
               <span>
-                {game.home.abbr} <b className="pr-b">{Math.round(100 - now.away)} %</b>
+                {game.home.abbr} <b className="pr-b">{t.match.percent(Math.round(100 - now.away))}</b>
               </span>
             </div>
           )}
@@ -73,7 +71,7 @@ export function MatchLive({ game }: { game: GameDto }) {
             <TeamLink abbr={game.away.abbr} className="pr-a">
               <b>{game.away.abbr}</b>
             </TeamLink>
-            <span className="section-title" style={{ margin: 0 }}>Les stats du match</span>
+            <span className="section-title" style={{ margin: 0 }}>{t.match.statsTitle}</span>
             <TeamLink abbr={game.home.abbr} className="pr-b">
               <b>{game.home.abbr}</b>
             </TeamLink>
@@ -102,7 +100,7 @@ export function MatchLive({ game }: { game: GameDto }) {
 
       {d.leaders.length > 0 && (
         <section className="card card-pad live-leaders">
-          <span className="section-title" style={{ margin: 0 }}>Les meilleurs joueurs</span>
+          <span className="section-title" style={{ margin: 0 }}>{t.match.leadersTitle}</span>
           {d.leaders.map((l) => (
             <div key={l.category} className="live-leader">
               <span className="muted small live-leader-cat">{l.category}</span>
@@ -127,12 +125,12 @@ export function MatchLive({ game }: { game: GameDto }) {
 
       {d.scoring.length > 0 && (
         <section className="card card-pad live-scoring">
-          <span className="section-title" style={{ margin: 0 }}>Les points marqués</span>
+          <span className="section-title" style={{ margin: 0 }}>{t.match.scoringTitle}</span>
           <ol>
             {[...d.scoring].reverse().map((s, i) => (
               <li key={i}>
                 <span className="live-when">
-                  {periodLabel(s.period)}
+                  {t.match.period(s.period)}
                   <small>{s.clock}</small>
                 </span>
                 <span className="live-what">
@@ -157,17 +155,17 @@ export function MatchLive({ game }: { game: GameDto }) {
 function WinChart({ data, awayAbbr, homeAbbr }: { data: LiveDto; awayAbbr: string; homeAbbr: string }) {
   const W = 340;
   const H = 140;
-  const x = (t: number) => (t / data.length) * W;
+  const x = (sec: number) => (sec / data.length) * W;
   const y = (away: number) => H - (away / 100) * H;
   const pts = data.winProb.map((p) => `${x(p.t).toFixed(1)},${y(p.away).toFixed(1)}`);
   const last = data.winProb.at(-1)!;
   const area = `M0,${H / 2} L${pts.join(' L')} L${x(last.t).toFixed(1)},${H / 2} Z`;
   const quarters = [900, 1800, 2700, ...(data.length > 3600 ? [3600] : [])];
-  const labels = ['Q1', 'Q2', 'Q3', 'Q4', ...(data.length > 3600 ? ['Prol.'] : [])];
+  const labels = [1, 2, 3, 4, ...(data.length > 3600 ? [5] : [])].map(t.match.period);
   const bounds = [0, ...quarters, data.length];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H + 18}`} className="win-chart" role="img" aria-label={`Chances de victoire au fil du match : ${awayAbbr} en haut, ${homeAbbr} en bas`}>
+    <svg viewBox={`0 0 ${W} ${H + 18}`} className="win-chart" role="img" aria-label={t.match.chartLabel(awayAbbr, homeAbbr)}>
       <defs>
         <clipPath id="wc-top">
           <rect x="0" y="0" width={W} height={H / 2} />

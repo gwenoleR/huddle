@@ -3,6 +3,7 @@
  * Si elle change un jour, c'est le seul fichier à adapter.
  */
 import type { EspnStatsDto, LiveDto, NflTeamRow, PreviewDto, PreviewSideDto } from '../shared/api';
+import { t } from './config';
 
 export type PreviewSide = PreviewSideDto;
 /** L'avant-match tel qu'ESPN le donne ; la place au classement est ajoutée par la route. */
@@ -33,10 +34,10 @@ function remember(list: number[], now: number) {
 }
 
 export function espnStats(now = Date.now()): EspnStatsDto {
-  const hour = (list: number[]) => list.filter((t) => t > now - 3600_000).length;
+  const hour = (list: number[]) => list.filter((at) => at > now - 3600_000).length;
   return {
     lastHour: hour(calls),
-    lastDay: calls.filter((t) => t > now - 24 * 3600_000).length,
+    lastDay: calls.filter((at) => at > now - 24 * 3600_000).length,
     errorsLastHour: hour(failures),
     pausedUntil: pausedUntil > now ? pausedUntil : null
   };
@@ -52,7 +53,7 @@ async function getJson(url: string): Promise<any> {
   const now = Date.now();
   if (now < pausedUntil) {
     const min = Math.ceil((pausedUntil - now) / 60_000);
-    throw new Error(`ESPN en pause encore ${min} min (trop d’appels)`);
+    throw new Error(t.sync.espnPaused(min));
   }
   remember(calls, now);
   let res: Response;
@@ -61,8 +62,8 @@ async function getJson(url: string): Promise<any> {
   } catch (e: any) {
     remember(failures, now);
     // « fetch failed » seul ne dit rien : on remonte la vraie cause (ENOTFOUND = DNS, ECONNREFUSED, délai…).
-    const cause = e?.cause?.code ?? e?.cause?.message ?? (e?.name === 'TimeoutError' ? 'délai dépassé (15 s)' : e?.message);
-    throw new Error(`ESPN injoignable (${cause}) : ${new URL(url).host}`);
+    const cause = e?.cause?.code ?? e?.cause?.message ?? (e?.name === 'TimeoutError' ? t.sync.espnTimeout : e?.message);
+    throw new Error(t.sync.espnUnreachable(cause, new URL(url).host));
   }
   if (res.status === 429) {
     // ESPN demande de ralentir : on s'arrête 5 min, puis 10, 20… jusqu'à 1 h si ça se répète.
@@ -70,11 +71,11 @@ async function getJson(url: string): Promise<any> {
     pausedUntil = now + Math.min(PAUSE_BASE * 2 ** strikes, PAUSE_MAX);
     strikes++;
     console.warn(`[espn] 429 : pause jusqu'à ${new Date(pausedUntil).toISOString()}`);
-    throw new Error('ESPN a répondu 429 (trop d’appels), pause des appels');
+    throw new Error(t.sync.espnTooManyCalls);
   }
   if (!res.ok) {
     remember(failures, now);
-    throw new Error(`ESPN a répondu ${res.status} sur ${url}`);
+    throw new Error(t.sync.espnHttpError(res.status, url));
   }
   strikes = 0;
   return res.json();
@@ -143,16 +144,16 @@ export async function fetchWeek(season: number, appWeek: number): Promise<EspnGa
   return (d.events ?? []).map((e: any) => parseEvent(e, appWeek)).filter(Boolean) as EspnGame[];
 }
 
-function frenchDetail(status: any, state: GameStatus): string | null {
+/** Ligne d'état d'un match (« Q3 · 4:12 », « Mi-temps », « Terminé »), dans la langue de l'instance. */
+function gameDetail(status: any, state: GameStatus): string | null {
   const type = status?.type ?? {};
   const period = Number(status?.period ?? 0);
-  if (state === 'final') return period > 4 || /OT/.test(type.detail ?? '') ? 'Terminé · prol.' : 'Terminé';
-  if (state === 'postponed') return 'Reporté';
+  if (state === 'final') return t.espn.detail.final(period > 4 || /OT/.test(type.detail ?? ''));
+  if (state === 'postponed') return t.espn.detail.postponed;
   if (state !== 'live') return null;
-  if (type.name === 'STATUS_HALFTIME') return 'Mi-temps';
-  const q = period > 4 ? 'Prol.' : `Q${period}`;
-  if (type.name === 'STATUS_END_PERIOD') return `Fin ${q}`;
-  return status?.displayClock ? `${q} · ${status.displayClock}` : q;
+  if (type.name === 'STATUS_HALFTIME') return t.espn.detail.halftime;
+  if (type.name === 'STATUS_END_PERIOD') return t.espn.detail.endOfPeriod(period);
+  return t.espn.detail.running(period, status?.displayClock || null);
 }
 
 function parseEvent(e: any, week: number): EspnGame | null {
@@ -182,7 +183,7 @@ function parseEvent(e: any, week: number): EspnGame | null {
     week,
     kickoff: Date.parse(e.date),
     status,
-    detail: frenchDetail(e.status, status),
+    detail: gameDetail(e.status, status),
     awayId: String(away.team.id),
     homeId: String(home.team.id),
     awayScore,
@@ -193,20 +194,10 @@ function parseEvent(e: any, week: number): EspnGame | null {
 
 // ---------- Avant-match (fiche match) ----------
 
-const BODY_PARTS: Record<string, string> = {
-  knee: 'genou', ankle: 'cheville', hamstring: 'ischios', concussion: 'commotion', shoulder: 'épaule', groin: 'aine',
-  calf: 'mollet', back: 'dos', foot: 'pied', hip: 'hanche', quadriceps: 'quadriceps', ribs: 'côtes', thumb: 'pouce',
-  hand: 'main', wrist: 'poignet', elbow: 'coude', neck: 'cou', chest: 'poitrine', illness: 'malade', toe: 'orteil',
-  achilles: 'tendon d’Achille', pectoral: 'pectoral', abdomen: 'abdomen', oblique: 'oblique', 'lower leg': 'jambe',
-  'lower back': 'bas du dos', heel: 'talon', finger: 'doigt', head: 'tête', face: 'visage', eye: 'œil', arm: 'bras',
-  forearm: 'avant-bras', biceps: 'biceps', triceps: 'triceps', thigh: 'cuisse', shin: 'tibia', personal: 'raisons perso',
-  rest: 'repos', 'not injury related': 'hors blessure', jaw: 'mâchoire', nose: 'nez', glute: 'fessier', leg: 'jambe'
-};
-
-function frenchPart(type: unknown): string | null {
+function injuryPart(type: unknown): string | null {
   if (typeof type !== 'string' || !type) return null;
   const main = type.split(' - ')[0].trim().toLowerCase();
-  return BODY_PARTS[main] ?? type;
+  return t.espn.bodyParts[main] ?? type;
 }
 
 const STATUS: Record<string, PreviewSide['injuries'][number]['status']> = {
@@ -234,7 +225,7 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
     const records: any[] = c?.record ?? [];
     const rec = (type: string) => records.find((r) => r.type === type)?.summary ?? null;
 
-    const last = (d.lastFiveGames ?? []).find((t: any) => String(t.team?.id) === id);
+    const last = (d.lastFiveGames ?? []).find((x: any) => String(x.team?.id) === id);
     const form = (last?.events ?? []).map((e: any) => ({
       result: e.gameResult === 'W' ? 'V' : e.gameResult === 'L' ? 'D' : 'N',
       opponent: e.opponent?.abbreviation ?? '?',
@@ -245,13 +236,13 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
     const proj = homeAway === 'home' ? d.predictor?.homeTeam : d.predictor?.awayTeam;
     const winChance = proj?.gameProjection != null && !Number.isNaN(Number(proj.gameProjection)) ? Math.round(Number(proj.gameProjection)) : null;
 
-    const inj = (d.injuries ?? []).find((t: any) => String(t.team?.id) === id)?.injuries ?? [];
+    const inj = (d.injuries ?? []).find((x: any) => String(x.team?.id) === id)?.injuries ?? [];
     const injuries = inj
       .map((i: any) => ({
         name: i.athlete?.displayName ?? i.athlete?.shortName ?? '?',
         position: i.athlete?.position?.abbreviation ?? null,
         status: STATUS[String(i.status ?? '').toLowerCase()],
-        part: frenchPart(i.details?.type)
+        part: injuryPart(i.details?.type)
       }))
       .filter((i: any) => i.status)
       .sort((a: any, b: any) => SEVERITY[a.status as keyof typeof SEVERITY] - SEVERITY[b.status as keyof typeof SEVERITY] || posRank(a.position) - posRank(b.position));
@@ -266,7 +257,7 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
     const favId = pc.homeTeamOdds?.favorite ? pc.homeTeamOdds?.teamId : pc.awayTeamOdds?.favorite ? pc.awayTeamOdds?.teamId : null;
     const m = /-(\d+(?:\.\d+)?)/.exec(String(pc.details ?? ''));
     const spread = m ? Number(m[1]) : null;
-    odds = { favorite: (favId && sideOf(favId)) || null, spread: spread || null, provider: pc.provider?.name ?? 'Bookmakers' };
+    odds = { favorite: (favId && sideOf(favId)) || null, spread: spread || null, provider: pc.provider?.name ?? t.espn.defaultProvider };
   }
 
   return { away: side('away'), home: side('home'), odds };
@@ -281,117 +272,39 @@ const toSeconds = (clock: unknown) => {
 const elapsed = (period: number, clock: unknown, otLength: number) =>
   period <= 4 ? (period - 1) * 900 + (900 - toSeconds(clock)) : 3600 + (period - 5) * otLength + (otLength - toSeconds(clock));
 
-function frenchDown(text: unknown): string | null {
-  if (typeof text !== 'string' || !text) return null;
-  return text
-    .replace(/^1st/, '1re')
-    .replace(/^(\d)(nd|rd|th)/, '$1e')
-    .replace('& Goal', 'et but')
-    .replace('&', 'et')
-    .replace(' at ', ' · ');
+function downText(text: unknown): string | null {
+  return typeof text === 'string' && text ? t.espn.down(text) : null;
 }
 
-function yards(n: unknown) {
-  const v = Math.abs(Number(n) || 0);
-  return `${v} yard${v > 1 ? 's' : ''}`;
+function playText(p: any): string | null {
+  return t.espn.play(String(p?.type?.text ?? ''), Number(p?.statYardage ?? 0));
 }
 
-function frenchPlay(p: any): string | null {
-  const type = String(p?.type?.text ?? '');
-  const y = Number(p?.statYardage ?? 0);
-  switch (type) {
-    case 'Rush':
-      return y < 0 ? `Course, perte de ${yards(y)}` : `Course de ${yards(y)}`;
-    case 'Pass Reception':
-      return `Passe complétée, ${yards(y)}`;
-    case 'Pass Incompletion':
-      return 'Passe incomplète';
-    case 'Sack':
-      return `Sack, perte de ${yards(y)}`;
-    case 'Punt':
-      return 'Punt';
-    case 'Penalty':
-      return 'Pénalité';
-    case 'Kickoff':
-      return 'Coup d’envoi';
-    case 'Timeout':
-    case 'Official Timeout':
-      return 'Temps mort';
-    case 'Passing Touchdown':
-      return 'Touchdown sur passe !';
-    case 'Rushing Touchdown':
-      return 'Touchdown à la course !';
-    case 'Field Goal Good':
-      return 'Field goal réussi';
-    case 'Field Goal Missed':
-    case 'Blocked Field Goal':
-      return 'Field goal manqué';
-    case 'Pass Interception Return':
-    case 'Interception Return Touchdown':
-      return 'Interception !';
-    case 'Fumble Recovery (Opponent)':
-    case 'Fumble Return Touchdown':
-      return 'Fumble perdu !';
-    case 'Fumble Recovery (Own)':
-      return 'Fumble, ballon récupéré';
-    case 'Two-minute warning':
-      return 'Avertissement des 2 minutes';
-    case 'End Period':
-      return 'Fin du quart-temps';
-    case 'End of Half':
-      return 'Mi-temps';
-    case 'Safety':
-      return 'Safety !';
-    default:
-      return type || null;
-  }
-}
-
-/** « Tucker Kraft 12 Yd pass from Jordan Love (Trey Smack Kick) » → « Passe de Jordan Love pour Tucker Kraft, 12 yards ». */
-function frenchScore(kind: string, text: string): string {
-  const m = /^(.+?) (\d+) Yd (.+?)\s*(?:\((.*)\))?\s*$/i.exec(text.trim());
-  if (!m) return text.trim();
-  const [, who, n, how] = m;
-  const dist = yards(n);
-  const from = /pass from (.+)/i.exec(how);
-  if (from) return `Passe de ${from[1]} pour ${who}, ${dist}`;
-  if (/^rush/i.test(how)) return `Course de ${who}, ${dist}`;
-  if (/field goal/i.test(how)) return `${who}, ${dist}`;
-  if (/interception/i.test(how)) return `Retour d’interception de ${who}, ${dist}`;
-  if (/fumble/i.test(how)) return `Retour de fumble de ${who}, ${dist}`;
-  if (/punt/i.test(how)) return `Retour de punt de ${who}, ${dist}`;
-  if (/kickoff/i.test(how)) return `Retour de coup d’envoi de ${who}, ${dist}`;
-  return `${who}, ${dist}`;
-}
-
-
-const STAT_ROWS: { key: string; label: string; lowerIsBetter?: boolean; show?: (v: string) => string; value?: (v: string) => number }[] = [
-  { key: 'totalYards', label: 'Yards gagnés' },
-  { key: 'netPassingYards', label: 'À la passe' },
-  { key: 'rushingYards', label: 'À la course' },
-  { key: 'firstDowns', label: 'Premiers downs' },
-  { key: 'thirdDownEff', label: 'Conversions en 3e tentative', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
-  { key: 'redZoneAttempts', label: 'Zone rouge (TD / visites)', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
-  { key: 'turnovers', label: 'Ballons perdus', lowerIsBetter: true },
-  { key: 'sacksYardsLost', label: 'Sacks subis', lowerIsBetter: true, show: (v) => v.split('-')[0], value: (v) => Number(v.split('-')[0]) },
-  { key: 'totalPenaltiesYards', label: 'Pénalités', lowerIsBetter: true, show: (v) => { const [n, y] = v.split('-'); return y ? `${n} (${y} yds)` : n; }, value: (v) => Number(v.split('-')[1] ?? v.split('-')[0]) },
-  { key: 'possessionTime', label: 'Possession', show: (v) => v.replace(':', ' min '), value: (v) => toSeconds(v) }
+/** Stats comparées, dans l'ordre d'affichage ; les libellés sont dans le dictionnaire (t.espn.stats). */
+const STAT_ROWS: { key: keyof typeof t.espn.stats; lowerIsBetter?: boolean; show?: (v: string) => string; value?: (v: string) => number }[] = [
+  { key: 'totalYards' },
+  { key: 'netPassingYards' },
+  { key: 'rushingYards' },
+  { key: 'firstDowns' },
+  { key: 'thirdDownEff', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
+  { key: 'redZoneAttempts', show: (v) => v.replace('-', '/'), value: (v) => ratio(v) },
+  { key: 'turnovers', lowerIsBetter: true },
+  { key: 'sacksYardsLost', lowerIsBetter: true, show: (v) => v.split('-')[0], value: (v) => Number(v.split('-')[0]) },
+  {
+    key: 'totalPenaltiesYards',
+    lowerIsBetter: true,
+    show: (v) => {
+      const [n, y] = v.split('-');
+      return y ? t.espn.penalties(n, y) : n;
+    },
+    value: (v) => Number(v.split('-')[1] ?? v.split('-')[0])
+  },
+  { key: 'possessionTime', show: (v) => t.espn.possession(v), value: (v) => toSeconds(v) }
 ];
 function ratio(v: string) {
   const [a, b] = v.split('-').map(Number);
   return b ? a / b : 0;
 }
-
-function frenchLine(v: unknown): string {
-  return String(v ?? '')
-    .replace(/(\d+) YDS/g, '$1 yds')
-    .replace(/(\d+) CAR\b/g, '$1 courses')
-    .replace(/(\d+) REC\b/g, '$1 réc.');
-}
-
-const LEADER_CATEGORIES: Record<string, string> = { passingYards: 'À la passe', rushingYards: 'À la course', receivingYards: 'À la réception' };
-
-const SCORE_KIND: Record<string, string> = { TD: 'Touchdown', FG: 'Field goal', SF: 'Safety', S: 'Safety', XP: 'Transformation', '2PT': '2 points' };
 
 export async function fetchLive(gameId: string, playoffs: boolean): Promise<LiveInfo> {
   const d = await getJson(`${BASE}/summary?event=${encodeURIComponent(gameId)}`);
@@ -420,8 +333,8 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     if (!p || w.homeWinPercentage == null || /timeout|end period|end of half|end of game/i.test(p.type?.text ?? '')) continue;
     const period = Number(p.period?.number ?? 1);
     maxPeriod = Math.max(maxPeriod, period);
-    const t = Math.max(elapsed(period, p.clock?.displayValue, otLength), winProb.at(-1)?.t ?? 0);
-    winProb.push({ t, away: Math.round((1 - Number(w.homeWinPercentage)) * 1000) / 10 });
+    const at = Math.max(elapsed(period, p.clock?.displayValue, otLength), winProb.at(-1)?.t ?? 0);
+    winProb.push({ t: at, away: Math.round((1 - Number(w.homeWinPercentage)) * 1000) / 10 });
   }
 
   // Garde-fou : un point isolé qui saute de plus de 25 points par rapport à ses deux voisins est retiré.
@@ -432,21 +345,21 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
 
   const scoring = (d.scoringPlays ?? []).map((s: any) => {
     const abbr = String(s.scoringType?.abbreviation ?? s.type?.abbreviation ?? '');
-    const kind = SCORE_KIND[abbr] ?? s.scoringType?.displayName ?? abbr;
+    const kind = t.espn.scoreKinds[abbr] ?? s.scoringType?.displayName ?? abbr;
     return {
       side: sideOf(s.team?.id),
       period: Number(s.period?.number ?? 0),
       clock: String(s.clock?.displayValue ?? ''),
       kind,
-      text: frenchScore(kind, String(s.text ?? '')),
+      text: t.espn.scoringPlay(String(s.text ?? '')),
       away: Number(s.awayScore ?? 0),
       home: Number(s.homeScore ?? 0)
     };
   });
 
   const teamStats = (side: 'away' | 'home') => {
-    const t = (d.boxscore?.teams ?? []).find((x: any) => x.homeAway === side || sideOf(x.team?.id) === side);
-    return new Map<string, string>((t?.statistics ?? []).map((st: any) => [st.name, String(st.displayValue ?? '')]));
+    const box = (d.boxscore?.teams ?? []).find((x: any) => x.homeAway === side || sideOf(x.team?.id) === side);
+    return new Map<string, string>((box?.statistics ?? []).map((st: any) => [st.name, String(st.displayValue ?? '')]));
   };
   const sa = teamStats('away');
   const sh = teamStats('home');
@@ -457,15 +370,15 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     if (a == null || h == null || a === '' || h === '') continue;
     const val = r.value ?? ((v: string) => Number(v));
     const show = r.show ?? ((v: string) => v);
-    stats.push({ label: r.label, away: show(a), home: show(h), awayValue: val(a) || 0, homeValue: val(h) || 0, lowerIsBetter: !!r.lowerIsBetter });
+    stats.push({ label: t.espn.stats[r.key], away: show(a), home: show(h), awayValue: val(a) || 0, homeValue: val(h) || 0, lowerIsBetter: !!r.lowerIsBetter });
   }
 
   const leaderOf = (side: 'away' | 'home', cat: string) => {
-    const t = (d.leaders ?? []).find((x: any) => sideOf(x.team?.id) === side);
-    const l = t?.leaders?.find((x: any) => x.name === cat)?.leaders?.[0];
-    return l ? { name: String(l.athlete?.displayName ?? '?'), line: frenchLine(l.displayValue) } : null;
+    const team = (d.leaders ?? []).find((x: any) => sideOf(x.team?.id) === side);
+    const l = team?.leaders?.find((x: any) => x.name === cat)?.leaders?.[0];
+    return l ? { name: String(l.athlete?.displayName ?? '?'), line: t.espn.leaderLine(String(l.displayValue ?? '')) } : null;
   };
-  const leaders = Object.entries(LEADER_CATEGORIES)
+  const leaders = Object.entries(t.espn.leaderCategories)
     .map(([cat, category]) => ({ category, away: leaderOf('away', cat), home: leaderOf('home', cat) }))
     .filter((l) => l.away || l.home);
 
@@ -476,9 +389,9 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     const possession = sideOf(d.drives?.current?.team?.id ?? end.team?.id);
     situation = {
       possession,
-      down: frenchDown(end.downDistanceText),
+      down: downText(end.downDistanceText),
       redZone: Number(end.yardsToEndzone ?? 99) <= 20,
-      lastPlay: last ? frenchPlay(last) : null,
+      lastPlay: last ? playText(last) : null,
       lastSide: sideOf(last?.start?.team?.id)
     };
   }
@@ -488,12 +401,9 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
 
 // ---------- Classement NFL ----------
 
-const DIV_FR: Record<string, string> = { East: 'Est', North: 'Nord', South: 'Sud', West: 'Ouest' };
-
-function frenchStreak(v: unknown): string | null {
+function streakText(v: unknown): string | null {
   const m = /^([WLT])(\d+)$/.exec(String(v ?? ''));
-  if (!m) return null;
-  return `${m[2]} ${m[1] === 'W' ? 'V' : m[1] === 'L' ? 'D' : 'N'}`;
+  return m ? t.espn.streak(m[1] as 'W' | 'L' | 'T', m[2]) : null;
 }
 
 export async function fetchStandings(season: number): Promise<NflStandings> {
@@ -503,14 +413,14 @@ export async function fetchStandings(season: number): Promise<NflStandings> {
     divisions: (conf.children ?? []).map((div: any) => {
       const [c, dir] = String(div.name ?? '').split(' ');
       return {
-        name: `${c} ${DIV_FR[dir] ?? dir ?? ''}`.trim(),
+        name: `${c} ${t.espn.directions[dir] ?? dir ?? ''}`.trim(),
         teams: (div.standings?.entries ?? []).map((e: any, i: number) => {
           const stat = (name: string) => e.stats?.find((s: any) => s.name === name || s.type === name)?.displayValue ?? null;
           const clincher = String(stat('clincher') ?? '').trim().toLowerCase();
           return {
             teamId: String(e.team?.id),
             record: stat('overall') ?? `${stat('wins') ?? 0}-${stat('losses') ?? 0}`,
-            streak: frenchStreak(stat('streak')),
+            streak: streakText(stat('streak')),
             seed: stat('playoffSeed') ? Number(stat('playoffSeed')) : null,
             diff: stat('differential') ?? stat('pointDifferential'),
             divRecord: stat('vs. Div.') ?? stat('divisionRecord'),

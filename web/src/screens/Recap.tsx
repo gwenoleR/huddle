@@ -3,6 +3,7 @@ import { Button } from '../ds';
 import { useRecap } from '../lib/data';
 import { drawRecap, RECAP_H, RECAP_W } from '../lib/recapImage';
 import { BackLink, Loading } from './shared';
+import { config, t } from '../lib/i18n';
 
 /** Récap de la semaine : image générée sur le téléphone, partagée via le menu Partager du système. */
 export function Recap({ week, notify }: { week?: number; notify: (m: string) => void }) {
@@ -35,21 +36,21 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
   async function share() {
     if (!file || !data) return;
     try {
-      await navigator.share({ files: [file], title: `Prono · ${data.label}` });
+      await navigator.share({ files: [file], title: t.recap.shareTitle(config.appShortName, data.label) });
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') notify('Partage impossible, enregistre l’image à la place.');
+      if ((e as Error).name !== 'AbortError') notify(t.recap.shareFailed);
     }
   }
 
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/classement" label="Classement" />
+        <BackLink href="#/classement" label={t.leaderboard.title} />
       </header>
       <main className="stack" style={{ gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="eyebrow">À envoyer dans le groupe</span>
-          <h1 className="h1">Récap {data ? `· ${data.label}` : 'de la semaine'}</h1>
+          <span className="eyebrow">{t.recap.eyebrow}</span>
+          <h1 className="h1">{t.recap.title(data?.label ?? null)}</h1>
         </div>
 
         {error && <p className="error-box card">{error}</p>}
@@ -57,7 +58,7 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
         {url && (
           <img
             src={url}
-            alt={`Récap de la ${data?.label.toLowerCase()} : podium, classement général et boulette`}
+            alt={t.recap.imageAlt(data?.label ?? '')}
             width={RECAP_W}
             height={RECAP_H}
             style={{ width: '100%', height: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}
@@ -65,18 +66,18 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
         )}
         {data && !data.complete && (
           <p className="muted small" style={{ margin: 0 }}>
-            Semaine pas finie : {data.finals} matchs joués sur {data.total}. Le récap se complète au fil des matchs.
+            {t.recap.incomplete(data.finals, data.total)}
           </p>
         )}
 
         {url && canShare && (
           <Button block onClick={share}>
-            Partager
+            {t.recap.share}
           </Button>
         )}
         {url && (
           <a className={canShare ? 'pr-btn pr-btn-secondary pr-btn-block' : 'pr-btn pr-btn-primary pr-btn-block'} href={url} download={file?.name} style={centered}>
-            Enregistrer l’image
+            {t.recap.save}
           </a>
         )}
       </main>

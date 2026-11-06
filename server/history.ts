@@ -6,7 +6,7 @@
  * puis l'équipe à domicile, l'équipe à l'extérieur et un prono par joueur (« Prono GW », « Prono AU »…,
  * les deux premières lettres du prénom). Une case vide = pas de prono.
  */
-import { currentSeason } from './config';
+import { currentSeason, t } from './config';
 import { db, setMeta, setStartPoints, transaction } from './db';
 
 export interface HistoryLine {
@@ -46,7 +46,7 @@ function cells(line: string): string[] {
 /** Lit le CSV ; la semaine (« Week1 ») n'est notée que sur le premier match de chaque semaine. */
 export function parseHistory(text: string): HistoryLine[] {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) throw new Error('Fichier vide : il faut une ligne d’en-têtes, puis une ligne par match.');
+  if (lines.length < 2) throw new Error(t.history.emptyFile);
   const header = cells(lines[0]);
   const players = header.slice(3).map((h) => initials(h.replace(/^prono\s+/i, '')));
   const out: HistoryLine[] = [];
@@ -55,8 +55,8 @@ export function parseHistory(text: string): HistoryLine[] {
     const c = cells(line);
     const m = /^week\s*(\d+)$/i.exec(c[0]);
     if (m) week = Number(m[1]);
-    else if (c[0]) throw new Error(`Ligne ${i + 2} : semaine illisible « ${c[0]} »`);
-    if (!week) throw new Error(`Ligne ${i + 2} : match avant la première semaine`);
+    else if (c[0]) throw new Error(t.history.unreadableWeek(i + 2, c[0]));
+    if (!week) throw new Error(t.history.gameBeforeFirstWeek(i + 2));
     const picks: Record<string, string> = {};
     players.forEach((p, j) => {
       if (c[3 + j]) picks[p] = c[3 + j];
@@ -97,19 +97,19 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
   const usedPlayers = new Map<string, { id: number; name: string }>();
 
   for (const l of lines) {
-    const where = `S${l.week} ${l.away} @ ${l.home}`;
+    const where = t.history.where(l.week, l.away, l.home);
     const home = teams.get(l.home.toLowerCase());
     const away = teams.get(l.away.toLowerCase());
     if (!home || !away) {
-      problems.push(`${where} : équipe inconnue`);
+      problems.push(t.history.unknownTeam(where));
       continue;
     }
     const g = gameStmt.get(currentSeason(), l.week, home, away, home, away) as { id: string; kickoff: number; away_id: string; home_id: string } | undefined;
     if (!g) {
-      problems.push(`${where} : match introuvable (synchro pas encore faite ?)`);
+      problems.push(t.history.gameNotFound(where));
       continue;
     }
-    if (seenGames.has(g.id)) problems.push(`${where} : match en double`);
+    if (seenGames.has(g.id)) problems.push(t.history.duplicateGame(where));
     seenGames.add(g.id);
     for (const [who, pick] of Object.entries(l.picks)) {
       const candidates = byInitials.get(who) ?? [];
@@ -117,15 +117,15 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
         // Une fois par colonne, pas à chaque match.
         problems.push(
           candidates.length
-            ? `joueur « ${who} » ambigu : ${candidates.map((c) => c.name).join(', ')} commencent par ces lettres`
-            : `joueur « ${who} » inconnu : ajoute-le d’abord, ou corrige l’en-tête de sa colonne`
+            ? t.history.ambiguousPlayer(who, candidates.map((c) => c.name))
+            : t.history.unknownPlayer(who)
         );
         continue;
       }
       const team = teams.get(pick.toLowerCase());
       const side = team === g.home_id ? 'home' : team === g.away_id ? 'away' : null;
       if (!side) {
-        problems.push(`${where} : prono de ${who} « ${pick} » ne joue pas ce match`);
+        problems.push(t.history.pickNotInGame(where, who, pick));
         continue;
       }
       usedPlayers.set(who, candidates[0]);
@@ -133,7 +133,7 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
       rows.push({ playerId: candidates[0].id, gameId: g.id, side, at: g.kickoff - 24 * 3600_000 });
     }
   }
-  if (problems.length) throw new Error(`Historique non importé :\n- ${[...new Set(problems)].join('\n- ')}`);
+  if (problems.length) throw new Error(t.history.notImported([...new Set(problems)]));
   const result = { games: seenGames.size, picks: rows.length, players: [...usedPlayers.values()].map((p) => p.name) };
   if (dryRun) return result;
 

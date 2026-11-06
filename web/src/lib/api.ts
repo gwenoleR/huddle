@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -29,11 +31,11 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
       credentials: 'same-origin'
     });
   } catch {
-    throw new ApiError(0, 'Pas de réseau. Réessaie dans un instant.');
+    throw new ApiError(0, t.common.errors.network);
   }
   const data = await res.json().catch(() => null);
   if (endsSession(path, res.status)) dispatchEvent(new Event(SESSION_LOST));
-  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'Oups, le serveur fait des siennes.', data);
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? t.common.errors.server, data);
   return data as T;
 }
 

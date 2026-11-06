@@ -5,6 +5,7 @@ import { kickoffLabel } from '../lib/format';
 import { MatchLive } from './MatchLive';
 import { MatchPreview } from './MatchPreview';
 import { BackLink, cardStatus, Loading, toTeam } from './shared';
+import { t } from '../lib/i18n';
 
 export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
   const q = useGame(id);
@@ -15,7 +16,7 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
 
   if (!g) return error ? <p className="error-box">{error}</p> : <Loading />;
   const { status, statusText } = cardStatus(g);
-  const label = (n: string) => (n === me.name ? 'Toi' : n);
+  const label = (n: string) => (n === me.name ? t.match.you : n);
 
   return (
     <div className="screen-inner">
@@ -50,7 +51,7 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
                       {g.pickers[side].length}
                     </span>
                   </h2>
-                  {g.pickers[side].length === 0 && <span className="muted small">Personne</span>}
+                  {g.pickers[side].length === 0 && <span className="muted small">{t.match.nobody}</span>}
                   {g.pickers[side].map((n) => (
                     <div key={n} className="person">
                       <Avatar name={n} size="sm" side={side === 'away' ? 'a' : 'b'} me={n === me.name} />
@@ -63,10 +64,10 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
 
             <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span className="section-title" style={{ margin: 0 }}>
-                Pas encore joué
+                {t.match.notPlayedYet}
               </span>
               <span style={{ fontSize: 15, fontWeight: 500 }}>
-                {g.waiting.length ? g.waiting.map(label).join(', ') : 'Personne. Toute la bande a choisi son camp.'}
+                {g.waiting.length ? g.waiting.map(label).join(', ') : t.match.everyonePicked}
               </span>
             </div>
           </>

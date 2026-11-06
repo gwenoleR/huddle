@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds';
 import { api, type AdminPlayerDto, type ApiError, type BonusSettingsDto, type HistoryImportDto, type Me, type SyncStatusDto } from '../lib/api';
 import { espnLine } from '../lib/labels';
-import { plural } from '../lib/format';
+import { dayTimeLabel } from '../lib/format';
+import { t } from '../lib/i18n';
 import { keys } from '../lib/queries';
 import { BackLink } from './shared';
 
@@ -12,19 +13,19 @@ export function Admin({ me, notify }: { me: Me; notify: (m: string) => void }) {
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/profil" label="Profil" />
+        <BackLink href="#/profil" label={t.admin.back} />
       </header>
       <main className="stack" style={{ gap: 24 }}>
-        <h1 className="h1">Administration</h1>
+        <h1 className="h1">{t.admin.title}</h1>
         {me.isAdmin ? (
           <>
             <Players notify={notify} meId={me.id} />
-            <Section title="Saison">
+            <Section title={t.admin.seasonSection}>
               <div className="card">
                 <BonusAdmin notify={notify} />
               </div>
             </Section>
-            <Section title="Données">
+            <Section title={t.admin.dataSection}>
               <div className="card">
                 <SyncRow notify={notify} />
                 <HistoryImport notify={notify} />
@@ -32,7 +33,7 @@ export function Admin({ me, notify }: { me: Me; notify: (m: string) => void }) {
             </Section>
           </>
         ) : (
-          <p className="muted">Réservé aux admins du groupe.</p>
+          <p className="muted">{t.admin.adminsOnly}</p>
         )}
       </main>
     </div>
@@ -50,13 +51,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const syncTime = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'Europe/Paris',
-  weekday: 'short',
-  hour: '2-digit',
-  minute: '2-digit'
-});
-
 function SyncRow({ notify }: { notify: (m: string) => void }) {
   const [status, setStatus] = useState<SyncStatusDto | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,7 +66,7 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
     try {
       const s = await api<SyncStatusDto>('/admin/sync', { method: 'POST' });
       setStatus(s);
-      notify(`Synchro faite : ${s.games} matchs`);
+      notify(t.admin.syncDone(s.games));
     } catch (e) {
       const err = e as ApiError;
       if (err.data?.at !== undefined) setStatus(err.data as SyncStatusDto);
@@ -84,11 +78,11 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
 
   return (
     <div className="settings-row">
-      <span className="label">Données ESPN</span>
+      <span className="label">{t.admin.syncLabel}</span>
       {status && (
         <span className="small" style={{ color: status.ok ? 'var(--ink-muted)' : 'var(--wrong)' }}>
-          {status.at ? `${status.ok ? 'Dernière synchro' : 'Échec'} ${syncTime.format(status.at)} · ` : ''}
-          {status.ok ? `${status.games} matchs en base` : status.message}
+          {status.at ? t.admin.syncWhen(status.ok, dayTimeLabel(status.at)) : ''}
+          {status.ok ? t.admin.syncGames(status.games) : status.message}
         </span>
       )}
       {status?.espn && (
@@ -102,7 +96,7 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
         </span>
       )}
       <Button variant="secondary" disabled={busy} onClick={run}>
-        {busy ? 'Synchro en cours… (≈ 15 s)' : 'Synchroniser maintenant'}
+        {busy ? t.admin.syncing : t.admin.syncNow}
       </Button>
     </div>
   );
@@ -152,9 +146,9 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
 
   const changed = draft.afc !== String(s.points.afc) || draft.nfc !== String(s.points.nfc) || draft.sb !== String(s.points.sb);
   const fields = [
-    ['afc', 'Champion AFC'],
-    ['nfc', 'Champion NFC'],
-    ['sb', 'Vainqueur du Super Bowl']
+    ['afc', t.admin.bonusAfc],
+    ['nfc', t.admin.bonusNfc],
+    ['sb', t.admin.bonusSb]
   ] as const;
 
   return (
@@ -170,16 +164,16 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
               sb: Number(draft.sb)
             }
           },
-          'Barème du bonus enregistré'
+          t.admin.bonusScaleSaved
         );
       }}
     >
-      <span className="label">Bonus de fin de saison</span>
+      <span className="label">{t.admin.bonusLabel}</span>
       <span className="small muted">
-        {s.enabled ? 'Activé : visible par tous, points comptés au classement.' : 'Désactivé : caché pour tout le monde, aucun point compté.'}
+        {s.enabled ? t.admin.bonusOnHelp : t.admin.bonusOffHelp}
       </span>
-      <Button type="button" variant="secondary" onClick={() => save({ enabled: !s.enabled }, s.enabled ? 'Bonus désactivé' : 'Bonus activé')}>
-        {s.enabled ? 'Désactiver le bonus' : 'Activer le bonus'}
+      <Button type="button" variant="secondary" onClick={() => save({ enabled: !s.enabled }, s.enabled ? t.admin.bonusDisabled : t.admin.bonusEnabled)}>
+        {s.enabled ? t.admin.bonusDisable : t.admin.bonusEnable}
       </Button>
       {s.enabled && (
         <>
@@ -200,25 +194,25 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
                   })
                 }
               />
-              <span className="small muted">pts</span>
+              <span className="small muted">{t.admin.pointsUnit}</span>
             </div>
           ))}
           <Button type="submit" disabled={!changed || Object.values(draft).some((v) => v === '')}>
-            Enregistrer le barème
+            {t.admin.bonusSaveScale}
           </Button>
-          <span className="small">Révéler les choix de la bande</span>
+          <span className="small">{t.admin.revealLabel}</span>
           <div className="segmented">
             {(
               [
-                ['wildcard', 'À la Wild Card'],
-                ['superbowl', 'Au Super Bowl']
+                ['wildcard', t.admin.revealWildcard],
+                ['superbowl', t.admin.revealSuperbowl]
               ] as const
             ).map(([v, label]) => (
               <Button
                 key={v}
                 type="button"
                 variant={s.reveal === v ? 'primary' : 'secondary'}
-                onClick={() => s.reveal !== v && save({ reveal: v }, `Choix révélés ${v === 'wildcard' ? 'à la Wild Card' : 'au Super Bowl'}`)}
+                onClick={() => s.reveal !== v && save({ reveal: v }, t.admin.revealed(v))}
               >
                 {label}
               </Button>
@@ -226,8 +220,8 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
           </div>
           <span className="small muted">
             {s.reveal === 'wildcard'
-              ? 'Dès la clôture des choix : on suit qui est encore en course pendant les playoffs.'
-              : 'Au coup d’envoi du Super Bowl : suspense jusqu’au bout, points bonus ajoutés à ce moment-là.'}
+              ? t.admin.revealWildcardHelp
+              : t.admin.revealSuperbowlHelp}
           </span>
         </>
       )}
@@ -269,18 +263,18 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
           method: 'POST',
           body: { name, startPoints: Number(points) }
         }),
-      `${name} ajouté`
+      t.admin.added(name)
     );
     setName('');
     setPoints('0');
   }
 
   const reset = (p: AdminPlayerDto) =>
-    confirm(`Effacer le code de ${p.name} ? Il en choisira un nouveau à sa prochaine connexion.`) &&
-    act(() => api(`/admin/players/${p.id}/reset-pin`, { method: 'POST' }), `Code de ${p.name} effacé`);
+    confirm(t.admin.confirmResetPin(p.name)) &&
+    act(() => api(`/admin/players/${p.id}/reset-pin`, { method: 'POST' }), t.admin.pinReset(p.name));
 
   const rename = (p: AdminPlayerDto) => {
-    const next = prompt(`Nouveau prénom pour ${p.name}`, p.name)?.trim();
+    const next = prompt(t.admin.renamePrompt(p.name), p.name)?.trim();
     if (next && next !== p.name)
       void act(
         () =>
@@ -288,7 +282,7 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
             method: 'PATCH',
             body: { name: next }
           }),
-        `${p.name} s’appelle maintenant ${next}`
+        t.admin.renamed(p.name, next)
       );
   };
 
@@ -299,15 +293,15 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
           method: 'PATCH',
           body: { isAdmin: !p.isAdmin }
         }),
-      p.isAdmin ? `${p.name} n’est plus admin` : `${p.name} est admin`
+      p.isAdmin ? t.admin.noLongerAdmin(p.name) : t.admin.nowAdmin(p.name)
     );
 
   const remove = (p: AdminPlayerDto) =>
-    confirm(`Supprimer ${p.name} ? Ses pronos et ses points disparaissent pour de bon.`) &&
-    act(() => api(`/admin/players/${p.id}`, { method: 'DELETE' }), `${p.name} supprimé`);
+    confirm(t.admin.confirmRemove(p.name)) &&
+    act(() => api(`/admin/players/${p.id}`, { method: 'DELETE' }), t.admin.removed(p.name));
 
   return (
-    <Section title={`Joueurs · ${players.length}`}>
+    <Section title={t.admin.playersSection(players.length)}>
       <div className="card">
         <div className="settings-row">
           {players.map((p) => (
@@ -316,27 +310,27 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
                 <Avatar name={p.name} size="sm" />
                 <span>{p.name}</span>
                 <span className="muted small">
-                  {[p.isAdmin && 'admin', !p.hasPin && 'pas encore connecté', p.startPoints > 0 && `${p.startPoints} pts de départ`]
+                  {[p.isAdmin && t.admin.tagAdmin, !p.hasPin && t.admin.tagNoPin, p.startPoints > 0 && t.admin.tagStartPoints(p.startPoints)]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>
               </summary>
               <div className="admin-actions">
                 <Button variant="secondary" onClick={() => rename(p)}>
-                  Renommer
+                  {t.admin.rename}
                 </Button>
                 {p.hasPin && (
                   <Button variant="secondary" onClick={() => reset(p)}>
-                    Effacer le code
+                    {t.admin.resetPin}
                   </Button>
                 )}
                 {p.id !== meId && (
                   <>
                     <Button variant="secondary" onClick={() => toggleAdmin(p)}>
-                      {p.isAdmin ? 'Retirer admin' : 'Nommer admin'}
+                      {p.isAdmin ? t.admin.removeAdmin : t.admin.makeAdmin}
                     </Button>
                     <Button variant="ghost" onClick={() => remove(p)}>
-                      Supprimer
+                      {t.admin.remove}
                     </Button>
                   </>
                 )}
@@ -346,16 +340,16 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
         </div>
       </div>
       <form className="card settings-row" onSubmit={add}>
-        <span className="label">Ajouter un joueur</span>
+        <span className="label">{t.admin.addPlayer}</span>
         <label className="muted small" htmlFor="new-name">
-          Prénom
+          {t.admin.firstName}
         </label>
         <input id="new-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required maxLength={30} />
         <label className="muted small" htmlFor="new-points">
-          Points de départ (s’il arrive en cours de saison)
+          {t.admin.startPoints}
         </label>
         <input id="new-points" className="field" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value.replace(/\D/g, ''))} />
-        <Button type="submit">Ajouter</Button>
+        <Button type="submit">{t.admin.add}</Button>
       </form>
     </Section>
   );
@@ -382,7 +376,7 @@ function HistoryImport({ notify }: { notify: (m: string) => void }) {
       });
       if (dryRun) setPreview(r);
       else {
-        notify(`${plural(r.picks, 'prono')} importés`);
+        notify(t.admin.imported(r.picks));
         setCsv(null);
         setPreview(null);
         void qc.invalidateQueries();
@@ -397,13 +391,12 @@ function HistoryImport({ notify }: { notify: (m: string) => void }) {
 
   return (
     <div className="settings-row">
-      <span className="label">Importer l’historique</span>
+      <span className="label">{t.admin.importLabel}</span>
       <span className="muted small">
-        Les semaines jouées ailleurs, en CSV : une ligne d’en-têtes (« , Home, Away, Prono GW, Prono AU… », deux lettres du prénom), puis une ligne par match («
-        Week1 » sur le premier match de chaque semaine). Les points de départ des joueurs du fichier repassent à 0.
+        {t.admin.importHelp}
       </span>
       <label className={`pr-btn pr-btn-secondary file-btn${busy ? ' is-disabled' : ''}`}>
-        Choisir un fichier CSV
+        {t.admin.chooseCsv}
         <input
           type="file"
           accept=".csv,text/csv"
@@ -426,10 +419,10 @@ function HistoryImport({ notify }: { notify: (m: string) => void }) {
       {preview && csv && (
         <>
           <span className="small">
-            {plural(preview.picks, 'prono')} sur {plural(preview.games, 'match')}, pour {preview.players.join(', ')}.
+            {t.admin.importPreview(preview.picks, preview.games, preview.players)}
           </span>
           <Button disabled={busy} onClick={() => send(csv, false)}>
-            Importer
+            {t.admin.importNow}
           </Button>
         </>
       )}

@@ -22,24 +22,8 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: false,
-      manifest: {
-        name: 'Prono NFL entre potes',
-        short_name: 'Prono',
-        description: 'Les pronos NFL de la bande',
-        lang: 'fr',
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#0d131d',
-        theme_color: '#0d131d',
-        icons: [
-          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
-        ]
-      },
+      // Le manifeste est servi par le serveur (/manifest.webmanifest) : nom et langue de l'instance.
+      manifest: false,
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}']
       }

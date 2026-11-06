@@ -1,15 +1,7 @@
 import type { ReactNode } from 'react';
 import type { MatchStatus } from './types';
 import './StatusPill.css';
-
-const STATUS: Record<string, string> = {
-  open: 'Ouvert',
-  locked: 'Verrouillé',
-  live: 'En direct',
-  final: 'Terminé',
-  win: 'Bon prono',
-  loss: 'Raté'
-};
+import { t } from '../lib/i18n';
 
 export function StatusPill({ status = 'open', children }: { status?: MatchStatus | 'win' | 'loss'; children?: ReactNode }) {
   return (
@@ -17,7 +9,7 @@ export function StatusPill({ status = 'open', children }: { status?: MatchStatus
       {status === 'live' && <span className="pr-dot" aria-hidden />}
       {status === 'win' && <span aria-hidden>✓</span>}
       {status === 'loss' && <span aria-hidden>✗</span>}
-      {children ?? STATUS[status]}
+      {children ?? t.ds.status[status]}
     </span>
   );
 }

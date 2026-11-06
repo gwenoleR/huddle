@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dayLabel, kickoffLabel, ordinal, plural } from '../../web/src/lib/format';
+import { dayLabel, kickoffLabel, ordinal } from '../../web/src/lib/format';
+import { t } from '../../web/src/lib/i18n';
 import { detailLabel, espnLine, pointsOrigin, seasonRecord, standingText, withByes } from '../../web/src/lib/labels';
 import { parseHash } from '../../web/src/lib/router';
 
@@ -21,7 +22,7 @@ describe('dates à l’heure de Paris', () => {
 describe('petits mots', () => {
   it('ordinaux et pluriels', () => {
     expect([ordinal(1), ordinal(2), ordinal(11)]).toEqual(['1er', '2e', '11e']);
-    expect([plural(0, 'prono'), plural(1, 'prono'), plural(2, 'prono')]).toEqual(['0 prono', '1 prono', '2 pronos']);
+    expect([t.common.pronos(0), t.common.pronos(1), t.common.pronos(2)]).toEqual(['0 prono', '1 prono', '2 pronos']);
   });
 });
 

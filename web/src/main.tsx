@@ -15,6 +15,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { App } from './App';
 import { createPersister, queryClient } from './lib/queries';
 import { APP_VERSION } from './lib/version';
+import { loadConfig } from './lib/i18n';
 
 registerSW({ immediate: true });
 
@@ -40,7 +41,8 @@ if ((navigator as any).standalone === true) {
 
 // Le cache gardé sur le téléphone est jeté à chaque nouvelle version (le format des données a pu changer).
 const persister = createPersister();
-createRoot(document.getElementById('root')!).render(
+// Nom, langue et barème de l'instance d'abord : tous les textes en dépendent.
+void loadConfig().then(() => createRoot(document.getElementById('root')!).render(
   persister ? (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 24 * 3600_000, buster: APP_VERSION }}>
       <App />
@@ -50,4 +52,4 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </QueryClientProvider>
   )
-);
+));

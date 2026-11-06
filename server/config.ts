@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { DEFAULT_LANG, isLang, messages } from '../shared/i18n';
 import path from 'node:path';
 
 const ROOT = process.cwd();
@@ -48,16 +49,27 @@ export function currentSeason(now = Date.now()): number {
  */
 export const INITIAL_START_WEEK = Number(process.env.START_WEEK ?? seed?.semaineDeReprise ?? 1);
 
-/** Semaines de l'appli : 1 à 18 = saison régulière, puis 19 Wild Card, 20 Div., 21 Conf., 22 Super Bowl. */
-export const WEEK_LABELS: Record<number, { short: string; long: string }> = {
-  19: { short: 'Wild Card', long: 'Wild Card' },
-  20: { short: 'Div.', long: 'Tour de division' },
-  21: { short: 'Conf.', long: 'Finales de conférence' },
-  22: { short: 'Super Bowl', long: 'Super Bowl' }
-};
+// ---------- Réglages de l'instance (variables d'environnement) ----------
 
+/** Langue de l'appli et des notifications (dictionnaires dans shared/i18n). Seul « fr » existe pour l'instant. */
+export const APP_LANG = isLang(process.env.APP_LANG) ? process.env.APP_LANG! : DEFAULT_LANG;
+/** Les textes de l'instance, dans sa langue. */
+export const t = messages(APP_LANG);
+
+/** Nom affiché (titre, écran de connexion, appli installée) ; le nom court va sous l'icône. */
+export const APP_NAME = process.env.APP_NAME?.trim() || t.common.appName;
+export const APP_SHORT_NAME = process.env.APP_SHORT_NAME?.trim() || t.common.appShortName;
+
+/** Barème : points d'un bon prono en saison régulière et en playoffs (Wild Card à Super Bowl). */
+export const POINTS_REGULAR = points(process.env.POINTS_REGULAR, 1);
+export const POINTS_PLAYOFFS = points(process.env.POINTS_PLAYOFFS, 2);
+
+function points(raw: string | undefined, fallback: number): number {
+  const n = Number(raw);
+  return raw !== undefined && raw !== '' && Number.isInteger(n) && n >= 0 && n <= 99 ? n : fallback;
+}
+
+/** « S9 », « Semaine 9 », « Wild Card »… dans la langue de l'instance. */
 export function weekLabel(week: number, long = false): string {
-  const w = WEEK_LABELS[week];
-  if (w) return long ? w.long : w.short;
-  return long ? `Semaine ${week}` : `S${week}`;
+  return t.common.weekLabel(week, long);
 }

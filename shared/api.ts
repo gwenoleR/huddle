@@ -224,6 +224,15 @@ export interface WeekDto {
 /** /api/games/:id : le match, plus qui n'a pas encore pronostiqué. */
 export type GameDetailDto = GameDto & { weekLabel: string; waiting: string[]; counted: boolean };
 
+/** /api/config : réglages de l'instance, publics (lus avant même la connexion). */
+export interface ConfigDto {
+  appName: string;
+  appShortName: string;
+  /** Langue des textes (dictionnaires dans shared/i18n). */
+  lang: string;
+  points: { regular: number; playoffs: number };
+}
+
 export interface HealthDto {
   ok: true;
   version: string;

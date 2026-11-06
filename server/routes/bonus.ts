@@ -15,6 +15,7 @@ import {
   saveBonusPick,
   saveBonusSettings
 } from '../bonus';
+import { t } from '../config';
 import { db } from '../db';
 import { playerNames, teamDto, teamsById } from './dto';
 import { requireAdmin, requireAuth } from './guards';
@@ -60,7 +61,7 @@ export async function bonusRoutes(app: FastifyInstance) {
     '/api/bonus',
     { preHandler: requireAuth },
     async (req, reply) => {
-      if (bonusPhase() !== 'open') return reply.code(409).send({ error: 'Les choix du bonus ne sont pas ouverts.' });
+      if (bonusPhase() !== 'open') return reply.code(409).send({ error: t.api.bonusClosed });
       const field = bonusField()!;
       const byAbbr = (abbr: unknown) =>
         typeof abbr === 'string'
@@ -70,10 +71,10 @@ export async function bonusRoutes(app: FastifyInstance) {
       const nfc = byAbbr(req.body?.nfc);
       const sb = byAbbr(req.body?.sb);
       const total = Number(req.body?.sbTotal);
-      if (!afc || !field.afc.some((t) => t.teamId === afc)) return reply.code(400).send({ error: 'Choisis un champion AFC parmi les qualifiés.' });
-      if (!nfc || !field.nfc.some((t) => t.teamId === nfc)) return reply.code(400).send({ error: 'Choisis un champion NFC parmi les qualifiés.' });
-      if (!sb || (sb !== afc && sb !== nfc)) return reply.code(400).send({ error: 'Le vainqueur du Super Bowl doit être un de tes deux champions.' });
-      if (!Number.isInteger(total) || total < 0 || total > 200) return reply.code(400).send({ error: 'Donne un total de points entre 0 et 200.' });
+      if (!afc || !field.afc.some((t) => t.teamId === afc)) return reply.code(400).send({ error: t.api.bonusPickAfc });
+      if (!nfc || !field.nfc.some((t) => t.teamId === nfc)) return reply.code(400).send({ error: t.api.bonusPickNfc });
+      if (!sb || (sb !== afc && sb !== nfc)) return reply.code(400).send({ error: t.api.bonusPickSuperBowl });
+      if (!Number.isInteger(total) || total < 0 || total > 200) return reply.code(400).send({ error: t.api.bonusTiebreak });
       saveBonusPick({ playerId: req.me.id, afc, nfc, sb, sbTotal: total });
       return { ok: true };
     }
@@ -88,9 +89,9 @@ export async function bonusRoutes(app: FastifyInstance) {
       const cur = bonusSettings();
       const pts = { ...cur.points, ...(req.body?.points ?? {}) };
       for (const v of Object.values(pts))
-        if (!Number.isInteger(v) || v < 0 || v > 50) return reply.code(400).send({ error: 'Les points doivent être des nombres entiers entre 0 et 50.' });
+        if (!Number.isInteger(v) || v < 0 || v > 50) return reply.code(400).send({ error: t.api.bonusInvalidPoints });
       const reveal = req.body?.reveal ?? cur.reveal;
-      if (reveal !== 'wildcard' && reveal !== 'superbowl') return reply.code(400).send({ error: 'Révélation inconnue.' });
+      if (reveal !== 'wildcard' && reveal !== 'superbowl') return reply.code(400).send({ error: t.api.bonusUnknownReveal });
       const next: BonusSettingsDto = { enabled: req.body?.enabled ?? cur.enabled, points: pts, reveal };
       saveBonusSettings(next);
       return next;

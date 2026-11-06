@@ -1,6 +1,7 @@
 /** Abonnement aux notifications. */
 import type { FastifyInstance } from 'fastify';
 import type { OkDto, Replies } from '../../shared/api';
+import { t } from '../config';
 import { deleteSubscription, saveSubscription, sendToPlayer, vapidPublicKey } from '../push';
 import { requireAuth } from './guards';
 
@@ -12,7 +13,7 @@ export async function pushRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (req, reply) => {
       const s = req.body;
-      if (!s?.endpoint || !s.keys?.p256dh || !s.keys?.auth) return reply.code(400).send({ error: 'Abonnement invalide.' });
+      if (!s?.endpoint || !s.keys?.p256dh || !s.keys?.auth) return reply.code(400).send({ error: t.api.invalidSubscription });
       saveSubscription(req.me.id, { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } });
       return { ok: true };
     }
@@ -25,8 +26,8 @@ export async function pushRoutes(app: FastifyInstance) {
 
   app.post<{ Reply: Replies<{ sent: number }> }>('/api/push/test', { preHandler: requireAuth }, async (req) => {
     const sent = await sendToPlayer(req.me.id, {
-      title: 'Ça marche !',
-      body: `Salut ${req.me.name}, les notifications sont activées.`,
+      title: t.notifications.testTitle,
+      body: t.notifications.testBody(req.me.name),
       url: '/#/profil',
       tag: 'test'
     });

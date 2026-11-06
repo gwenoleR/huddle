@@ -5,6 +5,7 @@ import { StatusPill } from './StatusPill';
 import { TeamBadge } from './TeamBadge';
 import type { Side, Team, MatchStatus } from './types';
 import './MatchCard.css';
+import { t } from '../lib/i18n';
 
 export function PickSplit({
   away,
@@ -29,7 +30,7 @@ export function PickSplit({
         <span className="pr-split-lab">
           <b className="pr-a">{awayPickers.length}</b> {away.abbr}
         </span>
-        {!tot && <span className="pr-split-none">{emptyText ?? 'Personne n’a encore joué'}</span>}
+        {!tot && <span className="pr-split-none">{emptyText ?? t.ds.nobodyPicked}</span>}
         <span className="pr-split-lab">
           {home.abbr} <b className="pr-b">{homePickers.length}</b>
         </span>
@@ -37,7 +38,7 @@ export function PickSplit({
       <div
         className="pr-split-bar"
         role="img"
-        aria-label={`${awayPickers.length} pour ${away.name}, ${homePickers.length} pour ${home.name}`}
+        aria-label={t.ds.splitLabel(awayPickers.length, away.name, homePickers.length, home.name)}
       >
         <span className="pr-split-a" style={{ width: `${pa}%` }} />
         <span className="pr-split-b" style={{ width: `${100 - pa}%` }} />
@@ -94,13 +95,13 @@ export function MatchCard({
         className={cx('pr-side', picked && 'pr-side-picked', lost && 'pr-side-lost', canPick && 'pr-side-live')}
         disabled={!canPick}
         aria-pressed={picked}
-        aria-label={`${team.name}${picked ? ', ton prono' : ''}`}
+        aria-label={t.ds.sideLabel(team.name, picked)}
         onClick={canPick ? () => onPick!(key) : undefined}
       >
         <TeamBadge team={team} size="lg" />
         <span className="pr-side-abbr">{team.abbr}</span>
         <span className="pr-side-name">{team.name}</span>
-        <span className={cx('pr-mine', !picked && 'pr-mine-off')}>Ton prono</span>
+        <span className={cx('pr-mine', !picked && 'pr-mine-off')}>{t.ds.myPick}</span>
       </button>
     );
   };

@@ -1,10 +1,10 @@
 import { TeamLink } from './shared';
 import { standingText } from '../lib/labels';
 import { usePreview } from '../lib/data';
+import { t } from '../lib/i18n';
 import { type GameDto, type PreviewSideDto } from '../lib/api';
 
-const STATUS_LABEL = { out: 'Forfait', doubtful: 'Douteux', questionable: 'Incertain' } as const;
-const fr = (n: number) => n.toLocaleString('fr-FR');
+const fr = (n: number) => n.toLocaleString(t.common.locale);
 
 /** Avant-match : bilan, forme, favori et blessés. Ne s'affiche que tant que le match n'a pas commencé. */
 export function MatchPreview({ game }: { game: GameDto }) {
@@ -24,16 +24,13 @@ export function MatchPreview({ game }: { game: GameDto }) {
     <>
       {(fav || chances) && (
         <section className="card card-pad preview">
-          <span className="section-title" style={{ margin: 0 }}>Le favori</span>
+          <span className="section-title" style={{ margin: 0 }}>{t.match.favoriteTitle}</span>
           {p.odds && (
             <p className="preview-fav">
               {fav ? (
-                <>
-                  Les <b>{fav.name}</b>
-                  {p.odds.spread ? <>, avec environ {fr(p.odds.spread)} pts d’avance attendus</> : null}
-                </>
+                t.match.favorite(<b key="team">{fav.name}</b>, p.odds.spread ? fr(p.odds.spread) : null)
               ) : (
-                'Pile ou face pour les bookmakers'
+                t.match.tossUp
               )}
               <span className="muted small"> · {p.odds.provider}</span>
             </p>
@@ -42,14 +39,14 @@ export function MatchPreview({ game }: { game: GameDto }) {
             <div className="pr-split">
               <div className="pr-split-labels">
                 <span className="pr-split-lab">
-                  <b className="pr-a">{chances[0]} %</b> {game.away.abbr}
+                  <b className="pr-a">{t.match.percent(chances[0])}</b> {game.away.abbr}
                 </span>
-                <span>Chances de victoire (ESPN)</span>
+                <span>{t.match.winChancesEspn}</span>
                 <span className="pr-split-lab">
-                  {game.home.abbr} <b className="pr-b">{chances[1]} %</b>
+                  {game.home.abbr} <b className="pr-b">{t.match.percent(chances[1])}</b>
                 </span>
               </div>
-              <div className="pr-split-bar" role="img" aria-label={`${game.away.name} ${chances[0]} %, ${game.home.name} ${chances[1]} %`}>
+              <div className="pr-split-bar" role="img" aria-label={t.match.chancesLabel(game.away.name, chances[0], game.home.name, chances[1])}>
                 <span className="pr-split-a" style={{ width: `${chances[0]}%` }} />
                 <span className="pr-split-b" style={{ width: `${chances[1]}%` }} />
               </div>
@@ -59,13 +56,13 @@ export function MatchPreview({ game }: { game: GameDto }) {
       )}
 
       <section className="card card-pad preview">
-        <span className="section-title" style={{ margin: 0 }}>Bilan et forme</span>
+        <span className="section-title" style={{ margin: 0 }}>{t.match.recordTitle}</span>
         <table className="preview-table">
           <thead>
             <tr>
               <th />
-              <th>Bilan</th>
-              <th>Dom. / ext.</th>
+              <th>{t.match.colRecord}</th>
+              <th>{t.match.colVenue}</th>
             </tr>
           </thead>
           <tbody>
@@ -76,7 +73,7 @@ export function MatchPreview({ game }: { game: GameDto }) {
                 </th>
                 <td>{p[s].record ?? '–'}</td>
                 <td>
-                  {p[s].venueRecord ?? '–'} <span className="muted small">{s === 'home' ? 'à dom.' : 'à l’ext.'}</span>
+                  {p[s].venueRecord ?? '–'} <span className="muted small">{s === 'home' ? t.match.atHome : t.match.onTheRoad}</span>
                 </td>
               </tr>
             ))}
@@ -90,22 +87,22 @@ export function MatchPreview({ game }: { game: GameDto }) {
               </span>
             ))}
             <a className="detail-link" href="#/classement/nfl">
-              Voir le classement NFL
+              {t.match.seeNflStandings}
             </a>
           </div>
         )}
         {sides.map((s) => (
           <Form key={s} name={team(s).name} abbr={team(s).abbr} side={p[s]} />
         ))}
-        <span className="muted small">Bilan en victoires-défaites. Forme du plus ancien au plus récent.</span>
+        <span className="muted small">{t.match.recordHelp}</span>
       </section>
 
       <section className="card card-pad preview">
-        <span className="section-title" style={{ margin: 0 }}>Infirmerie</span>
+        <span className="section-title" style={{ margin: 0 }}>{t.match.injuriesTitle}</span>
         {sides.map((s) => (
           <Injuries key={s} name={team(s).name} side={p[s]} color={s === 'away' ? 'pr-a' : 'pr-b'} />
         ))}
-        <span className="muted small">Les forfaits officiels tombent en général la veille ou l’avant-veille du match.</span>
+        <span className="muted small">{t.match.injuriesHelp}</span>
       </section>
     </>
   );
@@ -123,10 +120,10 @@ function Form({ name, abbr, side }: { name: string; abbr: string; side: PreviewS
           <span
             key={i}
             className={`preview-chip preview-chip-${f.result}`}
-            title={`${f.result === 'V' ? 'Victoire' : f.result === 'D' ? 'Défaite' : 'Nul'} ${f.home ? 'contre' : 'chez'} ${f.opponent} ${f.score}`}
+            title={t.match.formGame(f.result, f.home, f.opponent, f.score)}
           >
-            {f.result}
-            <small>{f.home ? '' : '@'}{f.opponent}</small>
+            {t.match.resultLetter[f.result]}
+            <small>{f.home ? '' : t.team.at}{f.opponent}</small>
           </span>
         ))}
       </span>
@@ -138,10 +135,10 @@ function Injuries({ name, side, color }: { name: string; side: PreviewSideDto; c
   return (
     <div className="preview-inj">
       <span className={`preview-inj-team ${color}`}>{name}</span>
-      {side.injuries.length === 0 && <span className="muted small">Aucun blessé signalé pour ce match.</span>}
+      {side.injuries.length === 0 && <span className="muted small">{t.match.noInjuries}</span>}
       {side.injuries.map((i, k) => (
         <div key={k} className="preview-inj-row">
-          <span className={`preview-status preview-status-${i.status}`}>{STATUS_LABEL[i.status]}</span>
+          <span className={`preview-status preview-status-${i.status}`}>{t.match.injuryStatus[i.status]}</span>
           <span className={i.position === 'QB' ? 'preview-qb' : undefined}>
             {i.name}
             {i.position && <span className="muted"> · {i.position}</span>}
@@ -151,7 +148,7 @@ function Injuries({ name, side, color }: { name: string; side: PreviewSideDto; c
       ))}
       {side.injuredReserve > 0 && (
         <span className="muted small">
-          + {side.injuredReserve} en liste des blessés (absent{side.injuredReserve > 1 ? 's' : ''} depuis plusieurs semaines)
+          {t.match.injuredReserve(side.injuredReserve)}
         </span>
       )}
     </div>

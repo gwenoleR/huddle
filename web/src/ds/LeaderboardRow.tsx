@@ -1,6 +1,7 @@
 import { Avatar } from './Avatar';
 import { cx } from './cx';
 import './LeaderboardRow.css';
+import { t } from '../lib/i18n';
 
 export function LeaderboardRow({
   rank,
@@ -24,13 +25,13 @@ export function LeaderboardRow({
       <span className="pr-lb-main">
         <span className="pr-lb-name">
           {name}
-          {me && <span className="pr-lb-you"> · toi</span>}
+          {me && <span className="pr-lb-you"> · {t.ds.you}</span>}
         </span>
         {record && <span className="pr-lb-rec">{record}</span>}
       </span>
       <span className="pr-lb-pts">
         {points}
-        <small> pts</small>
+        <small> {t.ds.pointsUnit}</small>
       </span>
     </li>
   );

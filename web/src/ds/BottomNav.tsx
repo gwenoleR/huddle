@@ -1,15 +1,16 @@
 import { cx } from './cx';
 import { Icon } from './Icon';
 import './BottomNav.css';
+import { t } from '../lib/i18n';
 
 export function BottomNav({ active, onChange }: { active: string; onChange?: (id: string) => void }) {
   const items = [
-    { id: 'matchs', label: 'Matchs' },
-    { id: 'classement', label: 'Classement' },
-    { id: 'profil', label: 'Profil' }
+    { id: 'matchs', label: t.ds.nav.matchs },
+    { id: 'classement', label: t.ds.nav.classement },
+    { id: 'profil', label: t.ds.nav.profil }
   ];
   return (
-    <nav className="pr-nav" aria-label="Navigation principale">
+    <nav className="pr-nav" aria-label={t.ds.navLabel}>
       {items.map((it) => {
         const on = it.id === active;
         return (

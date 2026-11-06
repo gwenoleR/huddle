@@ -1,7 +1,7 @@
 /** Classement de la bande, récap de la semaine, profil et bilan de saison. */
 import type { FastifyInstance } from 'fastify';
 import type { LeaderboardDto, ProfileDto, RecapDto, Replies, SeasonDto } from '../../shared/api';
-import { currentSeason } from '../config';
+import { currentSeason, t } from '../config';
 import { db, knownSeasons, startWeek } from '../db';
 import { awards, latestRecapWeek, liveProjection, recap, standings, streak, weeklyResults } from '../scoring';
 import { requireAuth } from './guards';
@@ -19,7 +19,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (req, reply) => {
       const season = seasonParam(req.query.season);
-      if (season === null) return reply.code(404).send({ error: 'Saison inconnue.' });
+      if (season === null) return reply.code(404).send({ error: t.api.unknownSeason });
       const current = season === currentSeason();
       // Une saison passée se consulte en entier, pas semaine par semaine.
       const week = req.query.week && current ? Number(req.query.week) : undefined;
@@ -37,7 +37,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
 
   app.get<{ Querystring: { week?: string }; Reply: Replies<RecapDto> }>('/api/recap', { preHandler: requireAuth }, async (req, reply) => {
     const week = req.query.week ? Number(req.query.week) : latestRecapWeek();
-    if (!week) return reply.code(404).send({ error: 'Pas encore de match terminé.' });
+    if (!week) return reply.code(404).send({ error: t.api.noFinishedGame });
     return recap(week);
   });
 
@@ -61,7 +61,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
 
   app.get<{ Querystring: { season?: string }; Reply: Replies<SeasonDto> }>('/api/season', { preHandler: requireAuth }, async (req, reply) => {
     const season = seasonParam(req.query.season);
-    if (season === null) return reply.code(404).send({ error: 'Saison inconnue.' });
+    if (season === null) return reply.code(404).send({ error: t.api.unknownSeason });
     const sb = db.prepare('SELECT status FROM games WHERE season = ? AND week = 22').get(season) as { status: string } | undefined;
     const games = db
       .prepare("SELECT COUNT(*) AS n FROM games WHERE season = ? AND week >= ? AND status = 'final'")
