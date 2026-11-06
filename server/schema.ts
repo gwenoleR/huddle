@@ -1,12 +1,12 @@
 /**
- * Toutes les tables de la base, au même endroit, sous forme de migrations numérotées.
+ * Every database table, in one place, as numbered migrations.
  *
- * SQLite retient la dernière migration appliquée (PRAGMA user_version) : au démarrage, seules les
- * nouvelles sont jouées, chacune dans une transaction. Pour changer la base (nouvelle table, nouvelle
- * colonne…), on AJOUTE une migration à la fin ; on ne modifie jamais une migration déjà déployée.
+ * SQLite remembers the last applied migration (PRAGMA user_version): on startup, only the new ones
+ * run, each in a transaction. To change the database (new table, new column…), APPEND a migration
+ * at the end; never modify a migration that has already been deployed.
  *
- * Les trois premières utilisent « IF NOT EXISTS » : elles décrivent des tables qui existaient déjà
- * avant ce fichier, et doivent passer sans rien casser sur une base déjà en service.
+ * The first three use "IF NOT EXISTS": they describe tables that already existed before this file,
+ * and must pass without breaking anything on a database already in service.
  */
 import type { DatabaseSync } from 'node:sqlite';
 import { INITIAL_START_WEEK, currentSeason } from './config';
@@ -15,14 +15,14 @@ export interface Migration {
   version: number;
   name: string;
   sql: string;
-  /** Reprise des données, dans la même transaction, une fois le SQL joué. */
+  /** Data backfill, in the same transaction, once the SQL has run. */
   after?: (db: DatabaseSync) => void;
 }
 
 export const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: 'joueurs, matchs, pronos, notifications',
+    name: 'players, games, picks, notifications',
     sql: `
   CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +96,7 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     version: 2,
-    name: 'bonus de fin de saison',
+    name: 'end-of-season bonus',
     sql: `
   CREATE TABLE IF NOT EXISTS bonus_picks (
     player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
@@ -112,7 +112,7 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     version: 3,
-    name: 'cache ESPN',
+    name: 'ESPN cache',
     sql: `
   CREATE TABLE IF NOT EXISTS espn_cache (
     key TEXT PRIMARY KEY,
@@ -124,10 +124,10 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     version: 4,
-    name: 'plusieurs saisons : points de départ et première semaine par saison',
-    // Les points de départ appartiennent à une saison (repris d'un autre site, ou arrivée en cours de route) :
-    // ils quittent la table des joueurs. La première semaine comptée de chaque saison est dans meta
-    // (start_week:<saison>, 1 par défaut).
+    name: 'multiple seasons: starting points and first week per season',
+    // Starting points belong to a season (carried over from another site, or joining mid-season):
+    // they move out of the players table. Each season's first counted week lives in meta
+    // (start_week:<season>, 1 by default).
     sql: `
   CREATE TABLE player_seasons (
     player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
@@ -148,7 +148,7 @@ export const MIGRATIONS: Migration[] = [
 
 export const schemaVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
 
-/** Applique les migrations pas encore jouées, dans l'ordre. Renvoie celles qui ont tourné. */
+/** Applies the migrations not yet run, in order. Returns those that ran. */
 export function migrate(db: DatabaseSync, migrations: Migration[] = MIGRATIONS): Migration[] {
   const done: Migration[] = [];
   for (const m of [...migrations].sort((a, b) => a.version - b.version)) {
@@ -161,7 +161,7 @@ export function migrate(db: DatabaseSync, migrations: Migration[] = MIGRATIONS):
       db.exec('COMMIT');
     } catch (e) {
       db.exec('ROLLBACK');
-      throw new Error(`Migration ${m.version} (${m.name}) impossible : ${(e as Error).message}`);
+      throw new Error(`Migration ${m.version} (${m.name}) failed: ${(e as Error).message}`);
     }
     done.push(m);
   }

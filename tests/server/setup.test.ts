@@ -1,6 +1,6 @@
 /**
- * Une nouvelle installation : pas de fichier seed, base vide. Le premier venu crée le groupe,
- * puis l'admin gère les joueurs et importe l'historique depuis l'appli.
+ * A fresh install: no seed file, empty database. The first visitor creates the group,
+ * then the admin manages players and imports the history from the app.
  */
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -8,7 +8,7 @@ vi.mock('web-push', () => ({
   default: { generateVAPIDKeys: () => ({ publicKey: 'pub', privateKey: 'priv' }), setVapidDetails: () => {}, sendNotification: vi.fn() }
 }));
 
-// Lu au chargement de config.ts et db.ts : à retirer avant d'importer le serveur.
+// Read when config.ts and db.ts load: must be removed before importing the server.
 delete process.env.SEED_FILE;
 delete process.env.START_WEEK;
 const Fastify = (await import('fastify')).default;
@@ -32,28 +32,28 @@ const idOf = (name: string) => (db.prepare('SELECT id FROM players WHERE name = 
 
 let admin = '';
 
-describe('nouvelle installation', () => {
+describe('fresh install', () => {
   beforeAll(() => resetDb());
 
-  it('sans seed : aucun joueur, et toute la saison compte', async () => {
+  it('without seed: no players, and the whole season counts', async () => {
     expect((await call('GET', '/api/players')).json()).toEqual([]);
     expect(startWeek()).toBe(1);
   });
 
-  it('saison selon la date : la précédente reste affichée jusqu’à fin mai, la nouvelle arrive le 1er juin', () => {
+  it('season by date: the previous one stays until end of May, the new one arrives on June 1', () => {
     expect(seasonAt(Date.parse('2026-09-10T00:00:00Z'))).toBe(2026);
     expect(seasonAt(Date.parse('2027-02-07T00:00:00Z'))).toBe(2026); // Super Bowl
     expect(seasonAt(Date.parse('2027-05-31T12:00:00Z'))).toBe(2026);
     expect(seasonAt(Date.parse('2027-06-01T00:00:00Z'))).toBe(2027);
   });
 
-  it('valide le prénom et le code', async () => {
+  it('validates the name and PIN', async () => {
     expect((await call('POST', '/api/setup', undefined, { name: ' ', pin: '1234' })).statusCode).toBe(400);
     expect((await call('POST', '/api/setup', undefined, { name: 'Léa', pin: '12' })).statusCode).toBe(400);
     expect((await call('POST', '/api/players')).statusCode).toBe(404);
   });
 
-  it('le premier venu crée le groupe, en devient l’admin et reste connecté', async () => {
+  it('the first visitor creates the group, becomes its admin and stays logged in', async () => {
     const res = await call('POST', '/api/setup', undefined, { name: ' Léa ', pin: '4321' });
     expect(res.json()).toEqual({ ok: true, created: true });
     admin = sessionOf(res);
@@ -61,19 +61,19 @@ describe('nouvelle installation', () => {
     expect((await call('GET', '/api/players')).json()).toEqual([{ id: idOf('Léa'), name: 'Léa', hasPin: true }]);
   });
 
-  it('ensuite, plus personne ne peut recréer le groupe', async () => {
+  it('afterwards, nobody can create the group again', async () => {
     const res = await call('POST', '/api/setup', undefined, { name: 'Intrus', pin: '0000' });
     expect(res.statusCode).toBe(409);
     expect(idOf('Intrus')).toBeUndefined();
   });
 
-  it('le code choisi à la création sert à se reconnecter', async () => {
+  it('the PIN chosen at creation is used to log in again', async () => {
     expect((await call('POST', '/api/login', undefined, { playerId: idOf('Léa'), pin: '4321' })).statusCode).toBe(200);
   });
 });
 
-describe('gestion des joueurs', () => {
-  it('ajouter, renommer, nommer admin, changer les points de départ', async () => {
+describe('player management', () => {
+  it('add, rename, make admin, change starting points', async () => {
     expect((await call('POST', '/api/admin/players', admin, { name: 'Tom' })).statusCode).toBe(200);
     await call('POST', '/api/admin/players', admin, { name: 'Max' });
     const tom = idOf('Tom')!;
@@ -82,7 +82,7 @@ describe('gestion des joueurs', () => {
     expect(rows.find((p: { id: number }) => p.id === tom)).toEqual({ id: tom, name: 'Thomas', startPoints: 12, isAdmin: true, hasPin: false });
   });
 
-  it('refuse un prénom déjà pris, des points invalides, un joueur inconnu', async () => {
+  it('rejects a taken name, invalid points, an unknown player', async () => {
     const tom = idOf('Thomas')!;
     expect((await call('PATCH', `/api/admin/players/${tom}`, admin, { name: 'max' })).statusCode).toBe(409);
     expect((await call('PATCH', `/api/admin/players/${tom}`, admin, { startPoints: -1 })).statusCode).toBe(400);
@@ -90,14 +90,14 @@ describe('gestion des joueurs', () => {
     expect((await call('PATCH', '/api/admin/players/9999', admin, { name: 'X' })).statusCode).toBe(404);
   });
 
-  it('l’admin ne peut ni se retirer ses droits ni se supprimer', async () => {
+  it('the admin can neither revoke their own rights nor delete themselves', async () => {
     const lea = idOf('Léa')!;
     expect((await call('PATCH', `/api/admin/players/${lea}`, admin, { isAdmin: false })).statusCode).toBe(400);
     expect((await call('DELETE', `/api/admin/players/${lea}`, admin)).statusCode).toBe(400);
     expect((await call('GET', '/api/me', admin)).json().isAdmin).toBe(true);
   });
 
-  it('supprimer un joueur efface ses pronos et le déconnecte', async () => {
+  it('deleting a player erases their picks and logs them out', async () => {
     const max = idOf('Max')!;
     const g = addGame({ week: 3, kickoff: NOW - 30 * DAY, score: [10, 20] });
     pick('Max', g, 'home');
@@ -110,7 +110,7 @@ describe('gestion des joueurs', () => {
     expect((await call('DELETE', `/api/admin/players/${max}`, admin)).statusCode).toBe(404);
   });
 
-  it('réservé à l’admin', async () => {
+  it('admin only', async () => {
     const tom = idOf('Thomas')!;
     await call('PATCH', `/api/admin/players/${tom}`, admin, { isAdmin: false });
     const t = sessionOf(await call('POST', '/api/login', undefined, { playerId: tom, pin: '2222' }));
@@ -119,23 +119,23 @@ describe('gestion des joueurs', () => {
   });
 });
 
-describe('import de l’historique depuis l’appli', () => {
+describe('history import from the app', () => {
   const CSV = ',Home,Away,Prono LE,Prono TH\nWeek1,KC Chiefs,BUF Bills,KC Chiefs,BUF Bills';
 
-  it('à blanc d’abord, rien n’est écrit', async () => {
+  it('dry run first, nothing is written', async () => {
     addGame({ id: 'h1', week: 1, away: 'BUF', home: 'KC', kickoff: NOW - 60 * DAY, score: [20, 27] });
     const res = await call('POST', '/api/admin/history', admin, { csv: CSV, dryRun: true });
     expect(res.json()).toEqual({ games: 1, picks: 2, players: ['Léa', 'Thomas'], dryRun: true });
     expect((db.prepare("SELECT COUNT(*) AS n FROM picks WHERE game_id = 'h1'").get() as { n: number }).n).toBe(0);
   });
 
-  it('puis pour de vrai', async () => {
+  it('then for real', async () => {
     const res = await call('POST', '/api/admin/history', admin, { csv: CSV });
     expect(res.json()).toMatchObject({ picks: 2, dryRun: false });
     expect((db.prepare("SELECT COUNT(*) AS n FROM picks WHERE game_id = 'h1'").get() as { n: number }).n).toBe(2);
   });
 
-  it('un fichier qui ne colle pas : 400 avec la liste des problèmes', async () => {
+  it('a mismatching file: 400 with the list of problems', async () => {
     const res = await call('POST', '/api/admin/history', admin, { csv: CSV.replace('Prono TH', 'Prono ZZ') });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toContain('joueur « ZZ » inconnu');

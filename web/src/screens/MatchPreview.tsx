@@ -6,7 +6,7 @@ import { type GameDto, type PreviewSideDto } from '../lib/api';
 
 const fr = (n: number) => n.toLocaleString(t.common.locale);
 
-/** Avant-match : bilan, forme, favori et blessés. Ne s'affiche que tant que le match n'a pas commencé. */
+/** Pre-game: record, form, favorite and injuries. Only shown until the game has started. */
 export function MatchPreview({ game }: { game: GameDto }) {
   const q = usePreview(game.id);
   const p = q.data;
@@ -86,7 +86,7 @@ export function MatchPreview({ game }: { game: GameDto }) {
                 <b className={s === 'away' ? 'pr-a' : 'pr-b'}>{team(s).abbr}</b> {standingText(p.standing![s])}
               </span>
             ))}
-            <a className="detail-link" href="#/classement/nfl">
+            <a className="detail-link" href="#/standings/nfl">
               {t.match.seeNflStandings}
             </a>
           </div>

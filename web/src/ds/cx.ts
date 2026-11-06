@@ -1,2 +1,2 @@
-/** Assemble des classes CSS en ignorant les valeurs vides. */
+/** Joins CSS classes, skipping empty values. */
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');

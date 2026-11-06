@@ -1,4 +1,4 @@
-/** Administration : joueurs, codes, historique et synchro ESPN. */
+/** Administration: players, PINs, history and ESPN sync. */
 import type { FastifyInstance } from 'fastify';
 import type { AdminPlayerDto, HistoryImportDto, OkDto, Replies, SyncStatusDto } from '../../shared/api';
 import { db, setStartPoints } from '../db';
@@ -10,7 +10,7 @@ import { requireAdmin } from './guards';
 
 export async function adminRoutes(app: FastifyInstance) {
   app.get<{ Reply: Replies<AdminPlayerDto[]> }>('/api/admin/players', { preHandler: requireAdmin }, async () =>
-    // Points de départ : ceux de la saison en cours.
+    // Starting points: those of the current season.
     (db
       .prepare(
         `SELECT p.id, p.name, COALESCE(ps.start_points, 0) AS startPoints, p.is_admin AS isAdmin, p.pin_hash IS NOT NULL AS hasPin
@@ -62,7 +62,7 @@ export async function adminRoutes(app: FastifyInstance) {
         }
       }
       if (isAdmin !== undefined) {
-        // On ne se retire pas soi-même les droits : le groupe garde toujours au moins un admin.
+        // You can't revoke your own rights: the group always keeps at least one admin.
         if (!isAdmin && id === req.me.id) return reply.code(400).send({ error: t.api.cannotRevokeOwnAdmin });
         db.prepare('UPDATE players SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, id);
       }
@@ -75,7 +75,7 @@ export async function adminRoutes(app: FastifyInstance) {
     }
   );
 
-  // Supprime le joueur et tout ce qui va avec (pronos, bonus, sessions, notifications : ON DELETE CASCADE).
+  // Deletes the player and everything that goes with it (picks, bonus, sessions, notifications: ON DELETE CASCADE).
   app.delete<{ Params: { id: string }; Reply: Replies<OkDto> }>('/api/admin/players/:id', { preHandler: requireAdmin }, async (req, reply) => {
     const id = Number(req.params.id);
     if (id === req.me.id) return reply.code(400).send({ error: t.api.cannotDeleteSelf });
@@ -84,7 +84,7 @@ export async function adminRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  // Historique d'un autre site, en CSV : d'abord à blanc (dryRun) pour vérifier, puis pour de vrai.
+  // History from another site, as CSV: first a dry run (dryRun) to check, then for real.
   app.post<{ Body: { csv?: string; dryRun?: boolean }; Reply: Replies<HistoryImportDto> }>(
     '/api/admin/history',
     { preHandler: requireAdmin, bodyLimit: 2 * 1024 * 1024 },
@@ -92,7 +92,7 @@ export async function adminRoutes(app: FastifyInstance) {
       const dryRun = req.body?.dryRun === true;
       try {
         const r = importHistory(parseHistory(String(req.body?.csv ?? '')), { dryRun });
-        if (!dryRun) console.log(`[historique] ${r.picks} pronos importés sur ${r.games} matchs (${r.players.join(', ')})`);
+        if (!dryRun) console.log(`[history] ${r.picks} picks imported over ${r.games} games (${r.players.join(', ')})`);
         return { ...r, dryRun };
       } catch (e) {
         return reply.code(400).send({ error: (e as Error).message });
@@ -104,7 +104,7 @@ export async function adminRoutes(app: FastifyInstance) {
 
   app.get<{ Reply: Replies<SyncStatusDto> }>('/api/admin/sync', { preHandler: requireAdmin }, async () => status());
 
-  // En cas d'échec, l'état de la synchro accompagne l'erreur (l'écran admin l'affiche).
+  // On failure, the sync status comes with the error (the admin screen shows it).
   app.post<{ Reply: SyncStatusDto | (SyncStatusDto & { error: string }) }>('/api/admin/sync', { preHandler: requireAdmin }, async (_req, reply) => {
     try {
       await forceSync();

@@ -10,12 +10,12 @@ export class ApiError extends Error {
   }
 }
 
-/** Événement envoyé quand le serveur ne reconnaît plus la session (code remis à zéro, session expirée). */
+/** Event sent when the server no longer recognizes the session (code reset, session expired). */
 export const SESSION_LOST = 'session-lost';
 
 /**
- * Un 401 veut dire « plus connecté », sauf pour un mauvais code à la connexion (/login)
- * et pour la vérification au démarrage (/me), qui mène déjà à l'écran de connexion.
+ * A 401 means "no longer logged in", except for a wrong code at login (/login)
+ * and for the startup check (/me), which already leads to the login screen.
  */
 export function endsSession(path: string, status: number): boolean {
   return status === 401 && path !== '/login' && path !== '/me';
@@ -39,5 +39,5 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
   return data as T;
 }
 
-// Les types renvoyés par le serveur sont partagés avec lui : shared/api.ts.
+// The types returned by the server are shared with it: shared/api.ts.
 export type * from '../../../shared/api';

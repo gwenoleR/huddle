@@ -6,18 +6,18 @@ import { enterList, useScrollMemory } from '../../web/src/lib/scrollMemory';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Un écran de liste, comme Matchs : le premier élément dans la zone qui défile (.screen). */
+/** A list screen, like Matches: the first element in the scrolling area (.screen). */
 function List({ week, ready = true }: { week: number; ready?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useScrollMemory(ref, `matchs-${week}`, ready);
-  return <div ref={ref}>semaine {week}</div>;
+  useScrollMemory(ref, `matches-${week}`, ready);
+  return <div ref={ref}>week {week}</div>;
 }
 
 let screen: HTMLDivElement;
 let root: Root;
 beforeEach(() => {
-  enterList('oublie'); // repart sans position retenue
-  location.hash = '#/matchs';
+  enterList('forget'); // start with no remembered position
+  location.hash = '#/matches';
   screen = document.createElement('div');
   document.body.appendChild(screen);
   root = createRoot(screen);
@@ -27,7 +27,7 @@ afterEach(() => {
   screen.remove();
 });
 
-/** Change de page comme l'appli : l'adresse d'abord, puis l'écran. */
+/** Navigates like the app: the URL first, then the screen. */
 function go(hash: string, el: React.ReactNode) {
   history.replaceState(null, '', hash);
   window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -38,63 +38,63 @@ const scrollTo = (top: number) => {
   screen.dispatchEvent(new Event('scroll'));
 };
 
-describe('retour sur la liste des matchs', () => {
-  it('reprend au même endroit en revenant d’une fiche match', () => {
-    go('#/matchs/9', <List week={9} />);
+describe('back to the game list', () => {
+  it('restores the same position when coming back from a game page', () => {
+    go('#/matches/9', <List week={9} />);
     scrollTo(840);
-    go('#/match/401873051', <p>fiche match</p>);
+    go('#/match/401873051', <p>game page</p>);
     screen.scrollTop = 0;
-    go('#/matchs/9', <List week={9} />);
+    go('#/matches/9', <List week={9} />);
     expect(screen.scrollTop).toBe(840);
   });
 
-  it('une seule fois : revenir plus tard sur la semaine repart en haut', () => {
-    go('#/matchs/9', <List week={9} />);
+  it('only once: coming back to the week later starts at the top', () => {
+    go('#/matches/9', <List week={9} />);
     scrollTo(840);
-    go('#/match/1', <p>fiche</p>);
-    go('#/matchs/9', <List week={9} />);
-    go('#/classement', <p>classement</p>);
+    go('#/match/1', <p>game</p>);
+    go('#/matches/9', <List week={9} />);
+    go('#/standings', <p>standings</p>);
     screen.scrollTop = 0;
-    go('#/matchs/9', <List week={9} />);
+    go('#/matches/9', <List week={9} />);
     expect(screen.scrollTop).toBe(0);
   });
 
-  it('changer de semaine repart en haut', () => {
-    go('#/matchs/9', <List week={9} />);
+  it('changing week starts at the top', () => {
+    go('#/matches/9', <List week={9} />);
     scrollTo(840);
-    go('#/matchs/10', <List week={10} />);
+    go('#/matches/10', <List week={10} />);
     expect(screen.scrollTop).toBe(0);
-    // …et revenir sur la semaine 9 aussi.
+    // …and so does going back to week 9.
     scrollTo(200);
-    go('#/matchs/9', <List week={9} />);
+    go('#/matches/9', <List week={9} />);
     expect(screen.scrollTop).toBe(0);
   });
 
-  it('changer d’onglet repart en haut', () => {
-    go('#/matchs/9', <List week={9} />);
+  it('changing tab starts at the top', () => {
+    go('#/matches/9', <List week={9} />);
     scrollTo(840);
-    go('#/classement', <p>classement</p>);
+    go('#/standings', <p>standings</p>);
     screen.scrollTop = 0;
-    go('#/matchs/9', <List week={9} />);
+    go('#/matches/9', <List week={9} />);
     expect(screen.scrollTop).toBe(0);
   });
 
-  it('fiche, puis autre onglet, puis Matchs : en haut', () => {
-    go('#/matchs/9', <List week={9} />);
+  it('game page, then another tab, then Matches: at the top', () => {
+    go('#/matches/9', <List week={9} />);
     scrollTo(840);
-    go('#/match/1', <p>fiche</p>);
-    go('#/profil', <p>profil</p>);
+    go('#/match/1', <p>game</p>);
+    go('#/profile', <p>profile</p>);
     screen.scrollTop = 0;
-    go('#/matchs/9', <List week={9} />);
+    go('#/matches/9', <List week={9} />);
     expect(screen.scrollTop).toBe(0);
   });
 
-  it('attend que les matchs soient affichés avant de se replacer', () => {
-    go('#/matchs/12', <List week={12} />);
+  it('waits for the games to be displayed before restoring the position', () => {
+    go('#/matches/12', <List week={12} />);
     scrollTo(500);
-    go('#/match/1', <p>fiche</p>);
+    go('#/match/1', <p>game</p>);
     screen.scrollTop = 0;
-    go('#/matchs/12', <List week={12} ready={false} />);
+    go('#/matches/12', <List week={12} ready={false} />);
     expect(screen.scrollTop).toBe(0);
     act(() => root.render(<List week={12} ready />));
     expect(screen.scrollTop).toBe(500);

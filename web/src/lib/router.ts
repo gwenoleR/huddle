@@ -1,36 +1,43 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
-  | { name: 'matchs'; week?: number }
+  | { name: 'matches'; week?: number }
   | { name: 'match'; id: string }
-  | { name: 'classement'; nfl?: boolean }
-  | { name: 'profil' }
+  | { name: 'standings'; nfl?: boolean }
+  | { name: 'profile' }
   | { name: 'admin' }
-  | { name: 'bilan'; season?: number }
+  | { name: 'season'; season?: number }
   | { name: 'bonus' }
   | { name: 'recap'; week?: number };
 
+/**
+ * Older French paths (#/matchs, #/classement, #/profil, #/bilan) still resolve: they may live in
+ * notifications already received, bookmarks or the start URL of an installed app.
+ */
+const ALIASES: Record<string, string> = { matchs: 'matches', classement: 'standings', profil: 'profile', bilan: 'season' };
+
 export function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  switch (parts[0]) {
+  const num = (v: string | undefined) => (v ? Number(v) : undefined);
+  switch (ALIASES[parts[0]] ?? parts[0]) {
     case 'match':
-      return parts[1] ? { name: 'match', id: parts[1] } : { name: 'matchs' };
-    case 'classement':
-      return { name: 'classement', nfl: parts[1] === 'nfl' };
-    case 'profil':
-      return { name: 'profil' };
+      return parts[1] ? { name: 'match', id: parts[1] } : { name: 'matches' };
+    case 'standings':
+      return { name: 'standings', nfl: parts[1] === 'nfl' };
+    case 'profile':
+      return { name: 'profile' };
     case 'admin':
       return { name: 'admin' };
-    case 'bilan':
-      return { name: 'bilan', season: parts[1] ? Number(parts[1]) : undefined };
+    case 'season':
+      return { name: 'season', season: num(parts[1]) };
     case 'bonus':
       return { name: 'bonus' };
     case 'recap':
-      return { name: 'recap', week: parts[1] ? Number(parts[1]) : undefined };
-    case 'matchs':
-      return { name: 'matchs', week: parts[1] ? Number(parts[1]) : undefined };
+      return { name: 'recap', week: num(parts[1]) };
+    case 'matches':
+      return { name: 'matches', week: num(parts[1]) };
     default:
-      return { name: 'matchs' };
+      return { name: 'matches' };
   }
 }
 

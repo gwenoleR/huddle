@@ -11,7 +11,7 @@ import { notificationsTick } from './push';
 import { bonusTick } from './bonus';
 import { resetIfNewVersion } from './espnCache';
 
-// Nouvelle version de l'appli : le cache ESPN repart de zéro (le format des données a pu changer).
+// New app version: the ESPN cache starts from scratch (the data format may have changed).
 resetIfNewVersion();
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'warn' }, trustProxy: true });
@@ -32,24 +32,24 @@ if (existsSync(WEB_DIR)) {
     root: WEB_DIR,
     prefix: '/',
     setHeaders(res, filePath) {
-      // Le service worker et la page doivent toujours être frais ; le reste est versionné par Vite.
+      // The service worker and the page must always be fresh; everything else is versioned by Vite.
       const name = path.basename(filePath);
       if (name === 'sw.js' || name === 'index.html' || name.endsWith('.webmanifest')) res.setHeader('cache-control', 'no-cache');
       else if (filePath.includes(`${path.sep}assets${path.sep}`)) res.setHeader('cache-control', 'public, max-age=31536000, immutable');
     }
   });
-  // Toute URL qui n'est ni l'API ni un fichier renvoie l'appli (routage côté téléphone).
+  // Any URL that is neither the API nor a file serves the app (client-side routing).
   app.setNotFoundHandler((req, reply) => {
     if (req.url.startsWith('/api/') || req.url.startsWith('/logos/')) return reply.code(404).send({ error: t.api.notFound });
     return reply.header('cache-control', 'no-cache').sendFile('index.html');
   });
 } else {
-  console.warn(`[web] ${WEB_DIR} absent : lance « npm run build » (ou utilise « npm run dev »).`);
+  console.warn(`[web] ${WEB_DIR} missing: run "npm run build" (or use "npm run dev").`);
 }
 
 await app.listen({ port: PORT, host: HOST });
-console.log(`[prono] saison ${currentSeason()}, pronos comptés dès la semaine ${startWeek()}, à l'écoute sur ${HOST}:${PORT}`);
-if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[prono] aucun joueur : ouvre ${PUBLIC_URL} pour créer ton groupe (tu en seras l'admin)`);
+console.log(`[prono] season ${currentSeason()}, picks counted from week ${startWeek()}, listening on ${HOST}:${PORT}`);
+if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[prono] no players: open ${PUBLIC_URL} to create your group (you will be its admin)`);
 
 let running = false;
 async function tick() {
@@ -58,17 +58,17 @@ async function tick() {
   try {
     if (SYNC_ENABLED) await syncTick();
   } catch (e) {
-    console.error('[sync] erreur', (e as Error).message);
+    console.error('[sync] error', (e as Error).message);
   }
   try {
     await bonusTick();
   } catch (e) {
-    console.error('[bonus] erreur', (e as Error).message);
+    console.error('[bonus] error', (e as Error).message);
   }
   try {
     await notificationsTick();
   } catch (e) {
-    console.error('[push] erreur', (e as Error).message);
+    console.error('[push] error', (e as Error).message);
   }
   running = false;
 }

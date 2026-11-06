@@ -1,4 +1,4 @@
-/** Classement de la bande. */
+/** The group's leaderboard. */
 import { common } from './common';
 
 export const leaderboard = {
@@ -9,7 +9,7 @@ export const leaderboard = {
   scopeSeason: 'Saison',
   scopeWeek: 'Semaine',
 
-  /** En-tête : « Saison 2026 · 1 pt par bon prono, 2 en playoffs » ou « … · reprise en semaine 9 ». */
+  /** Header: « Saison 2026 · 1 pt par bon prono, 2 en playoffs » or « … · reprise en semaine 9 ». */
   eyebrow: (season: number | string, startWeek: number, scoring: string) =>
     `Saison ${season} · ${startWeek > 1 ? `reprise en semaine ${startWeek}` : scoring}`,
 
@@ -17,18 +17,18 @@ export const leaderboard = {
   liveTitle: 'Si ça finit comme ça…',
   liveHelp: 'Le classement tient compte des scores en cours et se met à jour tout seul. ✓ pronos en bonne voie, ✗ mal partis.',
 
-  /** Sous le nom, pendant les matchs : « 70 pts maintenant · ✓2 ✗1 · ↑1 ». */
+  /** Under the name, during games: « 70 pts maintenant · ✓2 ✗1 · ↑1 ». */
   liveRecord: (points: number, winning: number, losing: number, move: number) => {
     const arrow = move > 0 ? ` · ↑${move}` : move < 0 ? ` · ↓${-move}` : '';
     const now = `${points} pts maintenant`;
     if (!winning && !losing) return `${now} · rien en jeu${arrow}`;
     return `${now} · ✓${winning} ✗${losing}${arrow}`;
   },
-  /** Sous le nom, classement de la semaine : « 8 bons sur 13 ». */
+  /** Under the name, weekly leaderboard: « 8 bons sur 13 ». */
   weekRecord: (good: number, played: number) => (played ? `${good} bon${good > 1 ? 's' : ''} sur ${played}` : 'Pas encore de match terminé'),
   /**
-   * Ligne sous le nom au classement de la saison : « 81 / 135 », avec les points repris seulement
-   * pour qui en a (arrivé en cours de saison) et le bonus s'il y en a.
+   * Line under the name in the season leaderboard: « 81 / 135 », with carried-over points only
+   * for those who have some (joined mid-season) and the bonus if any.
    */
   seasonRecord: (r: { good: number; played: number; startPoints: number; bonus: number }, startWeek: number) => {
     const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
@@ -38,7 +38,7 @@ export const leaderboard = {
     return `${r.good} / ${r.played}${since}${kept}${bonus}`;
   },
 
-  /** Exposant du rang dans la grande carte : « er » (1er), « e » (2e). */
+  /** Rank superscript in the big card: « er » (1er), « e » (2e). */
   rankSuffix: (rank: number) => (rank === 1 ? 'er' : 'e'),
   headline: (rank: number, live: boolean) => {
     if (live) return rank === 1 ? 'Tu finirais en tête' : rank <= 3 ? `Tu finirais ${rank}e, sur le podium` : `Tu finirais ${rank}e`;

@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: 'web',
-  // Version gravée dans l'interface au build (hash du commit en CI), comparée à celle du serveur.
+  // Version baked into the UI at build time (commit hash in CI), compared with the server's.
   define: { __APP_VERSION__: JSON.stringify((process.env.APP_VERSION ?? 'dev').slice(0, 7)) },
   build: { outDir: '../dist/web', emptyOutDir: true },
   server: {
@@ -22,7 +22,7 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: false,
-      // Le manifeste est servi par le serveur (/manifest.webmanifest) : nom et langue de l'instance.
+      // The manifest is served by the server (/manifest.webmanifest): instance name and language.
       manifest: false,
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}']

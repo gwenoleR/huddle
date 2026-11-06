@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Pronos NFL entre potes : PWA mobile, serveur Node + SQLite, données ESPN.",
+  "description": "NFL picks among friends: mobile PWA, Node + SQLite server, ESPN data.",
   "engines": {
     "node": ">=22.13"
   },

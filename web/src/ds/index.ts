@@ -1,7 +1,7 @@
 /**
- * Design system « Prono NFL entre potes » : un fichier par composant, chacun avec son CSS.
+ * "Prono NFL entre potes" design system: one file per component, each with its own CSS.
  * Source : https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh
- * Importé dans main.tsx avant app.css, pour que les styles de l'appli puissent surcharger ceux d'ici.
+ * Imported in main.tsx before app.css, so the app styles can override the ones here.
  */
 import './base.css';
 

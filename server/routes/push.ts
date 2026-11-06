@@ -1,4 +1,4 @@
-/** Abonnement aux notifications. */
+/** Notification subscriptions. */
 import type { FastifyInstance } from 'fastify';
 import type { OkDto, Replies } from '../../shared/api';
 import { t } from '../config';
@@ -28,7 +28,7 @@ export async function pushRoutes(app: FastifyInstance) {
     const sent = await sendToPlayer(req.me.id, {
       title: t.notifications.testTitle,
       body: t.notifications.testBody(req.me.name),
-      url: '/#/profil',
+      url: '/#/profile',
       tag: 'test'
     });
     return { sent };

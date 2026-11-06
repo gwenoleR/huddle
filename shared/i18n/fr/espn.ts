@@ -1,6 +1,6 @@
 /**
- * Textes tirés des données ESPN (en anglais) : statut d'un match, blessures, actions de jeu, stats,
- * classement. Chaque fonction reçoit la donnée brute d'ESPN et rend la phrase dans la langue.
+ * Texts derived from ESPN data (in English): game status, injuries, plays, stats,
+ * standings. Each function receives ESPN's raw data and returns the sentence in the language.
  */
 
 const yards = (n: unknown) => {
@@ -8,22 +8,22 @@ const yards = (n: unknown) => {
   return `${v} yard${v > 1 ? 's' : ''}`;
 };
 
-/** Quart-temps : « Q3 », prolongation « Prol. ». */
+/** Quarter: « Q3 », overtime « Prol. ». */
 const quarter = (period: number) => (period > 4 ? 'Prol.' : `Q${period}`);
 
 export const espn = {
-  /** Ligne d'état sous le score, enregistrée avec le match. */
+  /** Status line under the score, stored with the game. */
   detail: {
     final: (overtime: boolean) => (overtime ? 'Terminé · prol.' : 'Terminé'),
     postponed: 'Reporté',
     halftime: 'Mi-temps',
     endOfPeriod: (period: number) => `Fin ${quarter(period)}`,
     running: (period: number, clock: string | null) => (clock ? `${quarter(period)} · ${clock}` : quarter(period)),
-    /** Le match est-il dans son dernier quart-temps ou en prolongation ? (lit les textes ci-dessus) */
+    /** Is the game in its last quarter or in overtime? (reads the texts above) */
     isLate: (detail: string | null) => /^(Q4|Fin Q4|Prol)/.test(detail ?? '')
   },
 
-  /** Partie du corps d'une blessure (le texte ESPN tel quel s'il est inconnu). */
+  /** Body part of an injury (ESPN's text as is if unknown). */
   bodyParts: {
     knee: 'genou', ankle: 'cheville', hamstring: 'ischios', concussion: 'commotion', shoulder: 'épaule', groin: 'aine',
     calf: 'mollet', back: 'dos', foot: 'pied', hip: 'hanche', quadriceps: 'quadriceps', ribs: 'côtes', thumb: 'pouce',
@@ -34,10 +34,7 @@ export const espn = {
     rest: 'repos', 'not injury related': 'hors blessure', jaw: 'mâchoire', nose: 'nez', glute: 'fessier', leg: 'jambe'
   } as Record<string, string>,
 
-  /** Forme récente : résultat d'un match (W/L/T chez ESPN). */
-  result: (r: 'W' | 'L' | 'T') => (r === 'W' ? 'V' : r === 'L' ? 'D' : 'N'),
-
-  /** Bookmaker quand ESPN n'en nomme pas. */
+  /** Bookmaker when ESPN doesn't name one. */
   defaultProvider: 'Bookmakers',
 
   /** « 3rd & 7 at GB 35 » → « 3e et 7 · GB 35 » */
@@ -49,7 +46,7 @@ export const espn = {
       .replace('&', 'et')
       .replace(' at ', ' · '),
 
-  /** Dernière action, d'après son type ESPN (le type tel quel s'il est inconnu). */
+  /** Last play, based on its ESPN type (the type as is if unknown). */
   play: (type: string, yardage: number): string | null => {
     switch (type) {
       case 'Rush':
@@ -116,10 +113,10 @@ export const espn = {
     return `${who}, ${dist}`;
   },
 
-  /** Type de point marqué (abréviation ESPN). */
+  /** Type of score (ESPN abbreviation). */
   scoreKinds: { TD: 'Touchdown', FG: 'Field goal', SF: 'Safety', S: 'Safety', XP: 'Transformation', '2PT': '2 points' } as Record<string, string>,
 
-  /** Stats d'équipe comparées pendant et après le match. */
+  /** Team stats compared during and after the game. */
   stats: {
     totalYards: 'Yards gagnés',
     netPassingYards: 'À la passe',
@@ -132,14 +129,14 @@ export const espn = {
     totalPenaltiesYards: 'Pénalités',
     possessionTime: 'Possession'
   },
-  /** « 8 (65 yds) » : nombre de pénalités et yards perdus. */
+  /** « 8 (65 yds) »: number of penalties and yards lost. */
   penalties: (count: string, yards: string) => `${count} (${yards} yds)`,
   /** « 32:15 » → « 32 min 15 » */
   possession: (clock: string) => clock.replace(':', ' min '),
 
-  /** Meilleurs joueurs du match, par catégorie. */
+  /** Game leaders, by category. */
   leaderCategories: { passingYards: 'À la passe', rushingYards: 'À la course', receivingYards: 'À la réception' },
-  /** « 18/25, 245 YDS » → « 18/25, 245 yds » ; « 12 CAR » → « 12 courses » ; « 6 REC » → « 6 réc. » */
+  /** « 18/25, 245 YDS » → « 18/25, 245 yds »; « 12 CAR » → « 12 courses »; « 6 REC » → « 6 réc. » */
   leaderLine: (line: string) =>
     line
       .replace(/(\d+) YDS/g, '$1 yds')
@@ -148,6 +145,6 @@ export const espn = {
 
   /** Divisions : « AFC East » → « AFC Est ». */
   directions: { East: 'Est', North: 'Nord', South: 'Sud', West: 'Ouest' } as Record<string, string>,
-  /** Série en cours : « W3 » → « 3 V ». */
+  /** Current streak: « W3 » → « 3 V ». */
   streak: (kind: 'W' | 'L' | 'T', n: string) => `${n} ${kind === 'W' ? 'V' : kind === 'L' ? 'D' : 'N'}`
 };

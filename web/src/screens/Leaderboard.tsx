@@ -9,37 +9,37 @@ import { config, t } from '../lib/i18n';
 import { Loading, OtherSeasons } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
-  return nfl ? <NflStandings theme={theme} tabs={<LeagueTabs nfl />} /> : <BandeLeaderboard me={me} tabs={<LeagueTabs nfl={false} />} />;
+  return nfl ? <NflStandings theme={theme} tabs={<LeagueTabs nfl />} /> : <BandLeaderboard me={me} tabs={<LeagueTabs nfl={false} />} />;
 }
 
-/** Bascule entre le classement de la bande (par défaut) et celui de la NFL. */
+/** Toggles between the group leaderboard (default) and the NFL standings. */
 function LeagueTabs({ nfl }: { nfl: boolean }) {
   return (
     <nav className="league-tabs" aria-label={t.leaderboard.tabsLabel}>
-      <a href="#/classement" aria-current={nfl ? undefined : 'page'}>
+      <a href="#/standings" aria-current={nfl ? undefined : 'page'}>
         {t.leaderboard.tabBand}
       </a>
-      <a href="#/classement/nfl" aria-current={nfl ? 'page' : undefined}>
+      <a href="#/standings/nfl" aria-current={nfl ? 'page' : undefined}>
         {t.leaderboard.tabNfl}
       </a>
     </nav>
   );
 }
 
-function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
+function BandLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   const [scope, setScope] = useState<'season' | 'week'>('season');
   const weeksQ = useWeeks();
   const weeks = weeksQ.data;
   const bonusOn = useBonus().data?.enabled ?? false;
 
-  // Pendant les matchs, le classement bouge : on le rafraîchit toutes les 30 s.
+  // During games the leaderboard moves: refresh it every 30 s.
   const week = scope === 'week' ? weeks?.current : undefined;
   const q = useLeaderboard(week, undefined, !!weeks);
   const data = q.data;
   const error = (q.error ?? weeksQ.error)?.message ?? null;
   const live = scope === 'season' ? data?.live ?? null : null;
 
-  // En direct, on affiche la projection « si ça finit comme ça ».
+  // Live, show the "if it ends like this" projection.
   const rows: StandingRow[] | null = live ? live.rows.map((r) => ({ ...r, points: r.projected, rank: r.projectedRank })) : data?.rows ?? null;
   const currentLabel = weeks?.weeks.find((w) => w.week === weeks.current)?.longLabel ?? '';
   const mine = rows?.find((r) => r.id === me.id);
@@ -48,7 +48,7 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
   function record(r: StandingRow): string {
     if (live) {
       const l = live.rows.find((x) => x.id === r.id)!;
-      // ✓ pronos en bonne voie, ✗ mal partis, dans les matchs en cours ; flèche = places gagnées ou perdues
+      // ✓ picks on track, ✗ picks going wrong, in games in progress; arrow = places gained or lost
       return t.leaderboard.liveRecord(l.points, l.winning, l.losing, l.rank - l.projectedRank);
     }
     if (scope === 'week') return t.leaderboard.weekRecord(r.good, r.played);
@@ -107,7 +107,7 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
         <Button block onClick={() => go('recap')}>
           {t.leaderboard.recapButton}
         </Button>
-        <Button variant="secondary" block onClick={() => go('bilan')}>
+        <Button variant="secondary" block onClick={() => go('season')}>
           {t.leaderboard.seasonButton}
         </Button>
         {bonusOn && (

@@ -1,4 +1,4 @@
-/** Connexion, création du groupe et code à 4 chiffres. */
+/** Login, group creation and 4-digit PIN. */
 export const login = {
   whoTitle: 'Qui es-tu ?',
   whoHelp: 'Touche ton prénom, puis ton code.',
@@ -18,7 +18,7 @@ export const login = {
   pinHelp: 'Ton code à 4 chiffres',
   changeName: 'Changer de prénom',
   notYou: 'Pas toi ?',
-  /** Lecteur d'écran : « 2 chiffres sur 4 ». */
+  /** Screen reader: « 2 chiffres sur 4 ». */
   pinProgress: (typed: number) => `${typed} chiffres sur 4`,
   eraseLabel: 'Effacer le dernier chiffre',
   erase: 'Effacer',

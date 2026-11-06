@@ -9,17 +9,17 @@ export type Award = AwardDto;
 export type LiveProjection = NonNullable<LeaderboardDto['live']>;
 export type Recap = RecapDto;
 
-/** Barème : POINTS_REGULAR par bon prono en saison régulière (1), POINTS_PLAYOFFS en playoffs, semaines 19 à 22 (2). */
+/** Scoring: POINTS_REGULAR per correct pick in the regular season (1), POINTS_PLAYOFFS in the playoffs, weeks 19 to 22 (2). */
 export const FIRST_PLAYOFF_WEEK = 19;
 export const REGULAR_POINTS = POINTS_REGULAR;
 export const PLAYOFF_POINTS = POINTS_PLAYOFFS;
 export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? PLAYOFF_POINTS : REGULAR_POINTS);
-/** La même règle, pour les requêtes SQL (g = la table games). */
+/** The same rule, for SQL queries (g = the games table). */
 const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN ${PLAYOFF_POINTS} ELSE ${REGULAR_POINTS} END)`;
 
 /**
- * Classement d'une saison : points des bons pronos (depuis la première semaine comptée), + points de départ
- * éventuels. Pour une saison passée, seuls ceux qui y ont joué apparaissent.
+ * A season's standings: points from correct picks (since the first counted week), plus any starting
+ * points. For a past season, only those who played in it appear.
  */
 export function standings(week?: number, season = currentSeason()): StandingRow[] {
   const weekFilter = week ? 'AND g.week = ?' : '';
@@ -38,8 +38,8 @@ export function standings(week?: number, season = currentSeason()): StandingRow[
     )
     .all(...params) as (Omit<StandingRow, 'rank' | 'points'> & { earned: number })[];
 
-  // Classement de la saison : on ajoute le bonus de fin de saison ; une fois le Super Bowl joué,
-  // l'écart au total de points annoncé départage les égalités (le plus proche passe devant).
+  // Season standings: add the end-of-season bonus; once the Super Bowl is played,
+  // the distance from the predicted total points breaks ties (closest goes first).
   const bonus = week ? new Map<number, number>() : bonusPointsByPlayer(season);
   const tie = week ? null : tiebreakDistances(season);
   const past = season !== currentSeason();
@@ -48,10 +48,10 @@ export function standings(week?: number, season = currentSeason()): StandingRow[
       const b = bonus.get(r.id) ?? 0;
       return { ...r, bonus: b, points: (week ? 0 : r.startPoints) + earned + b, tie: tie ? tie.get(r.id) ?? Infinity : 0 };
     })
-    // Saison passée : pas de ligne à 0 pour ceux qui sont arrivés depuis.
+    // Past season: no zero row for those who joined since.
     .filter((r) => !past || r.played > 0 || r.startPoints > 0 || r.bonus > 0);
-  withPoints.sort((a, b) => b.points - a.points || a.tie - b.tie || a.name.localeCompare(b.name, 'fr'));
-  // Rangs à égalité : 1, 2, 2, 4
+  withPoints.sort((a, b) => b.points - a.points || a.tie - b.tie || a.name.localeCompare(b.name, t.common.locale));
+  // Tied ranks: 1, 2, 2, 4
   const same = (x: (typeof withPoints)[number], y: (typeof withPoints)[number]) => x.points === y.points && x.tie === y.tie;
   const ranked: StandingRow[] = [];
   withPoints.forEach(({ tie: _tie, ...r }, i) => {
@@ -77,7 +77,7 @@ export function weeklyResults(playerId: number): WeekResult[] {
   ).map((r) => ({ ...r, good: r.good ?? 0, label: weekLabel(r.week) }));
 }
 
-/** Nombre de bons pronos d'affilée, du plus récent match terminé vers le passé. */
+/** Number of correct picks in a row, from the most recent final game backwards. */
 export function streak(playerId: number): number {
   const rows = db
     .prepare(
@@ -94,11 +94,11 @@ export function streak(playerId: number): number {
   return n;
 }
 
-/** Les trophées de la saison, dans l'ordre d'affichage. Seuls les matchs terminés comptent. */
+/** The season's trophies, in display order. Only final games count. */
 type TrophyId = keyof typeof t.trophies;
 const TROPHY_IDS: TrophyId[] = ['best-week', 'sniper', 'streak', 'contrarian', 'heart', 'black-cat', 'last-minute', 'nostradamus'];
 
-/** Calcule chaque trophée : le gagnant et une ligne de détail, ou null si personne ne le mérite encore. */
+/** Computes each trophy: the winner and a detail line, or null if nobody deserves it yet. */
 function computeTrophy(id: TrophyId, season: number): { who: string; detail: string } | null {
   const args = [season, startWeek(season)] as const;
   switch (id) {
@@ -200,9 +200,9 @@ function computeTrophy(id: TrophyId, season: number): { who: string; detail: str
   return null;
 }
 
-/** Tous les trophées d'une saison, attribués ou non (who = null), pour le bilan. */
+/** All of a season's trophies, awarded or not (who = null), for the season recap. */
 export function awards(season = currentSeason()): Award[] {
-  // Nostradamus n'existe que si le bonus de fin de saison est activé.
+  // Nostradamus only exists if the end-of-season bonus is enabled.
   const on = bonusSettings().enabled;
   return TROPHY_IDS.filter((id) => on || id !== 'nostradamus').map((id) => {
     const won = computeTrophy(id, season);
@@ -211,14 +211,14 @@ export function awards(season = currentSeason()): Award[] {
   });
 }
 
-// ---------- Classement en direct ----------
+// ---------- Live standings ----------
 
-/** Rangs avec égalités (1, 2, 2, 4) sur une liste déjà triée par points décroissants. */
+/** Ranks with ties (1, 2, 2, 4) over a list already sorted by descending points. */
 function competitionRanks(points: number[]): number[] {
   return points.map((p, i) => points.indexOf(p) + 1);
 }
 
-/** « Si ça finit comme ça » : ajoute les points des matchs en cours selon le score du moment. */
+/** "If it ends like this": adds the points of live games based on the current score. */
 export function liveProjection(): LiveProjection | null {
   const live = db
     .prepare(
@@ -248,15 +248,15 @@ export function liveProjection(): LiveProjection | null {
       const e = extra.get(r.id)!;
       return { ...r, projected: r.points + e.pts, winning: e.winning, losing: e.losing, projectedRank: 0 };
     })
-    .sort((x, y) => y.projected - x.projected || x.name.localeCompare(y.name, 'fr'));
+    .sort((x, y) => y.projected - x.projected || x.name.localeCompare(y.name, t.common.locale));
   const ranks = competitionRanks(rows.map((r) => r.projected));
   rows.forEach((r, i) => (r.projectedRank = ranks[i]));
   return { games: live.length, rows };
 }
 
-// ---------- Récap de la semaine ----------
+// ---------- Weekly recap ----------
 
-/** Dernière semaine avec au moins un match terminé (depuis la reprise). */
+/** Latest week with at least one final game (since the start week). */
 export function latestRecapWeek(): number | null {
   const row = db
     .prepare("SELECT MAX(week) AS w FROM games WHERE season = ? AND week >= ? AND status = 'final'")
@@ -271,7 +271,7 @@ export function recap(week: number): Recap {
   const season = new Map(standings().map((r) => [r.id, r]));
   const rows = standings(week).map((r) => ({ ...r, seasonPoints: season.get(r.id)!.points, seasonRank: season.get(r.id)!.rank }));
 
-  // La boulette : match terminé avec le plus de pronos ratés.
+  // The blunder: the final game with the most wrong picks.
   const games = db
     .prepare(
       `SELECT g.id, g.winner, g.away_score AS a, g.home_score AS h, ta.name AS away, th.name AS home

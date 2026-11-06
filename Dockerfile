@@ -1,15 +1,15 @@
-# ---- Build : interface (Vite/PWA) + serveur (esbuild) ----
+# ---- Build: UI (Vite/PWA) + server (esbuild) ----
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-# Hash du commit, passé par GitHub Actions : affiché dans le profil pour vérifier les mises à jour.
+# Commit hash, passed by GitHub Actions: shown in the profile to check for updates.
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 RUN npm run build && npm prune --omit=dev
 
-# ---- Image finale : Node + le strict nécessaire ----
+# ---- Final image: Node + the bare minimum ----
 FROM node:22-bookworm-slim
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION \

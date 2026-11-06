@@ -1,6 +1,6 @@
 /**
- * Outils communs aux tests serveur : base remise à zéro, équipes et matchs fabriqués à la main.
- * La base est en mémoire (voir vitest.config.ts), propre à chaque fichier de test.
+ * Shared helpers for server tests: database reset, hand-made teams and games.
+ * The database is in memory (see vitest.config.ts), one per test file.
  */
 import { db, setMeta } from '../../server/db';
 import { clearEspnCache } from '../../server/espnCache';
@@ -8,10 +8,10 @@ import { resetEspnStats } from '../../server/espn';
 
 export const HOUR = 3600_000;
 export const DAY = 24 * HOUR;
-/** Un dimanche de saison, 19 h à Paris : base de temps de tous les tests. */
+/** A Sunday in the season, 7 pm in Paris: the reference time for all tests. */
 export const NOW = Date.parse('2026-11-08T18:00:00Z');
 
-/** Quelques équipes, avec les vrais identifiants ESPN. */
+/** A few teams, with their real ESPN ids. */
 export const TEAMS = {
   BUF: { id: '2', name: 'Bills', conf: 'AFC' },
   KC: { id: '12', name: 'Chiefs', conf: 'AFC' },
@@ -42,19 +42,19 @@ export const pid = (name: string) => (db.prepare('SELECT id FROM players WHERE n
 let seq = 0;
 export interface GameOpts {
   id?: string;
-  /** 2026 par défaut (la saison des tests). */
+  /** 2026 by default (the test season). */
   season?: number;
   week?: number;
   kickoff?: number;
   away?: Abbr;
   home?: Abbr;
-  /** Score [extérieur, domicile] : le statut passe à « final » sauf si status est précisé. */
+  /** Score [away, home]: status becomes 'final' unless status is given. */
   score?: [number, number];
   status?: 'scheduled' | 'live' | 'final' | 'postponed';
   detail?: string | null;
 }
 
-/** Ajoute un match ; avec un score et sans statut, il est terminé et le vainqueur est déduit. */
+/** Adds a game; with a score and no status, it is final and the winner is derived. */
 export function addGame(o: GameOpts = {}): string {
   const id = o.id ?? `g${++seq}`;
   const status = o.status ?? (o.score ? 'final' : 'scheduled');
@@ -78,7 +78,7 @@ export function pick(name: string, gameId: string, side: 'away' | 'home', at = N
   ).run(pid(name), gameId, side, at);
 }
 
-/** Même prono pour plusieurs joueurs. */
+/** Picks for several players at once. */
 export function picks(gameId: string, sides: Record<string, 'away' | 'home'>) {
   for (const [name, side] of Object.entries(sides)) pick(name, gameId, side);
 }

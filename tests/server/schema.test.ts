@@ -7,8 +7,8 @@ const tables = (db: DatabaseSync) =>
   (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[]).map((t) => t.name);
 const columns = (db: DatabaseSync, table: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
 
-describe('migrations de la base', () => {
-  it('base neuve : toutes les tables, à la dernière version', () => {
+describe('database migrations', () => {
+  it('fresh database: all tables, at the latest version', () => {
     const db = fresh();
     expect(migrate(db).map((m) => m.version)).toEqual([1, 2, 3, 4]);
     expect(tables(db)).toEqual(
@@ -17,14 +17,14 @@ describe('migrations de la base', () => {
     expect(schemaVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
   });
 
-  it('au redémarrage, rien n’est rejoué', () => {
+  it('on restart, nothing is replayed', () => {
     const db = fresh();
     migrate(db);
     expect(migrate(db)).toEqual([]);
   });
 
-  it('base déjà en service (créée avant les migrations) : les tables et les données restent', () => {
-    // Comme en prod avant ce changement : tables là, mais aucune version enregistrée.
+  it('database already in use (created before migrations): tables and data are kept', () => {
+    // As in prod before this change: tables exist, but no version recorded.
     const db = fresh();
     db.exec(MIGRATIONS[0].sql);
     db.exec("INSERT INTO players (name, start_points, created_at) VALUES ('Gwen', 73, 0)");
@@ -34,12 +34,12 @@ describe('migrations de la base', () => {
     expect(schemaVersion(db)).toBe(MIGRATIONS.at(-1)!.version);
   });
 
-  it('plusieurs saisons (4) : les points de départ et la semaine de reprise passent à la saison en cours', () => {
+  it('multiple seasons (4): starting points and start week move to the current season', () => {
     const db = fresh();
     migrate(db, MIGRATIONS.slice(0, 3));
     db.exec("INSERT INTO players (name, start_points, created_at) VALUES ('Gwen', 73, 0), ('Bea', 0, 0)");
     migrate(db);
-    // Saison 2026 dans les tests ; semaine de reprise 9 (tests/fixtures/seed.json).
+    // Season 2026 in tests; start week 9 (tests/fixtures/seed.json).
     expect(db.prepare('SELECT p.name, s.season, s.start_points AS pts FROM player_seasons s JOIN players p ON p.id = s.player_id').all()).toEqual([
       { name: 'Gwen', season: 2026, pts: 73 }
     ]);
@@ -47,25 +47,25 @@ describe('migrations de la base', () => {
     expect(db.prepare("SELECT value FROM meta WHERE key = 'start_week:2026'").get()).toEqual({ value: '9' });
   });
 
-  it('une nouvelle migration ajoutée plus tard ne joue qu’elle', () => {
+  it('a new migration added later runs alone', () => {
     const db = fresh();
     migrate(db);
-    const next: Migration = { version: 5, name: 'surnom', sql: 'ALTER TABLE players ADD COLUMN nickname TEXT;' };
+    const next: Migration = { version: 5, name: 'nickname', sql: 'ALTER TABLE players ADD COLUMN nickname TEXT;' };
     expect(migrate(db, [...MIGRATIONS, next]).map((m) => m.version)).toEqual([5]);
     expect(columns(db, 'players')).toContain('nickname');
     expect(schemaVersion(db)).toBe(5);
   });
 
-  it('une migration qui échoue est annulée en entier, et le message dit laquelle', () => {
+  it('a failing migration is rolled back entirely, and the message says which one', () => {
     const db = fresh();
     migrate(db);
-    const broken: Migration = { version: 5, name: 'cassée', sql: 'CREATE TABLE temp_x (a INT); ALTER TABLE nope ADD COLUMN b INT;' };
-    expect(() => migrate(db, [...MIGRATIONS, broken])).toThrow('Migration 5 (cassée) impossible');
+    const broken: Migration = { version: 5, name: 'broken', sql: 'CREATE TABLE temp_x (a INT); ALTER TABLE nope ADD COLUMN b INT;' };
+    expect(() => migrate(db, [...MIGRATIONS, broken])).toThrow('Migration 5 (broken) failed');
     expect(tables(db)).not.toContain('temp_x');
     expect(schemaVersion(db)).toBe(4);
   });
 
-  it('les numéros se suivent, sans doublon', () => {
+  it('version numbers are sequential, without duplicates', () => {
     expect(MIGRATIONS.map((m) => m.version)).toEqual(MIGRATIONS.map((_, i) => i + 1));
   });
 });

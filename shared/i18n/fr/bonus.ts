@@ -1,4 +1,4 @@
-/** Bonus de fin de saison (écran des joueurs). */
+/** End-of-season bonus (players' screen). */
 import { common } from './common';
 
 export const bonus = {
@@ -7,11 +7,11 @@ export const bonus = {
   title: 'Bonus de fin de saison',
   off: 'Le bonus est désactivé pour cette saison.',
 
-  /** « Champion AFC » ; `conf` est le sigle de la conférence. */
+  /** « Champion AFC »; `conf` is the conference abbreviation. */
   champion: (conf: string) => `Champion ${conf}`,
   sbWinner: 'Vainqueur du Super Bowl',
   points: (n: number) => common.points(n),
-  /** Règles : quand les choix sont révélés (au Super Bowl ou à la Wild Card), et le départage. */
+  /** Rules: when picks are revealed (at the Super Bowl or the Wild Card), and the tiebreaker. */
   rules: (revealAtSuperBowl: boolean) =>
     `Les choix restent secrets jusqu’au ${revealAtSuperBowl ? 'coup d’envoi du Super Bowl' : 'premier match de Wild Card'}${
       revealAtSuperBowl ? ' (on peut les changer jusqu’à la Wild Card)' : ''
@@ -39,18 +39,18 @@ export const bonus = {
   sbResult: (team: string, total: number | null) => `${team} · ${total} pts au total`,
 
   lockedTitle: 'Choix verrouillés 🔒',
-  /** Avant la révélation ; `at` = jour et heure du coup d’envoi s’ils sont connus. */
+  /** Before the reveal; `at` = kickoff day and time if known. */
   lockedText: (at: { day: string; time: string } | null) =>
     `Les choix de la bande seront révélés au coup d’envoi du Super Bowl${at ? `, le ${at.day} à ${at.time}` : ''}. Les points bonus arriveront au classement à ce moment-là.`,
 
   playersTitle: 'Les choix de la bande',
   you: 'Toi',
   noPick: 'Pas de choix fait à temps.',
-  /** Ligne d’un choix : « AFC : Chiefs », « SB : Chiefs » */
+  /** A pick's line: « AFC : Chiefs », « SB : Chiefs » */
   pickLine: (label: 'AFC' | 'NFC' | 'SB', team: string) => `${label} : ${team}`,
-  /** Après le vainqueur choisi : « · 47 pts » */
+  /** After the chosen winner: « · 47 pts » */
   pickTotal: (total: number) => ` · ${total} pts`,
-  /** Écart avec le vrai total : « (écart 5) » */
+  /** Distance from the actual total: « (écart 5) » */
   pickGap: (gap: number) => ` (écart ${gap})`,
 
   chose: 'Ont choisi',

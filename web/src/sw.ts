@@ -6,15 +6,15 @@ import { DEFAULT_LANG, messages } from '../../shared/i18n';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any };
 
-// L'appli elle-même : mise en cache à l'installation, donc elle s'ouvre même sans réseau.
+// The app itself: cached at install time, so it opens even without a network.
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/logos\//] }));
 
-// Logos : servis depuis le cache, rafraîchis en arrière-plan.
+// Logos: served from the cache, refreshed in the background.
 registerRoute(({ url }) => url.pathname.startsWith('/logos/'), new StaleWhileRevalidate({ cacheName: 'logos' }));
 
-// Données : réseau d'abord, dernier état connu si le réseau ne répond pas.
+// Data: network first, last known state if the network doesn't answer.
 registerRoute(
   ({ url, request }) => url.pathname.startsWith('/api/') && request.method === 'GET',
   new NetworkFirst({ cacheName: 'api', networkTimeoutSeconds: 4 })
@@ -23,8 +23,8 @@ registerRoute(
 self.addEventListener('install', () => void self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
-// Le serveur envoie toujours un titre (nom de l'instance) ; le service worker ne lit pas les réglages
-// de l'instance, d'où ce nom court par défaut.
+// The server always sends a title (the instance name); the service worker doesn't read the instance
+// settings, hence this short default name.
 self.addEventListener('push', (event) => {
   let data: { title?: string; body?: string; url?: string; tag?: string } = {};
   try {

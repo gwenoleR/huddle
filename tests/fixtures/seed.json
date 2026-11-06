@@ -1,12 +1,11 @@
 {
-  "saison": 2026,
-  "semaineDeReprise": 9,
-  "note": "Scores globaux repris de Prono Entre Amis à la fin de la semaine 8. Les points comptés dans l'appli s'ajoutent à pointsDeDepart.",
-  "joueurs": [
-    { "prenom": "Gwen", "pointsDeDepart": 73, "admin": true },
-    { "prenom": "Audrey", "pointsDeDepart": 72 },
-    { "prenom": "Bea", "pointsDeDepart": 71 },
-    { "prenom": "Bud", "pointsDeDepart": 69 },
-    { "prenom": "Max", "pointsDeDepart": 64 }
+  "note": "Test group: players carried over from the old site with their points at the end of week 8; picks count from week 9.",
+  "startWeek": 9,
+  "players": [
+    { "name": "Gwen", "startPoints": 73, "admin": true },
+    { "name": "Audrey", "startPoints": 72 },
+    { "name": "Bea", "startPoints": 71 },
+    { "name": "Bud", "startPoints": 69 },
+    { "name": "Max", "startPoints": 64 }
   ]
 }

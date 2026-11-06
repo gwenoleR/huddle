@@ -1,4 +1,4 @@
-/** Administration du groupe : joueurs, saison (bonus) et données (ESPN, historique). */
+/** Group administration: players, season (bonus) and data (ESPN, history). */
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button } from '../ds';
@@ -13,7 +13,7 @@ export function Admin({ me, notify }: { me: Me; notify: (m: string) => void }) {
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/profil" label={t.admin.back} />
+        <BackLink href="#/profile" label={t.admin.back} />
       </header>
       <main className="stack" style={{ gap: 24 }}>
         <h1 className="h1">{t.admin.title}</h1>
@@ -102,7 +102,7 @@ function SyncRow({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-/** Bonus de fin de saison : activation et barème, modifiables à tout moment (les points sont recalculés). */
+/** End-of-season bonus: toggle and scoring, editable at any time (points are recomputed). */
 function BonusAdmin({ notify }: { notify: (m: string) => void }) {
   const qc = useQueryClient();
   const [s, setS] = useState<BonusSettingsDto | null>(null);
@@ -133,7 +133,7 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
         nfc: String(x.points.nfc),
         sb: String(x.points.sb)
       });
-      // Le barème change les points de tout le monde : bonus, classement et profil sont à recharger.
+      // The scoring changes everyone's points: bonus, leaderboard and profile must be reloaded.
       void qc.invalidateQueries({ queryKey: keys.bonus });
       void qc.invalidateQueries({ queryKey: ['leaderboard'] });
       void qc.invalidateQueries({ queryKey: keys.profile });
@@ -229,7 +229,7 @@ function BonusAdmin({ notify }: { notify: (m: string) => void }) {
   );
 }
 
-/** Les joueurs : liste (toucher un nom pour ses actions) et ajout. */
+/** Players: list (tap a name for its actions) and add. */
 function Players({ notify, meId }: { notify: (m: string) => void; meId: number }) {
   const qc = useQueryClient();
   const [players, setPlayers] = useState<AdminPlayerDto[]>([]);
@@ -243,7 +243,7 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
     void load();
   }, []);
 
-  /** Après un changement de joueurs, classements, pronos et bilans sont à recharger. */
+  /** After a players change, leaderboards, picks and recaps must be reloaded. */
   async function act(fn: () => Promise<unknown>, msg: string) {
     try {
       await fn();
@@ -356,8 +356,8 @@ function Players({ notify, meId }: { notify: (m: string) => void; meId: number }
 }
 
 /**
- * Pronos des semaines jouées ailleurs, en CSV : vérifiés à blanc d'abord (l'admin voit ce qui va
- * être importé), puis importés pour de vrai.
+ * Picks from weeks played elsewhere, as CSV: dry-run first (the admin sees what is going to be
+ * imported), then imported for real.
  */
 function HistoryImport({ notify }: { notify: (m: string) => void }) {
   const qc = useQueryClient();

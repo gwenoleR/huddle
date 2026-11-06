@@ -5,9 +5,9 @@ import { t } from '../lib/i18n';
 
 export function BottomNav({ active, onChange }: { active: string; onChange?: (id: string) => void }) {
   const items = [
-    { id: 'matchs', label: t.ds.nav.matchs },
-    { id: 'classement', label: t.ds.nav.classement },
-    { id: 'profil', label: t.ds.nav.profil }
+    { id: 'matches', label: t.ds.nav.matches },
+    { id: 'standings', label: t.ds.nav.standings },
+    { id: 'profile', label: t.ds.nav.profile }
   ];
   return (
     <nav className="pr-nav" aria-label={t.ds.navLabel}>

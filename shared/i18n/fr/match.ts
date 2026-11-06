@@ -1,9 +1,9 @@
-/** Fiche d'un match : avant (favori, forme, blessés), pendant et après (stats). */
+/** Match screen: before (favorite, form, injuries), during and after (stats). */
 
-const RESULT = { V: 'Victoire', D: 'Défaite', N: 'Nul' } as const;
+const RESULT = { W: 'Victoire', L: 'Défaite', T: 'Nul' } as const;
 
 export const match = {
-  /** Mon nom dans les listes de la bande. */
+  /** My name in the group's lists. */
   you: 'Toi',
   nobody: 'Personne',
   notPlayedYet: 'Pas encore joué',
@@ -11,13 +11,13 @@ export const match = {
 
   /** « 63 % » */
   percent: (n: number | string) => `${n} %`,
-  /** Lettre du résultat (V, D, N) dans la forme et le calendrier. */
-  resultLetter: { V: 'V', D: 'D', N: 'N' } as Record<'V' | 'D' | 'N', string>,
+  /** Result letter (V, D, N) in the form and the schedule. */
+  resultLetter: { W: 'V', L: 'D', T: 'N' } as Record<'W' | 'L' | 'T', string>,
 
-  /** Pendant et après le match. */
-  /** Quart-temps : « Q1 »… puis « Prol. ». */
+  /** During and after the game. */
+  /** Quarter: « Q1 »… then « Prol. ». */
   period: (p: number) => (p > 4 ? 'Prol.' : `Q${p}`),
-  /** « Les <b>Bills</b> ont la balle » : morceaux de la phrase, l'équipe (mise en valeur) au milieu. */
+  /** « Les <b>Bills</b> ont la balle »: sentence pieces, the (highlighted) team in the middle. */
   hasBall: <T>(team: T) => ['Les ', team, ' ont la balle'] as const,
   redZone: 'Zone rouge',
   lastPlay: (text: string, abbr: string | null) => `Dernière action : ${text}${abbr ? ` (${abbr})` : ''}`,
@@ -30,9 +30,9 @@ export const match = {
   leadersTitle: 'Les meilleurs joueurs',
   scoringTitle: 'Les points marqués',
 
-  /** Avant le match. */
+  /** Before the game. */
   favoriteTitle: 'Le favori',
-  /** « Les <b>Bills</b>, avec environ 3,5 pts d’avance attendus » : morceaux, l'équipe au milieu. */
+  /** « Les <b>Bills</b>, avec environ 3,5 pts d’avance attendus »: pieces, the team in the middle. */
   favorite: <T>(team: T, spread: string | null) =>
     ['Les ', team, spread ? `, avec environ ${spread} pts d’avance attendus` : ''] as const,
   tossUp: 'Pile ou face pour les bookmakers',
@@ -45,8 +45,8 @@ export const match = {
   onTheRoad: 'à l’ext.',
   seeNflStandings: 'Voir le classement NFL',
   recordHelp: 'Bilan en victoires-défaites. Forme du plus ancien au plus récent.',
-  /** Infobulle d'un match de la forme : « Victoire contre KC 24-17 », « Défaite chez BUF 10-31 ». */
-  formGame: (result: 'V' | 'D' | 'N', home: boolean, opponent: string, score: string) =>
+  /** Tooltip of a game in the form: « Victoire contre KC 24-17 », « Défaite chez BUF 10-31 ». */
+  formGame: (result: 'W' | 'L' | 'T', home: boolean, opponent: string, score: string) =>
     `${RESULT[result]} ${home ? 'contre' : 'chez'} ${opponent} ${score}`,
   injuriesTitle: 'Infirmerie',
   injuriesHelp: 'Les forfaits officiels tombent en général la veille ou l’avant-veille du match.',

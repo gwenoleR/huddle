@@ -1,6 +1,6 @@
-/** Messages d'erreur renvoyés par le serveur. */
+/** Error messages returned by the server. */
 export const api = {
-  // Connexion et droits
+  // Login and permissions
   groupExists: 'Le groupe existe déjà : connecte-toi.',
   loginFirst: 'Connecte-toi d’abord',
   adminOnly: 'Réservé à l’admin',
@@ -16,11 +16,11 @@ export const api = {
   cannotRevokeOwnAdmin: 'Tu ne peux pas te retirer tes propres droits d’admin.',
   invalidStartPoints: 'Points de départ invalides.',
   cannotDeleteSelf: 'Tu ne peux pas te supprimer toi-même.',
-  /** Synchro forcée qui échoue, avec la raison donnée par l'état de la synchro. */
+  /** Forced sync that fails, with the reason given by the sync status. */
   syncFailed: (reason: string) => `Synchro impossible : ${reason}`,
 
-  // Matchs et pronos
-  /** Adresse d'API ou logo qui n'existe pas. */
+  // Games and picks
+  /** API address or logo that doesn't exist. */
   notFound: 'Introuvable',
   gameNotFound: 'Match introuvable.',
   invalidPick: 'Choix invalide.',
@@ -29,13 +29,13 @@ export const api = {
   previewUnavailable: 'Infos d’avant-match indisponibles pour le moment.',
   liveUnavailable: 'Le direct ESPN ne répond pas pour le moment.',
 
-  // Classements
+  // Leaderboards
   unknownSeason: 'Saison inconnue.',
   noFinishedGame: 'Pas encore de match terminé.',
   nflStandingsUnavailable: 'Le classement NFL ne répond pas pour le moment.',
   teamNotFound: 'Équipe introuvable.',
 
-  // Bonus de fin de saison
+  // End-of-season bonus
   bonusClosed: 'Les choix du bonus ne sont pas ouverts.',
   bonusPickAfc: 'Choisis un champion AFC parmi les qualifiés.',
   bonusPickNfc: 'Choisis un champion NFC parmi les qualifiés.',

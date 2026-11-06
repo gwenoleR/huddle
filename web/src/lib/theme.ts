@@ -9,7 +9,7 @@ function read(): ThemePref {
     const v = localStorage.getItem(KEY);
     if (v === 'dark' || v === 'light' || v === 'auto') return v;
   } catch {
-    /* stockage indisponible : thème par défaut */
+    /* storage unavailable: default theme */
   }
   return 'dark';
 }

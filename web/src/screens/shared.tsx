@@ -7,7 +7,7 @@ export function toTeam(team: TeamDto, theme: 'dark' | 'light'): Team {
   return { abbr: team.abbr, name: team.name, color: team.color, textColor: team.textColor, logoUrl: theme === 'dark' ? team.logoDark : team.logo };
 }
 
-/** Statut affiché sur la carte à partir de l'état du match côté serveur. */
+/** Status shown on the card, derived from the server-side game state. */
 export function cardStatus(g: GameDto): { status: MatchStatus; statusText?: string } {
   if (g.status === 'live') return { status: 'live', statusText: g.detail ? t.matches.live(g.detail) : undefined };
   if (g.status === 'final') return { status: 'final', statusText: g.detail ?? undefined };
@@ -38,8 +38,8 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 }
 
 /**
- * Lien discret vers le bilan des autres saisons, en bas de page : on ne s'en sert pas souvent.
- * Rien tant qu'il n'y a qu'une saison. current = la saison en cours (son bilan est « #/bilan »).
+ * Discreet link to the other seasons' recaps, at the bottom of the page: it isn't used often.
+ * Nothing while there is only one season. current = the current season (its recap is "#/season").
  */
 export function OtherSeasons({ seasons, shown, current, label }: { seasons: number[]; shown: number; current: number; label: string }) {
   const others = seasons.filter((s) => s !== shown);
@@ -50,7 +50,7 @@ export function OtherSeasons({ seasons, shown, current, label }: { seasons: numb
       {others.map((s, i) => (
         <span key={s}>
           {i > 0 && ' · '}
-          <a href={s === current ? '#/bilan' : `#/bilan/${s}`}>{s}</a>
+          <a href={s === current ? '#/season' : `#/season/${s}`}>{s}</a>
         </span>
       ))}
     </p>
@@ -61,7 +61,7 @@ export function Loading() {
   return <p className="empty">{t.ds.loading}</p>;
 }
 
-/** Nom d'équipe cliquable qui ouvre sa fiche (jamais sur les boutons de prono). */
+/** Clickable team name that opens its page (never on the pick buttons). */
 export function TeamLink({ abbr, className, children }: { abbr: string; className?: string; children: React.ReactNode }) {
   return (
     <button type="button" className={`team-link${className ? ` ${className}` : ''}`} onClick={() => openTeam(abbr)}>

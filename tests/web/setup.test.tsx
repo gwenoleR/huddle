@@ -6,13 +6,13 @@ import { Login } from '../../web/src/screens/Login';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Serveur simulé : la liste des joueurs, puis la création du groupe et /me. */
+/** Fake server: the player list, then group creation and /me. */
 let players: object[] = [];
 const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   if (url === '/api/players') return new Response(JSON.stringify(players));
   if (url === '/api/setup') return new Response(JSON.stringify({ ok: true, created: true }));
   if (url === '/api/me') return new Response(JSON.stringify({ id: 1, name: 'Léa', isAdmin: true }));
-  throw new Error(`appel inattendu ${init?.method ?? 'GET'} ${url}`);
+  throw new Error(`unexpected call ${init?.method ?? 'GET'} ${url}`);
 });
 
 let el: HTMLDivElement;
@@ -38,8 +38,8 @@ async function typePin(pin: string) {
   await flush();
 }
 
-describe('nouvelle installation', () => {
-  it('base vide : on crée le groupe avec son prénom et son code', async () => {
+describe('fresh install', () => {
+  it('empty database: creates the group with a name and PIN', async () => {
     players = [];
     const onLogged = vi.fn();
     act(() => root.render(<Login onLogged={onLogged} />));
@@ -48,7 +48,7 @@ describe('nouvelle installation', () => {
 
     const input = el.querySelector<HTMLInputElement>('#setup-name')!;
     act(() => {
-      // React suit la valeur par son setter natif : on passe par lui, comme le navigateur.
+      // React tracks the value through its native setter: go through it, like the browser does.
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '  Léa ');
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
@@ -64,7 +64,7 @@ describe('nouvelle installation', () => {
     expect(onLogged).toHaveBeenCalledWith({ id: 1, name: 'Léa', isAdmin: true });
   });
 
-  it('groupe déjà créé : la liste des joueurs, pas de création', async () => {
+  it('group already created: the player list, no creation', async () => {
     players = [{ id: 1, name: 'Léa', hasPin: true }];
     act(() => root.render(<Login onLogged={() => {}} />));
     await flush();

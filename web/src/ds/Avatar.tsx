@@ -1,7 +1,7 @@
 import { cx } from './cx';
 import './Avatar.css';
 
-/** « Gwenole » → « GW », « Jean Pierre » → « JP ». */
+/** "Gwenole" → "GW", "Jean Pierre" → "JP". */
 export function initials(n: string) {
   const s = (n || '?').trim();
   const p = s.split(/\s+/);

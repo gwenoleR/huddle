@@ -1,12 +1,12 @@
 /**
- * Cache des données côté téléphone (TanStack Query).
+ * Phone-side data cache (TanStack Query).
  *
- * - Un écran déjà vu s'affiche tout de suite avec la dernière version, puis se met à jour en silence.
- * - Deux composants qui demandent la même chose ne font qu'une requête.
- * - Les rafraîchissements automatiques s'arrêtent quand l'appli est en arrière-plan, et tout est
- *   rafraîchi au retour dans l'appli.
- * - Le cache est gardé sur le téléphone (localStorage) : à l'ouverture, l'appli affiche l'état
- *   de la dernière visite le temps de recevoir le nouveau.
+ * - A screen already seen shows right away with the last version, then updates silently.
+ * - Two components asking for the same thing make a single request.
+ * - Automatic refreshes stop while the app is in the background, and everything is refreshed
+ *   when coming back to the app.
+ * - The cache is kept on the phone (localStorage): on open, the app shows the state from the
+ *   last visit while the new one arrives.
  */
 import { QueryClient } from '@tanstack/react-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
@@ -15,18 +15,18 @@ import { ApiError, type GameDto } from './api';
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 
-/** Clés du cache : une par donnée du serveur. */
+/** Cache keys: one per piece of server data. */
 export const keys = {
   weeks: ['weeks'] as const,
   week: (week: number) => ['week', week] as const,
   game: (id: string) => ['game', id] as const,
   preview: (id: string) => ['preview', id] as const,
   live: (id: string) => ['live', id] as const,
-  /** Saison en cours sans saison précisée ; une saison passée se consulte en entier (pas de semaine). */
+  /** Current season when no season is given; a past season is viewed as a whole (no week). */
   leaderboard: (week?: number, season?: number) => ['leaderboard', week ?? 'season', season ?? 'current'] as const,
   bonus: ['bonus'] as const,
   profile: ['profile'] as const,
-  /** Préfixe de tous les bilans (pour tout recharger) ; seasonOf pour un bilan précis. */
+  /** Prefix of all recaps (to reload them all); seasonOf for a specific recap. */
   season: ['season'] as const,
   seasonOf: (season?: number) => ['season', season ?? 'current'] as const,
   recap: (week?: number) => ['recap', week ?? 'last'] as const,
@@ -34,13 +34,13 @@ export const keys = {
   team: (abbr: string) => ['team', abbr.toUpperCase()] as const
 };
 
-/** On réessaie après une coupure réseau ou une erreur serveur, jamais après un refus (4xx). */
+/** Retry after a network failure or a server error, never after a refusal (4xx). */
 export function shouldRetry(failures: number, error: unknown): boolean {
   if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
   return failures < 2;
 }
 
-/** Les matchs d'une semaine se rafraîchissent toutes les 30 s pendant les matchs, sinon toutes les 5 min. */
+/** A week's games refresh every 30 s during games, otherwise every 5 min. */
 export function weekRefreshInterval(games: Pick<GameDto, 'status' | 'kickoff'>[] | undefined, now = Date.now()): number {
   const hot = games?.some(
     (g) => g.status === 'live' || (g.status === 'scheduled' && g.kickoff - now < 15 * MIN && g.kickoff > now - 6 * HOUR)
@@ -48,7 +48,7 @@ export function weekRefreshInterval(games: Pick<GameDto, 'status' | 'kickoff'>[]
   return hot ? 30_000 : 5 * MIN;
 }
 
-/** Applique mon prono tout de suite, sans attendre le serveur (on revient en arrière s'il refuse). */
+/** Applies my pick right away, without waiting for the server (rolled back if it refuses). */
 export function applyPick<G extends Pick<GameDto, 'myPick' | 'pickers'>>(g: G, side: 'away' | 'home', me: string): G {
   const away = g.pickers.away.filter((n) => n !== me);
   const home = g.pickers.home.filter((n) => n !== me);
@@ -59,9 +59,9 @@ export function applyPick<G extends Pick<GameDto, 'myPick' | 'pickers'>>(g: G, s
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Pendant 30 s une donnée est considérée à jour : changer d'écran et revenir ne relance rien.
+      // Data is considered fresh for 30 s: switching screens and back doesn't refetch anything.
       staleTime: 30_000,
-      // Gardée 24 h, pour s'afficher tout de suite à la prochaine ouverture.
+      // Kept 24 h, to show right away on the next open.
       gcTime: 24 * HOUR,
       retry: shouldRetry,
       refetchOnWindowFocus: true
@@ -71,7 +71,7 @@ export const queryClient = new QueryClient({
 
 export const CACHE_KEY = 'prono-cache';
 
-/** Sauvegarde du cache sur le téléphone (null si le stockage n'est pas disponible). */
+/** Cache persistence on the phone (null if storage isn't available). */
 export function createPersister() {
   try {
     const storage = window.localStorage;
@@ -82,19 +82,19 @@ export function createPersister() {
   }
 }
 
-/** À la déconnexion : on oublie tout, pour que le joueur suivant ne voie pas les données du précédent. */
+/** On logout: forget everything, so the next player doesn't see the previous one's data. */
 export function forgetEverything() {
   queryClient.clear();
   try {
     localStorage.removeItem(CACHE_KEY);
   } catch {
-    /* pas de stockage : rien à effacer */
+    /* no storage: nothing to erase */
   }
 }
 
 const OWNER_KEY = 'prono-cache-owner';
 
-/** Le cache appartient à un joueur : si quelqu'un d'autre se connecte sur ce téléphone, on repart de zéro. */
+/** The cache belongs to one player: if someone else logs in on this phone, start from scratch. */
 export function claimCache(playerId: number) {
   try {
     if (localStorage.getItem(OWNER_KEY) !== String(playerId)) {
@@ -102,6 +102,6 @@ export function claimCache(playerId: number) {
       localStorage.setItem(OWNER_KEY, String(playerId));
     }
   } catch {
-    /* pas de stockage : le cache ne survit de toute façon pas à la fermeture */
+    /* no storage: the cache doesn't survive closing anyway */
   }
 }

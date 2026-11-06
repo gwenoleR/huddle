@@ -1,4 +1,4 @@
-/** Ouvre la fiche d'une équipe depuis n'importe quel écran (la feuille vit dans App). */
+/** Opens a team's page from any screen (the sheet lives in App). */
 export function openTeam(abbr: string) {
   dispatchEvent(new CustomEvent('open-team', { detail: abbr }));
 }

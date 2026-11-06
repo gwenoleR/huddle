@@ -1,4 +1,4 @@
-/** Connexion par prénom + code à 4 chiffres, avec blocage après trop d'essais. */
+/** Login by first name + 4-digit PIN, with lockout after too many attempts. */
 import type { FastifyInstance } from 'fastify';
 import type { HealthDto, Me, OkDto, PlayerLite, Replies } from '../../shared/api';
 import { LOCK_MINUTES, MAX_ATTEMPTS, clientIp, createSession, destroySession, hashPin, ipBlocked, isValidPin, recordIpFailure, verifyPin } from '../auth';
@@ -27,7 +27,7 @@ export async function authRoutes(app: FastifyInstance) {
     }[]).map((p) => ({ id: p.id, name: p.name, hasPin: !!p.hasPin }))
   );
 
-  // Premier lancement, base vide : le premier venu crée le groupe et en devient l'admin.
+  // First launch, empty database: the first visitor creates the group and becomes its admin.
   app.post<{ Body: { name?: string; pin?: string }; Reply: Replies<OkDto> }>('/api/setup', async (req, reply) => {
     const name = String(req.body?.name ?? '').trim();
     const pin = req.body?.pin;
@@ -58,7 +58,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(429).send({ error: t.api.tooManyTries(min), retryInMinutes: min });
     }
 
-    // Première connexion : le code tapé devient celui du joueur.
+    // First login: the PIN typed becomes the player's PIN.
     if (!p.pin_hash) {
       db.prepare('UPDATE players SET pin_hash = ?, failed_attempts = 0 WHERE id = ?').run(hashPin(pin), p.id);
       createSession(reply, p.id);

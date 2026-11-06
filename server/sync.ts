@@ -12,7 +12,7 @@ export { LOGO_DIR };
 
 const HOUR = 60 * 60_000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-/** Petite pause entre deux semaines pour ne pas mitrailler ESPN (0 dans les tests). */
+/** Short pause between two weeks so as not to hammer ESPN (0 in tests). */
 const PAUSE_MS = Number(process.env.SYNC_PAUSE_MS ?? 300);
 
 export async function syncTeams() {
@@ -25,7 +25,7 @@ export async function syncTeams() {
     for (const t of teams) up.run(t.id, t.abbr, t.name, t.displayName, t.color, t.altColor);
   });
 
-  // Logos téléchargés une fois et servis par notre serveur : les téléphones ne dépendent pas d'ESPN.
+  // Logos downloaded once and served by our server: phones don't depend on ESPN.
   mkdirSync(LOGO_DIR, { recursive: true });
   for (const t of teams) {
     for (const dark of [false, true]) {
@@ -35,7 +35,7 @@ export async function syncTeams() {
         const res = await fetch(logoUrl(t.abbr, dark), { signal: AbortSignal.timeout(15_000) });
         if (res.ok) writeFileSync(file, Buffer.from(await res.arrayBuffer()));
       } catch (e) {
-        console.warn(`[sync] logo ${t.abbr} indisponible`, (e as Error).message);
+        console.warn(`[sync] logo ${t.abbr} unavailable`, (e as Error).message);
       }
     }
   }
@@ -74,13 +74,13 @@ export async function syncSeason() {
     }
     await sleep(PAUSE_MS);
   }
-  // Toute la saison régulière en échec = problème réseau ou ESPN : on remonte l'erreur pour réessayer.
-  if (errors.length) console.warn(`[sync] ${errors.length} semaine(s) en échec`, errors[0]);
+  // The whole season failing = network or ESPN problem: rethrow the error so it is retried.
+  if (errors.length) console.warn(`[sync] ${errors.length} week(s) failed`, errors[0]);
   if (total === 0 && errors.length) throw new Error(errors[0]);
   return total;
 }
 
-/** Semaines avec un match en cours ou qui commence dans les 10 minutes. */
+/** Weeks with a game in progress or starting within 10 minutes. */
 function hotWeeks(now: number): number[] {
   const rows = db
     .prepare(
@@ -91,7 +91,7 @@ function hotWeeks(now: number): number[] {
   return rows.map((r) => r.week);
 }
 
-/** Semaines « actives » : un match dans les 4 jours passés ou les 8 jours à venir. */
+/** "Active" weeks: a game in the past 4 days or the next 8 days. */
 function activeWeeks(now: number): number[] {
   const rows = db
     .prepare('SELECT DISTINCT week FROM games WHERE season = ? AND kickoff BETWEEN ? AND ?')
@@ -102,10 +102,10 @@ function activeWeeks(now: number): number[] {
 let lastFull = 0;
 let lastHourly = 0;
 let lastFast = 0;
-/** Saison de la dernière synchro complète : quand la saison change (1er juin), on resynchronise tout de suite. */
+/** Season of the last full sync: when the season changes (June 1st), resync right away. */
 let lastSeason = 0;
 
-/** Pour les tests : comme au démarrage du serveur. */
+/** For tests: as on server startup. */
 export function resetSyncClock() {
   lastFull = lastHourly = lastFast = lastSeason = 0;
 }
@@ -129,18 +129,18 @@ async function fullSync(now: number) {
     lastFull = lastHourly = now;
     lastSeason = currentSeason(now);
     const msg = t.sync.done(teams, games);
-    console.log(`[sync] saison ${currentSeason()} : ${msg}`);
+    console.log(`[sync] season ${currentSeason()}: ${msg}`);
     recordStatus(true, msg);
   } catch (e) {
-    // Pas de lastFull : on réessaie au prochain passage (chaque minute) au lieu d'attendre 24 h.
+    // No lastFull: retry on the next tick (every minute) instead of waiting 24 h.
     const msg = (e as Error).message;
-    console.error(`[sync] échec de la synchro complète : ${msg}`);
+    console.error(`[sync] full sync failed: ${msg}`);
     recordStatus(false, msg);
     throw e;
   }
 }
 
-/** Un seul passage à la fois : un clic sur « Synchroniser » attend la fin de celui en cours. */
+/** One run at a time: a click on « Synchroniser » waits for the current one to finish. */
 let queue: Promise<unknown> = Promise.resolve();
 function exclusive(fn: () => Promise<void>): Promise<void> {
   const run = queue.then(fn, fn);
@@ -148,7 +148,7 @@ function exclusive(fn: () => Promise<void>): Promise<void> {
   return run;
 }
 
-/** Appelé chaque minute : saison complète 1×/jour, semaines actives 1×/h, matchs en cours toutes les 2 min. */
+/** Called every minute: full season 1×/day, active weeks 1×/h, live games every 2 min. */
 export function syncTick(now = Date.now()) {
   return exclusive(async () => {
     if (now - lastFull >= 24 * HOUR || currentSeason(now) !== lastSeason) return fullSync(now);
@@ -165,7 +165,7 @@ export function syncTick(now = Date.now()) {
   });
 }
 
-/** Synchro complète immédiate (bouton admin). */
+/** Immediate full sync (admin button). */
 export function forceSync() {
   return exclusive(() => fullSync(Date.now()));
 }

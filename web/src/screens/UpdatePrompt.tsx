@@ -4,7 +4,7 @@ import { useUpdateCheck } from '../lib/useUpdateCheck';
 import { reloadLatest } from '../lib/version';
 import { t } from '../lib/i18n';
 
-/** Feuille « Nouvelle version » : proposée à l'ouverture dès que le serveur a été mis à jour. */
+/** "New version" sheet: offered on open as soon as the server has been updated. */
 export function UpdatePrompt() {
   const { available, later } = useUpdateCheck();
   const ref = useRef<HTMLDialogElement>(null);

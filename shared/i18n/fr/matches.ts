@@ -1,8 +1,8 @@
-/** Liste des matchs de la semaine : écran Matchs, carte de match, choix de la semaine, statuts. */
+/** The week's games list: Matches screen, game card, week picker, statuses. */
 import { common } from './common';
 
 export const matches = {
-  /** Lien vers la fiche match, selon l'état du match et si les pronos comptent. */
+  /** Link to the match screen, depending on the game's state and whether picks count. */
   detailLink: (status: 'scheduled' | 'live' | 'final' | 'postponed', counted: boolean) => {
     const pronos = counted ? ' et pronos' : '';
     if (status === 'final') return `Stats du match${pronos}`;
@@ -12,25 +12,25 @@ export const matches = {
 
   /** « Saison 2026 · Saison régulière » */
   eyebrow: (season: number, playoffs: boolean) => `Saison ${season} · ${playoffs ? 'Playoffs' : 'Saison régulière'}`,
-  /** Compteur « 3 / 14 pronos » : le mot après les nombres. */
+  /** « 3 / 14 pronos » counter: the word after the numbers. */
   counterUnit: 'pronos',
   playoffPoints: (points: number) => `${common.points(points)} par bon prono`,
   /** « Il t’en reste 3 · prochain coup d’envoi dim. 19:00 » */
   remaining: (n: number, kickoff: string) => `Il t’en reste ${n} · prochain coup d’envoi ${kickoff}`,
   notCountedYet: (startWeek: number) => `Les pronos comptent à partir de la semaine ${startWeek}. Ici, juste les scores.`,
   noGames: 'Pas encore de match annoncé pour cette semaine.',
-  /** Répartition vide d'un match d'avant le début des pronos. */
+  /** Empty split for a game from before picks started counting. */
   beforeApp: 'Avant l’appli',
   allDone: 'Tous tes pronos sont faits. Plus qu’à attendre !',
-  /** Les heures sont celles du téléphone : pas de fuseau à préciser. */
+  /** Times are the phone's: no time zone to specify. */
   footer: (games: number) => `${common.matches(games)} cette semaine`,
 
-  /** Statut sur la carte. */
+  /** Status on the card. */
   live: (detail: string) => `En direct · ${detail}`,
   postponed: 'Reporté',
   openPoints: (points: number) => `Ouvert · ${common.points(points)}`,
 
-  /** Carte du bonus de fin de saison. */
+  /** End-of-season bonus card. */
   bonusTitle: 'Bonus de fin de saison',
   bonusMine: (lockDay: string) => `Tes choix sont faits · modifiables jusqu’au ${lockDay}`,
   bonusOpen: (max: number, lockDay: string) => `Jusqu’à ${max} pts à gagner · à choisir avant le ${lockDay}`,

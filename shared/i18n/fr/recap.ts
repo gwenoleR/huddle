@@ -1,19 +1,19 @@
-/** Récap de la semaine à partager (écran et image). */
+/** Shareable weekly recap (screen and image). */
 export const recap = {
   eyebrow: 'À envoyer dans le groupe',
-  /** « Récap · Semaine 9 », ou « Récap de la semaine » avant chargement. */
+  /** « Récap · Semaine 9 », or « Récap de la semaine » before loading. */
   title: (label: string | null) => `Récap ${label ? `· ${label}` : 'de la semaine'}`,
-  /** Texte alternatif de l'image ; `label` est le nom de la semaine (« Semaine 9 »). */
+  /** The image's alt text; `label` is the week's name (« Semaine 9 »). */
   imageAlt: (label: string) => `Récap de la ${label.toLowerCase()} : podium, classement général et boulette`,
   incomplete: (finals: number, total: number) =>
     `Semaine pas finie : ${finals} matchs joués sur ${total}. Le récap se complète au fil des matchs.`,
   share: 'Partager',
   save: 'Enregistrer l’image',
-  /** Titre du partage : « Prono · Semaine 9 » */
+  /** Share title: « Prono · Semaine 9 » */
   shareTitle: (appShortName: string, label: string) => `${appShortName} · ${label}`,
   shareFailed: 'Partage impossible, enregistre l’image à la place.',
 
-  /** Textes dessinés sur l'image */
+  /** Texts drawn on the image */
   image: {
     subtitle: (complete: boolean, finals: number, total: number) =>
       complete ? `Le récap · ${total} matchs` : `Le récap provisoire · ${finals} matchs sur ${total}`,

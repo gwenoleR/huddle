@@ -1,6 +1,6 @@
 /**
- * L'API telle que les téléphones l'appellent (requêtes simulées par Fastify, sans réseau).
- * ESPN et l'envoi des notifications sont remplacés par des doublures.
+ * The API as phones call it (requests simulated by Fastify, no network).
+ * ESPN and notification sending are replaced by test doubles.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,7 +30,7 @@ async function build() {
 
 let app: App;
 let ipSeq = 0;
-/** Chaque test a sa propre adresse IP, pour ne pas cumuler les erreurs de code d'un test à l'autre. */
+/** Each test has its own IP address, so PIN errors don't add up from one test to the next. */
 let ip = '';
 
 beforeEach(async () => {
@@ -51,7 +51,7 @@ afterEach(async () => {
 const loginRaw = (name: string, pin: string) =>
   app.inject({ method: 'POST', url: '/api/login', payload: { playerId: pid(name), pin }, headers: { 'cf-connecting-ip': ip } });
 
-/** Se connecte (le premier code tapé devient celui du joueur) et renvoie le cookie de session. */
+/** Logs in (the first PIN typed becomes the player's) and returns the session cookie. */
 async function login(name: string, pin = '1234') {
   const res = await loginRaw(name, pin);
   expect(res.statusCode).toBe(200);
@@ -62,21 +62,21 @@ async function login(name: string, pin = '1234') {
 const get = (url: string, as?: { cookie: string }) => app.inject({ method: 'GET', url, headers: as ? { cookie: as.cookie } : {} });
 const put = (url: string, payload: object, as: { cookie: string }) => app.inject({ method: 'PUT', url, payload, headers: { cookie: as.cookie } });
 
-describe('connexion', () => {
-  it('le premier code tapé devient celui du joueur', async () => {
+describe('login', () => {
+  it('the first PIN typed becomes the player\'s', async () => {
     const res = await loginRaw('Bea', '4321');
     expect(res.json()).toEqual({ ok: true, created: true });
     expect((await loginRaw('Bea', '4321')).json()).toEqual({ ok: true });
   });
 
-  it('refuse un code qui n’a pas 4 chiffres, ou un joueur inconnu', async () => {
+  it('rejects a PIN that is not 4 digits, or an unknown player', async () => {
     expect((await loginRaw('Bea', '12a4')).statusCode).toBe(400);
     expect((await loginRaw('Bea', '12345')).statusCode).toBe(400);
     const res = await app.inject({ method: 'POST', url: '/api/login', payload: { playerId: 999, pin: '1234' } });
     expect(res.statusCode).toBe(404);
   });
 
-  it('bloque 15 minutes après 5 mauvais codes, même avec le bon code', async () => {
+  it('locks for 15 minutes after 5 wrong PINs, even with the right PIN', async () => {
     await login('Bea', '1111');
     for (let left = 4; left >= 1; left--) {
       const res = await loginRaw('Bea', '0000');
@@ -92,7 +92,7 @@ describe('connexion', () => {
     expect((await loginRaw('Bea', '1111')).statusCode).toBe(200);
   });
 
-  it('bloque une connexion qui accumule 20 erreurs en une heure, tous joueurs confondus', async () => {
+  it('blocks a connection that piles up 20 errors in an hour, across all players', async () => {
     for (const name of ['Bea', 'Bud', 'Audrey', 'Max', 'Gwen']) await login(name, '1111');
     for (let i = 0; i < 20; i++) await loginRaw(['Bea', 'Bud', 'Audrey', 'Max', 'Gwen'][i % 5], '0000');
     const res = await loginRaw('Gwen', '1111');
@@ -100,7 +100,7 @@ describe('connexion', () => {
     expect(res.json().error).toContain('depuis cette connexion');
   });
 
-  it('sans session : 401 ; sans être admin : 403', async () => {
+  it('without session: 401; without admin rights: 403', async () => {
     expect((await get('/api/me')).statusCode).toBe(401);
     const bea = await login('Bea');
     expect((await get('/api/me', bea)).json()).toEqual({ id: pid('Bea'), name: 'Bea', isAdmin: false });
@@ -108,13 +108,13 @@ describe('connexion', () => {
     expect((await get('/api/admin/players', await login('Gwen'))).statusCode).toBe(200);
   });
 
-  it('la déconnexion invalide la session', async () => {
+  it('logout invalidates the session', async () => {
     const bea = await login('Bea');
     await app.inject({ method: 'POST', url: '/api/logout', headers: { cookie: bea.cookie } });
     expect((await get('/api/me', bea)).statusCode).toBe(401);
   });
 
-  it('l’admin peut remettre à zéro le code d’un joueur, ce qui le déconnecte', async () => {
+  it('the admin can reset a player\'s PIN, which logs them out', async () => {
     const bea = await login('Bea', '1111');
     const gwen = await login('Gwen');
     await app.inject({ method: 'POST', url: `/api/admin/players/${pid('Bea')}/reset-pin`, headers: { cookie: gwen.cookie } });
@@ -123,8 +123,8 @@ describe('connexion', () => {
   });
 });
 
-describe('pronos', () => {
-  it('on peut pronostiquer puis changer d’avis avant le coup d’envoi', async () => {
+describe('picks', () => {
+  it('can pick, then change one\'s mind before kickoff', async () => {
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW + HOUR });
     expect((await put(`/api/picks/${g}`, { side: 'away' }, bea)).json()).toEqual({ ok: true });
@@ -134,7 +134,7 @@ describe('pronos', () => {
     expect(game.waiting).toEqual(['Audrey', 'Bud', 'Gwen', 'Max']);
   });
 
-  it('refuse un prono après le coup d’envoi, même si la synchro n’a pas encore vu le match commencer', async () => {
+  it('rejects a pick after kickoff, even if the sync has not yet seen the game start', async () => {
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW - 60_000 });
     const res = await put(`/api/picks/${g}`, { side: 'away' }, bea);
@@ -142,7 +142,7 @@ describe('pronos', () => {
     expect(res.json().error).toBe('Trop tard, le match a commencé.');
   });
 
-  it('refuse un prono sur un match en cours, reporté ou d’avant la reprise', async () => {
+  it('rejects a pick on a live or postponed game, or one before the start week', async () => {
     const bea = await login('Bea');
     for (const g of [
       addGame({ week: 10, kickoff: NOW + HOUR, status: 'live' }),
@@ -152,14 +152,14 @@ describe('pronos', () => {
       expect((await put(`/api/picks/${g}`, { side: 'away' }, bea)).statusCode).toBe(409);
   });
 
-  it('refuse un côté inconnu ou un match inexistant', async () => {
+  it('rejects an unknown side or a non-existent game', async () => {
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW + HOUR });
-    expect((await put(`/api/picks/${g}`, { side: 'nul' }, bea)).statusCode).toBe(400);
-    expect((await put('/api/picks/inconnu', { side: 'away' }, bea)).statusCode).toBe(404);
+    expect((await put(`/api/picks/${g}`, { side: 'draw' }, bea)).statusCode).toBe(400);
+    expect((await put('/api/picks/unknown', { side: 'away' }, bea)).statusCode).toBe(404);
   });
 
-  it('la semaine liste les matchs avec mon prono, ceux des autres et les points en jeu', async () => {
+  it('the week lists games with my pick, the others\' picks and the points at stake', async () => {
     const bea = await login('Bea');
     const g = addGame({ week: 19, kickoff: NOW + HOUR, away: 'SF', home: 'PHI' });
     picks(g, { Bea: 'away', Gwen: 'home', Audrey: 'away' });
@@ -169,7 +169,7 @@ describe('pronos', () => {
     expect(w.games[0].pickers.away.sort()).toEqual(['Audrey', 'Bea']);
   });
 
-  it('semaine en cours : la première avec un match pas terminé', async () => {
+  it('current week: the first one with a game not yet final', async () => {
     addGame({ week: 9, score: [1, 0] });
     addGame({ week: 10, kickoff: NOW + DAY });
     addGame({ week: 11, kickoff: NOW + 8 * DAY });
@@ -178,8 +178,8 @@ describe('pronos', () => {
   });
 });
 
-describe('classement et profil', () => {
-  it('le classement inclut la projection en direct pendant les matchs', async () => {
+describe('leaderboard and profile', () => {
+  it('the leaderboard includes the live projection during games', async () => {
     picks(addGame({ week: 10, status: 'live', score: [7, 0] }), { Max: 'away' });
     const l = (await get('/api/leaderboard', await login('Bea'))).json();
     expect(l.live.rows.find((r: any) => r.name === 'Max')).toMatchObject({ points: 64, projected: 65 });
@@ -187,19 +187,19 @@ describe('classement et profil', () => {
     expect(week.live).toBeNull();
   });
 
-  it('profil : rang, points, série', async () => {
+  it('profile: rank, points, streak', async () => {
     const g = addGame({ week: 10, score: [7, 0] });
     pick('Max', g, 'away');
     const p = (await get('/api/profile', await login('Max'))).json();
     expect(p).toMatchObject({ name: 'Max', rank: 5, points: 65, startPoints: 64, good: 1, played: 1, streak: 1, players: 5 });
   });
 
-  it('récap : 404 tant qu’aucun match n’est terminé', async () => {
+  it('recap: 404 until a game is final', async () => {
     expect((await get('/api/recap', await login('Bea'))).statusCode).toBe(404);
   });
 });
 
-describe('bonus de fin de saison', () => {
+describe('end-of-season bonus', () => {
   const FIELD = {
     afc: [TEAMS.BUF, TEAMS.KC, TEAMS.BAL, TEAMS.PIT].map((t, i) => ({ teamId: t.id, seed: i + 1 })),
     nfc: [TEAMS.SF, TEAMS.PHI, TEAMS.DET, TEAMS.DAL].map((t, i) => ({ teamId: t.id, seed: i + 1 }))
@@ -210,11 +210,11 @@ describe('bonus de fin de saison', () => {
   };
   const valid = { afc: 'BUF', nfc: 'SF', sb: 'BUF', sbTotal: 47 };
 
-  it('refuse les choix tant que ce n’est pas ouvert', async () => {
+  it('rejects picks until it is open', async () => {
     expect((await put('/api/bonus', valid, await login('Bea'))).statusCode).toBe(409);
   });
 
-  it('enregistre des choix valides', async () => {
+  it('saves valid picks', async () => {
     open();
     const bea = await login('Bea');
     expect((await put('/api/bonus', valid, bea)).json()).toEqual({ ok: true });
@@ -231,20 +231,20 @@ describe('bonus de fin de saison', () => {
     [{ ...valid, sbTotal: -1 }, 'entre 0 et 200'],
     [{ ...valid, sbTotal: 201 }, 'entre 0 et 200'],
     [{ ...valid, sbTotal: 4.5 }, 'entre 0 et 200']
-  ])('refuse %o', async (body, message) => {
+  ])('rejects %o', async (body, message) => {
     open();
     const res = await put('/api/bonus', body, await login('Bea'));
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toContain(message);
   });
 
-  it('avant la révélation : on voit qui a choisi, pas quoi', async () => {
+  it('before the reveal: shows who picked, not what', async () => {
     open();
     const bea = await login('Bea');
     await put('/api/bonus', valid, bea);
-    vi.setSystemTime(NOW + DAY + 1); // Wild Card commencée
+    vi.setSystemTime(NOW + DAY + 1); // Wild Card started
     db.prepare('UPDATE games SET status = ? WHERE week = 19').run('live');
-    // Révélation au Super Bowl, pas encore au calendrier.
+    // Revealed at the Super Bowl, not yet scheduled.
     await put('/api/admin/bonus', { reveal: 'superbowl' }, await login('Gwen'));
     const b = (await get('/api/bonus', await login('Audrey'))).json();
     expect(b).toMatchObject({ phase: 'locked', revealed: false });
@@ -252,7 +252,7 @@ describe('bonus de fin de saison', () => {
     expect(b.players.find((p: any) => p.name === 'Audrey')).toMatchObject({ done: false });
   });
 
-  it('après la révélation : les choix et points de chacun', async () => {
+  it('after the reveal: everyone\'s picks and points', async () => {
     open();
     const bea = await login('Bea');
     await put('/api/bonus', valid, bea);
@@ -263,7 +263,7 @@ describe('bonus de fin de saison', () => {
     expect(b.players.find((p: any) => p.name === 'Bea')).toMatchObject({ done: true, pick: { afc: { abbr: 'BUF' } }, points: 3 });
   });
 
-  it('réglages admin : valide les points et la révélation', async () => {
+  it('admin settings: validates points and reveal', async () => {
     const gwen = await login('Gwen');
     expect((await put('/api/admin/bonus', { points: { sb: 6 } }, gwen)).json()).toEqual({
       enabled: true,
@@ -272,19 +272,19 @@ describe('bonus de fin de saison', () => {
     });
     expect((await put('/api/admin/bonus', { points: { afc: 51 } }, gwen)).statusCode).toBe(400);
     expect((await put('/api/admin/bonus', { points: { afc: 1.5 } }, gwen)).statusCode).toBe(400);
-    expect((await put('/api/admin/bonus', { reveal: 'demain' }, gwen)).statusCode).toBe(400);
+    expect((await put('/api/admin/bonus', { reveal: 'tomorrow' }, gwen)).statusCode).toBe(400);
     expect((await put('/api/admin/bonus', { enabled: false }, gwen)).json().enabled).toBe(false);
     expect((await put('/api/admin/bonus', { enabled: true }, await login('Bea'))).statusCode).toBe(403);
   });
 });
 
-describe('données ESPN à la demande', () => {
+describe('on-demand ESPN data', () => {
   const preview = { away: {}, home: {}, odds: null } as never;
   const live = { winProb: [], length: 3600, scoring: [], stats: [], leaders: [], situation: null } as never;
 
-  it('avant-match : un seul appel ESPN pour plusieurs visites en 20 min', async () => {
+  it('preview: a single ESPN call for several visits within 20 min', async () => {
     vi.mocked(espn.fetchPreview).mockResolvedValue(preview);
-    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('ESPN en panne'));
+    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('ESPN down'));
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW + DAY });
     expect((await get(`/api/games/${g}/preview`, bea)).json()).toMatchObject({ odds: null, standing: null });
@@ -295,9 +295,9 @@ describe('données ESPN à la demande', () => {
     expect(espn.fetchPreview).toHaveBeenCalledTimes(2);
   });
 
-  it('avant-match : si ESPN tombe, on ressert la dernière version connue', async () => {
-    vi.mocked(espn.fetchPreview).mockResolvedValueOnce(preview).mockRejectedValue(new Error('panne'));
-    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('panne'));
+  it('preview: if ESPN goes down, serves the last known version', async () => {
+    vi.mocked(espn.fetchPreview).mockResolvedValueOnce(preview).mockRejectedValue(new Error('outage'));
+    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('outage'));
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW + DAY });
     await get(`/api/games/${g}/preview`, bea);
@@ -307,7 +307,7 @@ describe('données ESPN à la demande', () => {
     expect((await get(`/api/games/${other}/preview`, bea)).statusCode).toBe(502);
   });
 
-  it('direct : 409 avant le coup d’envoi, cache de 25 s pendant le match', async () => {
+  it('live: 409 before kickoff, 25 s cache during the game', async () => {
     vi.mocked(espn.fetchLive).mockResolvedValue(live);
     const bea = await login('Bea');
     expect((await get(`/api/games/${addGame({ kickoff: NOW + HOUR })}/live`, bea)).statusCode).toBe(409);
@@ -316,13 +316,13 @@ describe('données ESPN à la demande', () => {
     vi.setSystemTime(NOW + 20_000);
     await get(`/api/games/${g}/live`, bea);
     expect(espn.fetchLive).toHaveBeenCalledTimes(1);
-    expect(espn.fetchLive).toHaveBeenCalledWith(g, true); // playoffs : prolongation de 15 min
+    expect(espn.fetchLive).toHaveBeenCalledWith(g, true); // playoffs: 15-min overtime
     vi.setSystemTime(NOW + 30_000);
     await get(`/api/games/${g}/live`, bea);
     expect(espn.fetchLive).toHaveBeenCalledTimes(2);
   });
 
-  it('direct : au coup de sifflet final, on reprend les stats définitives sans attendre', async () => {
+  it('live: at the final whistle, fetches the final stats right away', async () => {
     vi.mocked(espn.fetchLive).mockResolvedValue(live);
     const bea = await login('Bea');
     const g = addGame({ week: 10, status: 'live', score: [7, 0] });
@@ -332,7 +332,7 @@ describe('données ESPN à la demande', () => {
     expect(espn.fetchLive).toHaveBeenCalledTimes(2);
   });
 
-  it('direct : un match fini depuis la veille n’est plus jamais redemandé à ESPN', async () => {
+  it('live: a game finished since the day before is never requested from ESPN again', async () => {
     vi.mocked(espn.fetchLive).mockResolvedValue(live);
     const bea = await login('Bea');
     const g = addGame({ week: 10, kickoff: NOW - 2 * DAY, score: [7, 0] });
@@ -342,30 +342,30 @@ describe('données ESPN à la demande', () => {
     expect(espn.fetchLive).toHaveBeenCalledTimes(1);
   });
 
-  it('admin : la synchro donne aussi le nombre d’appels ESPN', async () => {
+  it('admin: sync status also gives the number of ESPN calls', async () => {
     const s = (await get('/api/admin/sync', await login('Gwen'))).json();
     expect(s.espn).toEqual({ lastHour: 0, lastDay: 0, errorsLastHour: 0, pausedUntil: null });
   });
 
-  it('classement NFL : équipes de la base et têtes de série triées', async () => {
+  it('NFL standings: teams from the database and sorted seeds', async () => {
     const team = (id: string, seed: number, divRank: number) => ({ teamId: id, record: '5-3', streak: null, seed, diff: null, divRecord: null, divRank, clinch: null });
     vi.mocked(espn.fetchStandings).mockResolvedValue({
       conferences: [
-        { abbr: 'AFC', divisions: [{ name: 'AFC Est', teams: [team(TEAMS.KC.id, 3, 1), team(TEAMS.BUF.id, 1, 2), team('999', 9, 3)] }] }
+        { abbr: 'AFC', divisions: [{ name: 'AFC East', teams: [team(TEAMS.KC.id, 3, 1), team(TEAMS.BUF.id, 1, 2), team('999', 9, 3)] }] }
       ]
     });
     const s = (await get('/api/nfl/standings', await login('Bea'))).json();
-    expect(s.conferences[0].divisions[0].teams).toHaveLength(2); // équipe inconnue ignorée
+    expect(s.conferences[0].divisions[0].teams).toHaveLength(2); // unknown team ignored
     expect(s.conferences[0].seeds.map((t: any) => [t.team.abbr, t.seed, t.division])).toEqual([
-      ['BUF', 1, 'AFC Est'],
-      ['KC', 3, 'AFC Est']
+      ['BUF', 1, 'AFC East'],
+      ['KC', 3, 'AFC East']
     ]);
   });
 });
 
-describe('fiche équipe', () => {
-  it('bilan, calendrier et ce que la bande a fait avec elle', async () => {
-    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('panne'));
+describe('team page', () => {
+  it('record, schedule and what the group did with that team', async () => {
+    vi.mocked(espn.fetchStandings).mockRejectedValue(new Error('outage'));
     const g1 = addGame({ week: 10, away: 'BUF', home: 'KC', score: [24, 17] });
     const g2 = addGame({ week: 11, away: 'DAL', home: 'BUF', score: [30, 10] });
     addGame({ week: 12, away: 'BUF', home: 'PIT', kickoff: NOW + DAY });
@@ -374,15 +374,15 @@ describe('fiche équipe', () => {
     const t = (await get('/api/teams/buf', await login('Bea'))).json();
     expect(t).toMatchObject({ record: '1-1', standing: null, team: { abbr: 'BUF' } });
     expect(t.schedule.map((g: any) => [g.week, g.opponent.abbr, g.home, g.result ?? null])).toEqual([
-      [10, 'KC', false, 'V'],
-      [11, 'DAL', true, 'D'],
+      [10, 'KC', false, 'W'],
+      [11, 'DAL', true, 'L'],
       [12, 'PIT', false, null]
     ]);
-    expect(t.bande.find((b: any) => b.name === 'Bea')).toMatchObject({ with: 2, withGood: 1, against: 0 });
-    expect(t.bande.find((b: any) => b.name === 'Gwen')).toMatchObject({ with: 0, against: 1, againstGood: 0 });
+    expect(t.band.find((b: any) => b.name === 'Bea')).toMatchObject({ with: 2, withGood: 1, against: 0 });
+    expect(t.band.find((b: any) => b.name === 'Gwen')).toMatchObject({ with: 0, against: 1, againstGood: 0 });
   });
 
-  it('404 pour une équipe inconnue', async () => {
+  it('404 for an unknown team', async () => {
     expect((await get('/api/teams/xyz', await login('Bea'))).statusCode).toBe(404);
   });
 });

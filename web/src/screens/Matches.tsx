@@ -26,12 +26,12 @@ export function Matches({
   const weekQ = useWeek(week);
   const data = weekQ.data;
 
-  // Au retour d'une fiche match, la liste reprend là où on l'avait laissée (une position par semaine).
+  // Coming back from a match page, the list resumes where it was left (one position per week).
   const root = useRef<HTMLDivElement>(null);
   useScrollMemory(root, data ? `matchs-${data.week}` : null, !!weeks && !!data);
   const error = (weekQ.error ?? weeksQ.error)?.message ?? null;
 
-  // Centre la semaine affichée dans la barre (une fois les données là, sinon la barre n'existe pas encore).
+  // Center the displayed week in the bar (once the data is there, otherwise the bar doesn't exist yet).
   const shownWeek = data?.week;
   useEffect(() => {
     if (!shownWeek) return;
@@ -79,7 +79,7 @@ export function Matches({
         <WeekPicker
           weeks={weeks.weeks.map((w) => ({ id: w.week, label: w.label }))}
           value={data.week}
-          onChange={(w) => go(`matchs/${w}`, true)}
+          onChange={(w) => go(`matches/${w}`, true)}
         />
       </div>
 
@@ -127,7 +127,7 @@ export function Matches({
   );
 }
 
-/** Carte du bonus de fin de saison : visible quand les choix sont ouverts, puis pendant les playoffs. */
+/** End-of-season bonus card: visible while picks are open, then during the playoffs. */
 function BonusBanner({ playoffs }: { playoffs: boolean }) {
   const { data: b } = useBonus();
   if (!b || !(b.phase === 'open' || (b.phase === 'locked' && playoffs))) return null;

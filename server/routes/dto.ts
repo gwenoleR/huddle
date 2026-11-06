@@ -1,4 +1,4 @@
-/** Mise en forme des lignes de la base pour l'API (types dans shared/api.ts). */
+/** Shapes database rows for the API (types in shared/api.ts). */
 import type { GameDto, TeamDto } from '../../shared/api';
 import { db, startWeek } from '../db';
 import type { Me } from '../auth';
@@ -27,7 +27,7 @@ export interface GameRow {
   winner: GameDto['winner'];
 }
 
-/** Texte noir ou blanc, selon ce qui se lit le mieux sur la couleur de l'équipe. */
+/** Black or white text, whichever reads best on the team's color. */
 export function readableOn(hex: string): string {
   const n = parseInt(hex, 16);
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
@@ -52,12 +52,12 @@ export function teamDto(t: TeamRow): TeamDto {
   };
 }
 
-/** Toutes les équipes, par identifiant ESPN. */
+/** All teams, by ESPN id. */
 export function teamsById(): Map<string, TeamRow> {
   return new Map((db.prepare('SELECT * FROM teams').all() as unknown as TeamRow[]).map((t) => [t.id, t]));
 }
 
-/** Un prono n'est plus possible une fois le match commencé (même si la synchro ne l'a pas encore vu). */
+/** A pick is no longer possible once the game has started (even if the sync hasn't seen it yet). */
 export const isLocked = (g: GameRow, now = Date.now()) => g.status !== 'scheduled' || g.kickoff <= now || g.week < startWeek(g.season);
 
 export function gamesDto(rows: GameRow[], me: Me): GameDto[] {

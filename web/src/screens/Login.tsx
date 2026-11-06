@@ -7,7 +7,7 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
   const [players, setPlayers] = useState<PlayerLite[] | null>(null);
   const [who, setWho] = useState<PlayerLite | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Base vide (nouvelle installation) : on crée le groupe, son créateur en devient l'admin.
+  // Empty database (fresh install): create the group, its creator becomes the admin.
   const setup = players?.length === 0;
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function Login({ onLogged }: { onLogged: (me: Me) => void }) {
   );
 }
 
-/** Nouvelle installation : le prénom de celui qui crée le groupe (son code vient juste après). */
+/** Fresh install: the first name of whoever creates the group (their code comes right after). */
 function SetupName({ onNext }: { onNext: (name: string) => void }) {
   const [name, setName] = useState('');
   const trimmed = name.trim();
@@ -87,7 +87,7 @@ function PinStep({
   onLogged
 }: {
   player: PlayerLite;
-  /** Création du groupe : le code confirmé crée le joueur admin. */
+  /** Group creation: the confirmed code creates the admin player. */
   setup?: boolean;
   onBack: () => void;
   onLogged: (me: Me) => void;
@@ -99,7 +99,7 @@ function PinStep({
     pinRef.current = v;
     setPinState(v);
   };
-  const [first, setFirst] = useState<string | null>(null); // création : premier code tapé
+  const [first, setFirst] = useState<string | null>(null); // creation: first code typed
   const [msg, setMsg] = useState<{ text: string; tone: 'error' | 'info' } | null>(null);
   const [shake, setShake] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -140,7 +140,7 @@ function PinStep({
   const press = useCallback(
     (k: string) => {
       if (busy) return;
-      // On lit la valeur courante dans une ref : deux appuis rapprochés ne doivent pas se marcher dessus.
+      // Read the current value from a ref: two quick presses must not step on each other.
       const current = pinRef.current;
       if (k === 'del') {
         pinRef.current = current.slice(0, -1);
@@ -155,7 +155,7 @@ function PinStep({
     [busy, submit]
   );
 
-  // Clavier physique (ordinateur) : chiffres et retour arrière.
+  // Physical keyboard (computer): digits and backspace.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (/^\d$/.test(e.key)) press(e.key);

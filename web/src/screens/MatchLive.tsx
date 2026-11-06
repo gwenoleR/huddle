@@ -3,10 +3,10 @@ import { TeamLink } from './shared';
 import { useLive } from '../lib/data';
 import { t } from '../lib/i18n';
 
-/** Pendant et après le match : situation en cours, courbe des chances de victoire et actions qui ont marqué. */
+/** During and after the game: current situation, win probability chart and scoring plays. */
 export function MatchLive({ game }: { game: GameDto }) {
   const live = game.status === 'live';
-  // Pendant le match : toutes les 30 s (en pause quand l'appli est en arrière-plan).
+  // During the game: every 30 s (paused while the app is in the background).
   const q = useLive(game.id, live);
   const d = q.data;
   const error = q.error?.message ?? null;
@@ -151,7 +151,7 @@ export function MatchLive({ game }: { game: GameDto }) {
   );
 }
 
-/** Courbe des chances de l'équipe à l'extérieur : au-dessus du milieu elle mène, en dessous c'est l'équipe à domicile. */
+/** Away team win probability chart: above the middle it leads, below it's the home team. */
 function WinChart({ data, awayAbbr, homeAbbr }: { data: LiveDto; awayAbbr: string; homeAbbr: string }) {
   const W = 340;
   const H = 140;

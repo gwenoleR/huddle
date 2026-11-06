@@ -1,4 +1,4 @@
-/* Mise en page de l'appli, par-dessus les tokens et composants du design system. */
+/* App layout, on top of the design system tokens and components. */
 html,
 body,
 #root {
@@ -15,8 +15,8 @@ a {
   color: inherit;
 }
 
-/* Plein écran fiable, y compris en mode « écran d'accueil » iOS (où 100dvh est faux).
-   La zone de l'encoche est réservée ici une fois pour toutes. */
+/* Reliable full screen, including in iOS "home screen" mode (where 100dvh is wrong).
+   The notch area is reserved here once and for all. */
 .app {
   position: fixed;
   inset: 0;
@@ -344,7 +344,7 @@ summary.admin-player::-webkit-details-marker {
   text-decoration: none;
   position: relative;
 }
-/* Chevron : la carte mène à une autre page. */
+/* Chevron: the card leads to another page. */
 .admin-link::after {
   content: '';
   position: absolute;
@@ -356,7 +356,7 @@ summary.admin-player::-webkit-details-marker {
   border-right: 2px solid var(--ink-muted);
   transform: translateY(-50%) rotate(45deg);
 }
-/* Choix du CSV : le vrai champ fichier est caché, le libellé fait office de bouton. */
+/* CSV picker: the real file input is hidden, the label acts as the button. */
 .file-btn {
   display: flex;
   align-items: center;
@@ -391,7 +391,7 @@ summary.admin-player::-webkit-details-marker {
   font-weight: 600;
 }
 
-/* Trophées */
+/* Trophies */
 .award-btn {
   width: 100%;
   font: inherit;
@@ -415,7 +415,7 @@ summary.admin-player::-webkit-details-marker {
   color: var(--on-gold);
 }
 
-/* Feuille modale (qui monte du bas sur téléphone) */
+/* Modal sheet (slides up from the bottom on phones) */
 .sheet {
   width: 100%;
   max-width: 480px;
@@ -469,7 +469,7 @@ summary.admin-player::-webkit-details-marker {
   gap: var(--space-2);
 }
 
-/* Connexion */
+/* Login */
 .login {
   flex: 1;
   overflow-y: auto;
@@ -574,8 +574,8 @@ summary.admin-player::-webkit-details-marker {
   font-weight: 600;
 }
 
-/* iOS installé : zone web plus courte que l'écran (voir main.tsx). iOS peint le bas de l'écran
-   avec le fond de la page : il prend la couleur de la navigation, sur les écrans qui en ont une. */
+/* Installed iOS app: web view shorter than the screen (see main.tsx). iOS paints the bottom of the
+   screen with the page background: it takes the navigation color, on screens that have one. */
 html.short-webview:has(.pr-nav),
 html.short-webview:has(.pr-nav) body {
   background: var(--surface-100);
@@ -607,7 +607,7 @@ html.short-webview .login {
   justify-content: center;
 }
 
-/* Avant-match (fiche match) */
+/* Pre-game (match page) */
 .preview {
   display: flex;
   flex-direction: column;
@@ -681,16 +681,16 @@ html.short-webview .login {
   font-weight: 600;
   opacity: 0.85;
 }
-.preview-chip-V {
+.preview-chip-W {
   background: var(--brand);
   color: var(--on-brand);
 }
-.preview-chip-D {
+.preview-chip-L {
   background: transparent;
   color: var(--wrong);
   box-shadow: inset 0 0 0 1.5px var(--wrong);
 }
-.preview-chip-N {
+.preview-chip-T {
   background: var(--surface-200);
   color: var(--ink);
 }
@@ -737,7 +737,7 @@ html.short-webview .login {
   color: var(--ink-muted);
 }
 
-/* Pendant le match (fiche match) */
+/* During the game (match page) */
 .live-sit,
 .live-chart,
 .live-scoring {
@@ -847,7 +847,7 @@ html.short-webview .login {
   font-variant-numeric: tabular-nums;
 }
 
-/* Stats et meilleurs joueurs (fiche match) */
+/* Stats and top players (match page) */
 .live-stats,
 .live-leaders {
   display: flex;
@@ -921,7 +921,7 @@ html.short-webview .login {
   text-align: right;
 }
 
-/* Classement : bascule La bande / NFL */
+/* Leaderboard: group / NFL toggle */
 .league-tabs {
   display: flex;
   gap: var(--space-5, 20px);
@@ -942,7 +942,7 @@ html.short-webview .login {
   border-bottom-color: var(--brand);
 }
 
-/* Classement NFL */
+/* NFL standings */
 .nfl-card {
   padding: var(--space-4);
   display: flex;
@@ -1053,7 +1053,7 @@ html.short-webview .login {
   padding: 0;
 }
 
-/* Fiche équipe (feuille) */
+/* Team page (sheet) */
 .sheet-scroll {
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1076,7 +1076,7 @@ html.short-webview .login {
   flex-direction: column;
   gap: var(--space-2);
 }
-.team-bande {
+.team-band {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -1084,7 +1084,7 @@ html.short-webview .login {
   padding: 6px 0;
   border-bottom: 1px solid var(--surface-200);
 }
-.team-bande > .small {
+.team-band > .small {
   text-align: right;
 }
 .team-good {
@@ -1148,7 +1148,7 @@ html.short-webview .login {
 .team-live {
   color: var(--wrong);
 }
-/* Noms d'équipe cliquables (ouvrent la fiche équipe) */
+/* Clickable team names (open the team page) */
 .team-link {
   padding: 0;
   border: 0;
@@ -1176,7 +1176,7 @@ button.nfl-row {
   border-top: 1px solid var(--surface-200);
 }
 
-/* Bonus de fin de saison */
+/* End-of-season bonus */
 .bonus-rules {
   display: flex;
   flex-direction: column;
@@ -1312,7 +1312,7 @@ button.nfl-row {
   text-align: center;
 }
 
-/* Saisons précédentes : un lien discret en bas du classement et du bilan. */
+/* Previous seasons: a discreet link at the bottom of the leaderboard and the season recap. */
 .other-seasons {
   margin: 0;
   text-align: center;

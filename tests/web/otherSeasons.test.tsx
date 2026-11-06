@@ -16,23 +16,23 @@ afterEach(() => act(() => root.unmount()));
 
 const links = () => [...el.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
 
-describe('lien vers les autres saisons', () => {
-  it('une seule saison : rien du tout', () => {
+describe('link to other seasons', () => {
+  it('a single season: nothing at all', () => {
     act(() => root.render(<OtherSeasons seasons={[2026]} shown={2026} current={2026} label="Saisons précédentes" />));
     expect(el.innerHTML).toBe('');
   });
 
-  it('depuis la saison en cours : les saisons passées, vers leur bilan', () => {
+  it('from the current season: past seasons, linking to their summary', () => {
     act(() => root.render(<OtherSeasons seasons={[2026, 2025, 2024]} shown={2026} current={2026} label="Saisons précédentes" />));
     expect(el.textContent).toBe('Saisons précédentes : 2025 · 2024');
     expect(links()).toEqual([
-      ['2025', '#/bilan/2025'],
-      ['2024', '#/bilan/2024']
+      ['2025', '#/season/2025'],
+      ['2024', '#/season/2024']
     ]);
   });
 
-  it('depuis une saison passée : retour possible vers la saison en cours', () => {
+  it('from a past season: can go back to the current season', () => {
     act(() => root.render(<OtherSeasons seasons={[2026, 2025]} shown={2025} current={2026} label="Autres saisons" />));
-    expect(links()).toEqual([['2026', '#/bilan']]);
+    expect(links()).toEqual([['2026', '#/season']]);
   });
 });

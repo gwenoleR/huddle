@@ -39,7 +39,7 @@ export function App() {
       .catch(() => setMe(null));
   }, []);
 
-  // Session perdue en cours de route (code remis à zéro par l'admin, session expirée) : retour à la connexion.
+  // Session lost along the way (code reset by the admin, session expired): back to login.
   useEffect(() => {
     const onLost = () => {
       forgetEverything();
@@ -55,7 +55,7 @@ export function App() {
     if ('caches' in window) await caches.delete('api').catch(() => {});
     forgetEverything();
     setMe(null);
-    go('matchs', true);
+    go('matches', true);
   }
 
   if (me === undefined) return <div className="app splash" />;
@@ -80,20 +80,20 @@ export function App() {
     );
 
   const tab =
-    route.name === 'match' || route.name === 'matchs' ? 'matchs' : route.name === 'bilan' || route.name === 'recap' || route.name === 'bonus' ? 'classement' : route.name === 'admin' ? 'profil' : route.name;
-  const screenKey = route.name === 'match' ? `match-${route.id}` : route.name === 'classement' && route.nfl ? 'classement-nfl' : route.name;
+    route.name === 'match' || route.name === 'matches' ? 'matches' : route.name === 'season' || route.name === 'recap' || route.name === 'bonus' ? 'standings' : route.name === 'admin' ? 'profile' : route.name;
+  const screenKey = route.name === 'match' ? `match-${route.id}` : route.name === 'standings' && route.nfl ? 'standings-nfl' : route.name;
 
   return (
     <div className="app">
       <div className="screen" key={screenKey}>
-        {route.name === 'matchs' && <Matches routeWeek={route.week} me={me} theme={theme} notify={notify} />}
+        {route.name === 'matches' && <Matches routeWeek={route.week} me={me} theme={theme} notify={notify} />}
         {route.name === 'match' && <MatchDetail id={route.id} me={me} theme={theme} notify={notify} />}
-        {route.name === 'classement' && <Leaderboard me={me} nfl={!!route.nfl} theme={theme} />}
-        {route.name === 'bilan' && <Season me={me} season={route.season} />}
+        {route.name === 'standings' && <Leaderboard me={me} nfl={!!route.nfl} theme={theme} />}
+        {route.name === 'season' && <Season me={me} season={route.season} />}
         {route.name === 'bonus' && <Bonus me={me} theme={theme} notify={notify} />}
         {route.name === 'recap' && <Recap week={route.week} notify={notify} />}
         {route.name === 'admin' && <Admin me={me} notify={notify} />}
-        {route.name === 'profil' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
+        {route.name === 'profile' && <Profile themePref={pref} setThemePref={setPref} onLogout={logout} notify={notify} />}
       </div>
       <BottomNav active={tab} onChange={(id) => go(id)} />
       <TeamSheet me={me} theme={theme} />

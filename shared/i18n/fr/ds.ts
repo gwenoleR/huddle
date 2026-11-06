@@ -1,13 +1,13 @@
-/** Textes des composants du design system (navigation, statuts, carte de match). */
+/** Texts of the design system components (navigation, statuses, game card). */
 
 export const ds = {
   loading: 'Chargement…',
 
-  /** Barre de navigation du bas. */
+  /** Bottom navigation bar. */
   navLabel: 'Navigation principale',
-  nav: { matchs: 'Matchs', classement: 'Classement', profil: 'Profil' } as Record<string, string>,
+  nav: { matches: 'Matchs', standings: 'Classement', profile: 'Profil' },
 
-  /** Pastille d'état d'un match (et verdict du prono une fois terminé). */
+  /** A game's status pill (and the pick's verdict once final). */
   status: {
     open: 'Ouvert',
     locked: 'Verrouillé',
@@ -19,19 +19,19 @@ export const ds = {
 
   weekPickerLabel: 'Semaine',
 
-  /** Carte de match. */
+  /** Game card. */
   myPick: 'Ton prono',
-  /** Bouton d'une équipe, pour un lecteur d'écran : « Bills, ton prono ». */
+  /** A team's button, for screen readers: « Bills, ton prono ». */
   sideLabel: (team: string, picked: boolean) => `${team}${picked ? ', ton prono' : ''}`,
   nobodyPicked: 'Personne n’a encore joué',
-  /** Barre de répartition : « 2 pour Bills, 1 pour Chiefs ». */
+  /** Split bar: « 2 pour Bills, 1 pour Chiefs ». */
   splitLabel: (awayCount: number, away: string, homeCount: number, home: string) =>
     `${awayCount} pour ${away}, ${homeCount} pour ${home}`,
 
-  /** Ligne du classement. */
+  /** Leaderboard row. */
   you: 'toi',
   pointsUnit: 'pts',
 
-  /** Libellé avant une liste de liens : « Saisons précédentes : ». */
+  /** Label before a list of links: « Saisons précédentes : ». */
   listLabel: (label: string) => `${label} :`
 };

@@ -6,7 +6,7 @@ import { standingText, withByes } from '../lib/labels';
 import { useTeam } from '../lib/data';
 import { t } from '../lib/i18n';
 
-/** Fiche équipe en feuille : on la ferme et on retrouve l'écran (et son prono) tel quel. */
+/** Team page as a sheet: closing it brings back the screen (and its pick) as it was. */
 export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [abbr, setAbbr] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
 
   const close = () => setAbbr(null);
   const logo = (team: TeamSheetDto['team']) => (theme === 'dark' ? team.logoDark : team.logo);
-  const played = d?.bande.filter((b) => b.with + b.against > 0) ?? [];
+  const played = d?.band.filter((b) => b.with + b.against > 0) ?? [];
 
   return (
     <dialog
@@ -69,7 +69,7 @@ export function TeamSheet({ me, theme }: { me: Me; theme: 'dark' | 'light' }) {
                 <span className="muted small">{t.team.noBandPicks}</span>
               )}
               {played.map((b) => (
-                <div key={b.name} className="team-bande">
+                <div key={b.name} className="team-band">
                   <b>{b.name === me.name ? t.match.you : b.name}</b>
                   <span className="small">
                     {b.with > 0 && (

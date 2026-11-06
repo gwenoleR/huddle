@@ -1,6 +1,6 @@
-name: Image Docker
+name: Docker image
 
-# Vérifie les types, lance les tests, puis construit l'image à chaque push sur main et la publie sur ghcr.io/gwenoler/pronos
+# Checks types, runs the tests, then builds the image on every push to main and publishes it to ghcr.io/gwenoler/pronos
 on:
   push:
     branches: [main]
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Types et tests d'abord : si l'un des deux échoue, l'image n'est pas publiée.
+  # Types and tests first: if either fails, the image is not published.
   test:
     runs-on: ubuntu-24.04
     steps:
@@ -44,7 +44,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Le nom de l'image est mis en minuscules : ghcr.io/gwenoler/pronos
+      # The image name is lowercased: ghcr.io/gwenoler/pronos
       - id: meta
         uses: docker/metadata-action@v6
         with:

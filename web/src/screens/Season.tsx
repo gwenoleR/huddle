@@ -20,7 +20,7 @@ export function Season({ me, season }: { me: Me; season?: number }) {
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/classement" label={t.leaderboard.title} />
+        <BackLink href="#/standings" label={t.leaderboard.title} />
       </header>
       <main className="stack" style={{ gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -123,7 +123,7 @@ function AwardRow({ award, finished, onOpen }: { award: AwardDto; finished: bool
   );
 }
 
-/** Fenêtre d'explication d'un trophée (feuille qui monte du bas, fermeture par le bouton, le fond ou Échap). */
+/** Trophy explanation dialog (sheet sliding up from the bottom, closed by the button, the backdrop or Esc). */
 function TrophyDialog({ award, me, finished, onClose }: { award: AwardDto | null; me: Me; finished: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {

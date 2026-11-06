@@ -1,4 +1,4 @@
-/** Toutes les routes de l'API, une par domaine. Les formes des réponses sont dans shared/api.ts. */
+/** All API routes, one module per domain. Response shapes are in shared/api.ts. */
 import type { FastifyInstance } from 'fastify';
 import { adminRoutes } from './admin';
 import { authRoutes } from './auth';

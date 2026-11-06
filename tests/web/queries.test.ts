@@ -5,7 +5,7 @@ import { CACHE_KEY, applyPick, claimCache, forgetEverything, keys, queryClient, 
 const NOW = Date.parse('2026-11-08T18:00:00Z');
 const MIN = 60_000;
 
-/** Un localStorage minimal, comme celui du téléphone. */
+/** A minimal localStorage, like the phone's. */
 function fakeStorage() {
   const m = new Map<string, string>();
   return {
@@ -21,88 +21,88 @@ afterEach(() => {
   queryClient.clear();
 });
 
-describe('nouvel essai après une erreur', () => {
-  it('réessaie deux fois après une coupure réseau ou une erreur serveur', () => {
-    expect(shouldRetry(0, new ApiError(0, 'Pas de réseau'))).toBe(true);
+describe('retry after an error', () => {
+  it('retries twice after a network outage or a server error', () => {
+    expect(shouldRetry(0, new ApiError(0, 'No network'))).toBe(true);
     expect(shouldRetry(1, new ApiError(502, 'ESPN'))).toBe(true);
     expect(shouldRetry(2, new ApiError(502, 'ESPN'))).toBe(false);
   });
 
-  it('ne réessaie jamais un refus (session expirée, match introuvable…)', () => {
-    for (const status of [401, 403, 404, 409]) expect(shouldRetry(0, new ApiError(status, 'non'))).toBe(false);
+  it('never retries a rejection (expired session, game not found…)', () => {
+    for (const status of [401, 403, 404, 409]) expect(shouldRetry(0, new ApiError(status, 'no'))).toBe(false);
   });
 });
 
-describe('rythme de rafraîchissement des matchs', () => {
+describe('game refresh pace', () => {
   const g = (status: 'scheduled' | 'live' | 'final', kickoff: number) => ({ status, kickoff });
 
-  it('30 s dès qu’un match est en cours', () => {
+  it('30 s as soon as a game is live', () => {
     expect(weekRefreshInterval([g('final', NOW - 5 * 60 * MIN), g('live', NOW - 60 * MIN)], NOW)).toBe(30_000);
   });
 
-  it('30 s dans le quart d’heure avant un coup d’envoi (et tant que la synchro ne l’a pas vu commencer)', () => {
+  it('30 s in the quarter hour before kickoff (and until the sync has seen it start)', () => {
     expect(weekRefreshInterval([g('scheduled', NOW + 10 * MIN)], NOW)).toBe(30_000);
     expect(weekRefreshInterval([g('scheduled', NOW - 5 * MIN)], NOW)).toBe(30_000);
   });
 
-  it('5 min sinon', () => {
+  it('5 min otherwise', () => {
     expect(weekRefreshInterval([g('scheduled', NOW + 3 * 60 * MIN), g('final', NOW - 60 * MIN)], NOW)).toBe(5 * MIN);
     expect(weekRefreshInterval([], NOW)).toBe(5 * MIN);
     expect(weekRefreshInterval(undefined, NOW)).toBe(5 * MIN);
   });
 });
 
-describe('prono affiché tout de suite', () => {
+describe('pick shown right away', () => {
   const game: Pick<GameDto, 'myPick' | 'pickers'> = { myPick: null, pickers: { away: ['Audrey'], home: ['Gwen', 'Bea'] } };
 
-  it('ajoute mon prénom en tête du bon côté', () => {
+  it('adds my name first on the right side', () => {
     expect(applyPick(game, 'away', 'Bea')).toEqual({ myPick: 'away', pickers: { away: ['Bea', 'Audrey'], home: ['Gwen'] } });
   });
 
-  it('ne touche pas au match d’origine (pour pouvoir revenir en arrière)', () => {
+  it('does not touch the original game (so it can be rolled back)', () => {
     applyPick(game, 'home', 'Max');
     expect(game.pickers.home).toEqual(['Gwen', 'Bea']);
   });
 
-  it('garde les autres champs du match', () => {
+  it('keeps the game\'s other fields', () => {
     const detail = { ...game, id: 'g1', waiting: ['Bud'] };
     expect(applyPick(detail, 'home', 'Bud')).toMatchObject({ id: 'g1', waiting: ['Bud'], myPick: 'home' });
   });
 });
 
-describe('clés du cache', () => {
-  it('une clé par donnée, insensible à la casse pour les équipes', () => {
+describe('cache keys', () => {
+  it('one key per data item, case-insensitive for teams', () => {
     expect(keys.team('buf')).toEqual(keys.team('BUF'));
     expect(keys.leaderboard()).toEqual(['leaderboard', 'season', 'current']);
     expect(keys.leaderboard(10)).toEqual(['leaderboard', 10, 'current']);
     expect(keys.leaderboard(undefined, 2025)).toEqual(['leaderboard', 'season', 2025]);
-    expect(keys.seasonOf(2025).slice(0, 1)).toEqual(keys.season); // « tout recharger » touche aussi les bilans passés
+    expect(keys.seasonOf(2025).slice(0, 1)).toEqual(keys.season); // "reload everything" also covers past season summaries
     expect(keys.recap()).not.toEqual(keys.recap(10));
   });
 });
 
-describe('cache gardé sur le téléphone', () => {
-  it('la déconnexion efface tout', () => {
+describe('cache kept on the phone', () => {
+  it('logout clears everything', () => {
     queryClient.setQueryData(keys.profile, { name: 'Bea' });
-    localStorage.setItem(CACHE_KEY, '{"cache":"de Bea"}');
+    localStorage.setItem(CACHE_KEY, '{"cache":"from Bea"}');
     forgetEverything();
     expect(queryClient.getQueryData(keys.profile)).toBeUndefined();
     expect(localStorage.getItem(CACHE_KEY)).toBeNull();
   });
 
-  it('si un autre joueur se connecte sur le téléphone, on repart de zéro', () => {
+  it('if another player logs in on the phone, starts from scratch', () => {
     claimCache(3);
     queryClient.setQueryData(keys.profile, { name: 'Bea' });
-    claimCache(3); // même joueur : on garde
+    claimCache(3); // same player: kept
     expect(queryClient.getQueryData(keys.profile)).toEqual({ name: 'Bea' });
-    claimCache(5); // quelqu'un d'autre
+    claimCache(5); // someone else
     expect(queryClient.getQueryData(keys.profile)).toBeUndefined();
   });
 
-  it('sans stockage (navigation privée), rien ne plante', () => {
+  it('without storage (private browsing), nothing crashes', () => {
     vi.stubGlobal('localStorage', {
       getItem: () => {
-        throw new Error('bloqué');
+        throw new Error('blocked');
       }
     });
     expect(() => claimCache(1)).not.toThrow();

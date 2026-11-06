@@ -1,4 +1,4 @@
-/** Réglages publics de l'instance : nom, langue, barème. Et le manifeste de l'appli installable, qui en dépend. */
+/** The instance's public settings: name, language, scoring. And the installable app's manifest, which depends on them. */
 import type { FastifyInstance } from 'fastify';
 import type { ConfigDto } from '../../shared/api';
 import { APP_LANG, APP_NAME, APP_SHORT_NAME, POINTS_PLAYOFFS, POINTS_REGULAR, t } from '../config';
@@ -10,7 +10,7 @@ export const publicConfig = (): ConfigDto => ({
   points: { regular: POINTS_REGULAR, playoffs: POINTS_PLAYOFFS }
 });
 
-/** Manifeste de la PWA : généré ici (et pas au build) pour porter le nom et la langue de l'instance. */
+/** PWA manifest: generated here (not at build time) so it carries the instance's name and language. */
 export function webManifest() {
   return {
     name: APP_NAME,

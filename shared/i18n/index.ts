@@ -1,23 +1,23 @@
 /**
- * Internationalisation, partagée par le serveur et l'appli.
+ * Internationalization, shared by the server and the app.
  *
- * Les textes sont des objets TypeScript : `t.leaderboard.title` pour un texte fixe,
- * `t.common.pronos(3)` quand il dépend de valeurs (pluriels, noms, nombres). Pas de clé en chaîne
- * ni d'interpolation à l'exécution : le typecheck vérifie chaque usage et chaque traduction.
+ * Texts are TypeScript objects: `t.leaderboard.title` for a fixed text,
+ * `t.common.pronos(3)` when it depends on values (plurals, names, numbers). No string keys
+ * and no runtime interpolation: the typecheck verifies every usage and every translation.
  *
- * Pour ajouter une langue : copier fr/ en en/, traduire, l'ajouter à DICTIONARIES. L'instance
- * choisit sa langue avec APP_LANG.
+ * To add a language: copy fr/ to en/, translate, add it to DICTIONARIES. The instance
+ * picks its language with APP_LANG.
  */
 import { fr } from './fr';
 
-/** Forme d'un dictionnaire : celle du français. */
+/** Shape of a dictionary: that of the French one. */
 export type Messages = typeof fr;
 
 export const DICTIONARIES: Record<string, Messages> = { fr };
 
 export const DEFAULT_LANG = 'fr';
 
-/** Le dictionnaire d'une langue ; le français si elle n'existe pas (encore). */
+/** A language's dictionary; French if it doesn't exist (yet). */
 export function messages(lang: string | undefined): Messages {
   return (lang && DICTIONARIES[lang]) || DICTIONARIES[DEFAULT_LANG];
 }

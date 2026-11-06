@@ -6,13 +6,13 @@ import { useUpdateCheck } from '../../web/src/lib/useUpdateCheck';
 import { dismissUpdate, dismissedUpdate, needsUpdate } from '../../web/src/lib/version';
 
 vi.mock('../../web/src/lib/version', async (orig) => ({ ...(await orig<typeof import('../../web/src/lib/version')>()), reloadLatest: vi.fn() }));
-// L'appli est en version « abc1234 » dans les tests (voir vitest.config.ts).
+// The app is at version "abc1234" in tests (see vitest.config.ts).
 const { UpdatePrompt } = await import('../../web/src/screens/UpdatePrompt');
 const version = await import('../../web/src/lib/version');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-// jsdom n'ouvre pas vraiment les <dialog> : on fait le minimum.
+// jsdom doesn't really open <dialog>s: do the bare minimum.
 HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
   this.setAttribute('open', '');
 };
@@ -46,43 +46,43 @@ function backToApp() {
   document.dispatchEvent(new Event('visibilitychange'));
 }
 
-describe('faut-il proposer la mise à jour ?', () => {
-  it('seulement si le serveur a une autre version, pas déjà repoussée', () => {
+describe('should the update be offered?', () => {
+  it('only if the server has another version, not already dismissed', () => {
     expect(needsUpdate('def5678', 'abc1234', null)).toBe(true);
     expect(needsUpdate('abc1234', 'abc1234', null)).toBe(false);
-    expect(needsUpdate('def5678', 'abc1234', 'def5678')).toBe(false); // « Plus tard » pour cette version
-    expect(needsUpdate('9999999', 'abc1234', 'def5678')).toBe(true); // encore une nouvelle version
-    expect(needsUpdate(null, 'abc1234', null)).toBe(false); // serveur injoignable
+    expect(needsUpdate('def5678', 'abc1234', 'def5678')).toBe(false); // "Later" for this version
+    expect(needsUpdate('9999999', 'abc1234', 'def5678')).toBe(true); // yet another new version
+    expect(needsUpdate(null, 'abc1234', null)).toBe(false); // server unreachable
   });
 
-  it('« Plus tard » est retenu le temps de la visite', () => {
+  it('"Later" is remembered for the visit', () => {
     expect(dismissedUpdate()).toBeNull();
     dismissUpdate('def5678');
     expect(dismissedUpdate()).toBe('def5678');
   });
 });
 
-describe('vérification', () => {
+describe('check', () => {
   function Probe({ onResult }: { onResult: (v: string | null) => void }) {
     onResult(useUpdateCheck('abc1234').available);
     return null;
   }
 
-  it('à l’ouverture puis au retour dans l’appli', async () => {
+  it('on open, then when coming back to the app', async () => {
     let seen: string | null = null;
     act(() => root.render(<Probe onResult={(v) => (seen = v)} />));
     await flush();
     expect(health).toHaveBeenCalledTimes(1);
     expect(seen).toBeNull();
 
-    serverVersion = 'def5678'; // le serveur vient d'être mis à jour
+    serverVersion = 'def5678'; // the server was just updated
     backToApp();
     await flush();
     expect(health).toHaveBeenCalledTimes(2);
     expect(seen).toBe('def5678');
   });
 
-  it('serveur injoignable : rien à proposer, pas d’erreur', async () => {
+  it('server unreachable: nothing to offer, no error', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
     let seen: string | null = 'x';
     act(() => root.render(<Probe onResult={(v) => (seen = v)} />));
@@ -91,17 +91,17 @@ describe('vérification', () => {
   });
 });
 
-describe('feuille « Nouvelle version »', () => {
+describe('"New version" sheet', () => {
   const dialog = () => el.querySelector('dialog')!;
   const button = (label: string) => [...el.querySelectorAll('button')].find((b) => b.textContent === label)!;
 
-  it('reste fermée quand l’appli est à jour', async () => {
+  it('stays closed when the app is up to date', async () => {
     act(() => root.render(<UpdatePrompt />));
     await flush();
     expect(dialog().open).toBe(false);
   });
 
-  it('s’ouvre quand le serveur a une nouvelle version, et « Mettre à jour » recharge', async () => {
+  it('opens when the server has a new version, and "Update" reloads', async () => {
     serverVersion = 'def5678';
     act(() => root.render(<UpdatePrompt />));
     await flush();
@@ -110,7 +110,7 @@ describe('feuille « Nouvelle version »', () => {
     expect(version.reloadLatest).toHaveBeenCalled();
   });
 
-  it('« Plus tard » ferme et ne redemande pas pour cette version', async () => {
+  it('"Later" closes and does not ask again for this version', async () => {
     serverVersion = 'def5678';
     act(() => root.render(<UpdatePrompt />));
     await flush();
@@ -120,7 +120,7 @@ describe('feuille « Nouvelle version »', () => {
     await flush();
     expect(dialog().open).toBe(false);
 
-    serverVersion = '9999999'; // encore une autre mise à jour : on repropose
+    serverVersion = '9999999'; // yet another update: offered again
     backToApp();
     await flush();
     expect(dialog().open).toBe(true);

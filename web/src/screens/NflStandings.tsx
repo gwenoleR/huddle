@@ -9,7 +9,7 @@ import { t } from '../lib/i18n';
 const PLAYOFF_SPOTS = 7;
 const DIVISION_WINNERS = 4;
 
-/** Classement NFL : la course aux playoffs par conférence, ou les 8 divisions. */
+/** NFL standings: the playoff race by conference, or the 8 divisions. */
 export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: ReactNode }) {
   const q = useNflStandings();
   const d = q.data;
@@ -27,7 +27,7 @@ export function NflStandings({ theme, tabs }: { theme: 'dark' | 'light'; tabs: R
     try {
       localStorage.setItem('nfl-view', v);
     } catch {
-      /* pas grave */
+      /* never mind */
     }
   }
 

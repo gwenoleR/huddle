@@ -4,9 +4,9 @@ import { APP_VERSION, dismissUpdate, dismissedUpdate, needsUpdate, serverVersion
 const EVERY = 30 * 60_000;
 
 /**
- * Compare la version de l'appli à celle du serveur : à l'ouverture, au retour dans l'appli
- * (une appli installée est souvent reprise plutôt que relancée) et toutes les 30 min.
- * Renvoie la version à proposer, ou null.
+ * Compares the app version with the server's: on open, when coming back to the app
+ * (an installed app is often resumed rather than relaunched) and every 30 min.
+ * Returns the version to offer, or null.
  */
 export function useUpdateCheck(client = APP_VERSION) {
   const [available, setAvailable] = useState<string | null>(null);

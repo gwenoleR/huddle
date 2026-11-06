@@ -1,4 +1,4 @@
-/** Classement NFL et fiche équipe. */
+/** NFL standings and team page. */
 import type { FastifyInstance } from 'fastify';
 import type { NflStandingsDto, Replies, TeamSheetDto, TeamStandingDto } from '../../shared/api';
 import { currentSeason, t, weekLabel } from '../config';
@@ -10,10 +10,10 @@ import { requireAuth } from './guards';
 
 const MIN = 60_000;
 
-/** Classement NFL : il ne bouge qu'à la fin des matchs. Frais 30 min, puis resservi le temps d'être rafraîchi. */
+/** NFL standings: they only change when games end. Fresh for 30 min, then served again while being refreshed. */
 export const nflStandings = () => cached(`standings:${currentSeason()}`, () => fetchStandings(currentSeason()), { ttl: 30 * MIN, swr: 24 * 60 * MIN });
 
-/** Place d'une équipe : « 1er AFC Est », tête de série dans sa conférence. */
+/** A team's position: « 1er AFC Est », seed in its conference. */
 export function standingOf(s: NflStandings, teamId: string): TeamStandingDto | null {
   for (const c of s.conferences)
     for (const d of c.divisions) {
@@ -29,7 +29,7 @@ export async function nflRoutes(app: FastifyInstance) {
     try {
       s = await nflStandings();
     } catch (e) {
-      req.log.warn({ err: e }, 'classement NFL indisponible');
+      req.log.warn({ err: e }, 'NFL standings unavailable');
       return reply.code(502).send({ error: t.api.nflStandingsUnavailable });
     }
     const teams = teamsById();
@@ -49,7 +49,7 @@ export async function nflRoutes(app: FastifyInstance) {
     };
   });
 
-  // Fiche équipe : place au classement, calendrier de la saison et ce que la bande a fait avec elle.
+  // Team page: standings position, season schedule and how the group did with it.
   app.get<{ Params: { abbr: string }; Reply: Replies<TeamSheetDto> }>('/api/teams/:abbr', { preHandler: requireAuth }, async (req, reply) => {
     const row = db.prepare('SELECT * FROM teams WHERE abbr = ? COLLATE NOCASE').get(req.params.abbr) as unknown as TeamRow | undefined;
     if (!row) return reply.code(404).send({ error: t.api.teamNotFound });
@@ -63,7 +63,7 @@ export async function nflRoutes(app: FastifyInstance) {
       const opp = teams.get(home ? g.away_id : g.home_id)!;
       const us = home ? g.home_score : g.away_score;
       const them = home ? g.away_score : g.home_score;
-      const result = g.status !== 'final' ? null : g.winner === 'tie' ? 'N' : g.winner === (home ? 'home' : 'away') ? 'V' : 'D';
+      const result = g.status !== 'final' ? null : g.winner === 'tie' ? 'T' : g.winner === (home ? 'home' : 'away') ? 'W' : 'L';
       return {
         id: g.id,
         week: g.week,
@@ -78,7 +78,7 @@ export async function nflRoutes(app: FastifyInstance) {
       };
     });
 
-    // Pronos de la bande sur les matchs terminés de cette équipe, depuis la reprise.
+    // The group's picks on this team's final games, since the start week.
     const rows = db
       .prepare(
         `SELECT p.id, p.name, k.side, g.winner, CASE WHEN g.home_id = ? THEN 'home' ELSE 'away' END AS teamSide
@@ -86,7 +86,7 @@ export async function nflRoutes(app: FastifyInstance) {
          WHERE g.season = ? AND g.week >= ? AND g.status = 'final' AND (g.away_id = ? OR g.home_id = ?)`
       )
       .all(row.id, currentSeason(), startWeek(), row.id, row.id) as { id: number; name: string; side: string; winner: string | null; teamSide: string }[];
-    const bande = playerNames()
+    const band = playerNames()
       .map((p) => {
         const mine = rows.filter((r) => r.id === p.id);
         const withTeam = mine.filter((r) => r.side === r.teamSide);
@@ -99,18 +99,18 @@ export async function nflRoutes(app: FastifyInstance) {
           againstGood: against.filter((r) => r.winner === r.side).length
         };
       })
-      .sort((a, b) => b.with + b.against - (a.with + a.against) || a.name.localeCompare(b.name));
+      .sort((a, b) => b.with + b.against - (a.with + a.against) || a.name.localeCompare(b.name, t.common.locale));
 
     const s = await nflStandings().catch(() => null);
     const finals = schedule.filter((g) => g.result);
     const count = (r: string) => finals.filter((g) => g.result === r).length;
-    const ties = count('N');
+    const ties = count('T');
     return {
       team: teamDto(row),
-      record: `${count('V')}-${count('D')}${ties ? `-${ties}` : ''}`,
+      record: `${count('W')}-${count('L')}${ties ? `-${ties}` : ''}`,
       standing: s ? standingOf(s, row.id) : null,
       schedule,
-      bande
+      band
     };
   });
 }

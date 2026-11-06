@@ -56,7 +56,7 @@ export function currentPlayer(req: FastifyRequest): Me | null {
   return row ? { id: row.id, name: row.name, isAdmin: !!row.isAdmin } : null;
 }
 
-/** Limite par adresse IP, en plus du blocage par prénom : 20 erreurs par heure. */
+/** Per-IP limit, on top of the per-name lockout: 20 failures per hour. */
 const ipFailures = new Map<string, { count: number; resetAt: number }>();
 
 export function clientIp(req: FastifyRequest): string {

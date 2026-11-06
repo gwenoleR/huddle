@@ -1,7 +1,7 @@
 import type { RecapDto } from './api';
 import { config, t } from './i18n';
 
-/** Couleurs du thème « Nuit de match » : l'image est toujours sombre, quel que soit le thème du téléphone. */
+/** "Nuit de match" theme colors: the image is always dark, whatever the phone theme. */
 const C = {
   ground: '#0d131d',
   card: '#172030',
@@ -32,9 +32,9 @@ function initials(n: string) {
   return (p.length > 1 ? p[0][0] + p[1][0] : n.slice(0, 2)).toUpperCase();
 }
 
-/** Dessine l'image du récap (1080 × 1350, format portrait des messageries) et la renvoie en PNG. */
+/** Draws the recap image (1080 × 1350, the messaging apps' portrait format) and returns it as PNG. */
 export async function drawRecap(r: RecapDto): Promise<Blob> {
-  // Les polices doivent être chargées avant de dessiner, sinon le canvas prend la police par défaut.
+  // Fonts must be loaded before drawing, otherwise the canvas uses the default font.
   await Promise.all([
     document.fonts.load(`800 120px ${DISPLAY}`),
     document.fonts.load(`700 40px ${DISPLAY}`),
@@ -51,7 +51,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
   ctx.fillStyle = C.ground;
   ctx.fillRect(0, 0, RECAP_W, RECAP_H);
 
-  // En-tête
+  // Header
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = C.brand;
   ctx.font = `700 36px ${DISPLAY}`;
@@ -63,7 +63,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
   ctx.font = `500 34px ${BODY}`;
   ctx.fillText(t.recap.image.subtitle(r.complete, r.finals, r.total), pad, 292);
 
-  // Podium de la semaine : 2e, 1er, 3e
+  // Week podium: 2nd, 1st, 3rd
   const podium = r.rows.slice(0, 3);
   const slots = [
     { i: 1, x: 220, h: 190 },
@@ -86,11 +86,11 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
     ctx.fillStyle = first ? C.onGold : C.ink;
     ctx.font = `700 40px ${DISPLAY}`;
     ctx.fillText(initials(p.name), s.x, top - 106);
-    // Prénom
+    // First name
     ctx.fillStyle = C.ink;
     ctx.font = `600 36px ${BODY}`;
     ctx.fillText(fit(ctx, p.name, bw - 20), s.x, top - 24);
-    // Marche
+    // Step
     ctx.fillStyle = first ? C.gold : C.card;
     ctx.beginPath();
     ctx.roundRect(s.x - bw / 2, top, bw, s.h, [24, 24, 0, 0]);
@@ -104,7 +104,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
   }
   ctx.textAlign = 'left';
 
-  // Classement général
+  // Overall standings
   let y = 810;
   ctx.fillStyle = C.muted;
   ctx.font = `600 28px ${BODY}`;
@@ -128,7 +128,7 @@ export async function drawRecap(r: RecapDto): Promise<Blob> {
     y += rowH;
   }
 
-  // La boulette
+  // The blunder
   if (r.blunder) {
     const b = r.blunder;
     const top = RECAP_H - 190;

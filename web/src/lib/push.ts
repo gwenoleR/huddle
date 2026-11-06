@@ -9,7 +9,7 @@ export const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 export async function pushState(): Promise<PushState> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    // Sur iPhone, les notifications n'existent que dans l'appli ajoutée à l'écran d'accueil.
+    // On iPhone, notifications only exist in the app added to the home screen.
     return isIos() && !isStandalone() ? 'needs-install' : 'unsupported';
   }
   if (Notification.permission === 'denied') return 'denied';

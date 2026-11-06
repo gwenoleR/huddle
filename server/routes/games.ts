@@ -1,4 +1,4 @@
-/** Semaines, matchs, pronos, avant-match et direct. */
+/** Weeks, games, picks, preview and live. */
 import type { FastifyInstance } from 'fastify';
 import type { GameDetailDto, LiveDto, OkDto, PreviewDto, Replies, WeekDto, WeeksDto } from '../../shared/api';
 import { currentSeason, t, weekLabel } from '../config';
@@ -21,7 +21,7 @@ export async function gamesRoutes(app: FastifyInstance) {
          FROM games WHERE season = ? GROUP BY week ORDER BY week`
       )
       .all(currentSeason()) as { week: number; games: number; finals: number; first: number }[];
-    // Semaine en cours : la première qui a encore un match non terminé.
+    // Current week: the first one that still has a game not final.
     const current = rows.find((r) => r.finals < r.games)?.week ?? rows.at(-1)?.week ?? startWeek();
     return {
       season: currentSeason(),
@@ -65,8 +65,8 @@ export async function gamesRoutes(app: FastifyInstance) {
     }
   );
 
-  // Avant-match : bilan, forme, favori et blessés. Frais 20 min ; ensuite on sert l'ancienne version
-  // tout de suite et on rafraîchit en arrière-plan.
+  // Preview: record, form, favorite and injuries. Fresh for 20 min; after that, serve the old version
+  // right away and refresh in the background.
   app.get<{ Params: { id: string }; Reply: Replies<PreviewDto> }>('/api/games/:id/preview', { preHandler: requireAuth }, async (req, reply) => {
     const game = db.prepare('SELECT id, away_id, home_id FROM games WHERE id = ?').get(req.params.id) as
       | { id: string; away_id: string; home_id: string }
@@ -76,17 +76,17 @@ export async function gamesRoutes(app: FastifyInstance) {
     try {
       data = await cached(`preview:${game.id}`, () => fetchPreview(game.id), { ttl: 20 * MIN, swr: 6 * HOUR });
     } catch (e) {
-      req.log.warn({ err: e }, 'avant-match indisponible');
+      req.log.warn({ err: e }, 'preview unavailable');
       return reply.code(502).send({ error: t.api.previewUnavailable });
     }
-    // La place au classement est un bonus : si ESPN ne répond pas, l'avant-match s'affiche sans.
+    // The standings position is a bonus: if ESPN doesn't respond, the preview is shown without it.
     const s = await nflStandings().catch(() => null);
     return { ...data, standing: s ? { away: standingOf(s, game.away_id), home: standingOf(s, game.home_id) } : null };
   });
 
-  // Pendant le match : courbe des chances, actions qui marquent et situation en cours.
-  // 25 s pendant le match (tout le monde regarde en même temps) ; 1 h une fois terminé, le temps
-  // qu'ESPN corrige ses stats ; puis plus jamais redemandé passé le lendemain.
+  // During the game: win probability curve, scoring plays and current situation.
+  // 25 s during the game (everyone is watching at the same time); 1 h once final, while
+  // ESPN corrects its stats; then never requested again after the next day.
   app.get<{ Params: { id: string }; Reply: Replies<LiveDto> }>('/api/games/:id/live', { preHandler: requireAuth }, async (req, reply) => {
     const row = db.prepare('SELECT id, week, status, kickoff FROM games WHERE id = ?').get(req.params.id) as
       | { id: string; week: number; status: string; kickoff: number }
@@ -101,7 +101,7 @@ export async function gamesRoutes(app: FastifyInstance) {
         swr: final ? 24 * HOUR : MIN
       });
     } catch (e) {
-      req.log.warn({ err: e }, 'direct indisponible');
+      req.log.warn({ err: e }, 'live data unavailable');
       return reply.code(502).send({ error: t.api.liveUnavailable });
     }
   });

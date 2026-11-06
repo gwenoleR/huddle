@@ -1,11 +1,11 @@
 /**
- * Réglages de l'instance (nom, langue, barème) et textes dans sa langue, pour toute l'appli.
+ * Instance settings (name, language, scoring) and texts in its language, for the whole app.
  *
- * Lus au démarrage, avant le premier affichage (main.tsx) : depuis le téléphone s'ils y sont déjà
- * (démarrage instantané, et hors ligne), sinon depuis /api/config. Une version plus récente du
- * serveur est gardée pour le lancement suivant.
+ * Read at startup, before the first render (main.tsx): from the phone if already stored there
+ * (instant startup, and offline), otherwise from /api/config. A newer version from the
+ * server is kept for the next launch.
  *
- * `t` et `config` sont des liaisons vivantes : `import { t } from '../lib/i18n'` puis `t.leaderboard.title`.
+ * `t` and `config` are live bindings: `import { t } from '../lib/i18n'` then `t.leaderboard.title`.
  */
 import { messages, type Messages } from '../../../shared/i18n';
 import type { ConfigDto } from './api';
@@ -43,7 +43,7 @@ function readCached(): ConfigDto | null {
   }
 }
 
-/** Au démarrage : réglages gardés sur le téléphone, sinon ceux du serveur, sinon ceux par défaut. */
+/** At startup: settings kept on the phone, otherwise the server's, otherwise the defaults. */
 export async function loadConfig(fetchConfig = () => fetch('/api/config', { cache: 'no-store' })): Promise<void> {
   const fresh = fetchConfig()
     .then((r) => (r.ok ? (r.json() as Promise<ConfigDto>) : null))
@@ -52,7 +52,7 @@ export async function loadConfig(fetchConfig = () => fetch('/api/config', { cach
         try {
           localStorage.setItem(KEY, JSON.stringify(c));
         } catch {
-          /* stockage plein ou interdit : tant pis, on relira le serveur */
+          /* storage full or forbidden: never mind, we'll read from the server again */
         }
       return c;
     })
@@ -60,7 +60,7 @@ export async function loadConfig(fetchConfig = () => fetch('/api/config', { cach
   const cached = readCached();
   if (cached) {
     applyConfig(cached);
-    void fresh; // la version du serveur servira au prochain lancement
+    void fresh; // the server version will be used on the next launch
     return;
   }
   applyConfig((await fresh) ?? DEFAULT_CONFIG);

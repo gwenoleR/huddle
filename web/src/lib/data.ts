@@ -1,6 +1,6 @@
 /**
- * Toutes les données de l'appli, une fonction par donnée : chaque clé de cache va toujours avec la
- * même requête et les mêmes réglages (rafraîchissement, fraîcheur). Les écrans n'appellent que ça.
+ * All the app's data, one function per piece of data: each cache key always goes with the same
+ * request and the same settings (refresh, freshness). Screens only call these.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
@@ -28,7 +28,7 @@ const MIN = 60_000;
 
 export const useWeeks = () => useQuery({ queryKey: keys.weeks, queryFn: () => api<WeeksDto>('/weeks') });
 
-/** Les matchs d'une semaine : toutes les 30 s pendant les matchs, toutes les 5 min sinon. */
+/** A week's games: every 30 s during games, every 5 min otherwise. */
 export const useWeek = (week: number | undefined) =>
   useQuery({
     queryKey: keys.week(week ?? 0),
@@ -43,7 +43,7 @@ export const useGame = (id: string) =>
 export const usePreview = (gameId: string) =>
   useQuery({ queryKey: keys.preview(gameId), queryFn: () => api<PreviewDto>(`/games/${gameId}/preview`), staleTime: 20 * MIN });
 
-/** Pendant le match : toutes les 30 s (en pause quand l'appli est en arrière-plan). */
+/** During the game: every 30 s (paused while the app is in the background). */
 export const useLive = (gameId: string, live: boolean) =>
   useQuery({
     queryKey: keys.live(gameId),
@@ -52,7 +52,7 @@ export const useLive = (gameId: string, live: boolean) =>
     staleTime: live ? 20_000 : 60 * MIN
   });
 
-/** Classement d'une saison (en cours par défaut) ou d'une semaine ; toutes les 30 s pendant les matchs. */
+/** Leaderboard of a season (current by default) or of a week; every 30 s during games. */
 export const useLeaderboard = (week: number | undefined, season?: number, enabled = true) =>
   useQuery({
     queryKey: keys.leaderboard(week, season),
@@ -63,11 +63,11 @@ export const useLeaderboard = (week: number | undefined, season?: number, enable
 
 export const useBonus = () => useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') });
 export const useProfile = () => useQuery({ queryKey: keys.profile, queryFn: () => api<ProfileDto>('/profile') });
-/** Bilan d'une saison (en cours par défaut). */
+/** Recap of a season (current by default). */
 export const useSeason = (season?: number) =>
   useQuery({ queryKey: keys.seasonOf(season), queryFn: () => api<SeasonDto>(`/season${query({ season })}`) });
 
-/** « ?week=10&season=2025 », sans les valeurs absentes. */
+/** "?week=10&season=2025", without the missing values. */
 export function query(params: Record<string, number | undefined>): string {
   const parts = Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`);
   return parts.length ? `?${parts.join('&')}` : '';
@@ -83,8 +83,8 @@ export const useTeam = (abbr: string | null) =>
   useQuery({ queryKey: keys.team(abbr ?? ''), queryFn: () => api<TeamSheetDto>(`/teams/${abbr}`), enabled: !!abbr });
 
 /**
- * Faire un prono, depuis la liste ou la fiche match : affiché tout de suite aux deux endroits,
- * remis comme avant si le serveur refuse (match commencé…), puis confirmé auprès du serveur.
+ * Make a pick, from the list or the match page: shown right away in both places, reverted if the
+ * server refuses (game started…), then confirmed with the server.
  */
 export function usePick(me: Me, notify: (m: string) => void) {
   const qc = useQueryClient();

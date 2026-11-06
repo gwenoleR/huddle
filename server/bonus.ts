@@ -1,7 +1,7 @@
 /**
- * Bonus de fin de saison : avant le premier match de Wild Card, chacun choisit le champion AFC,
- * le champion NFC et le vainqueur du Super Bowl, plus le total de points du Super Bowl pour départager.
- * Barème et activation réglables par l'admin (table meta), choix secrets jusqu'au coup d'envoi.
+ * End-of-season bonus: before the first Wild Card game, everyone picks the AFC champion,
+ * the NFC champion and the Super Bowl winner, plus the Super Bowl total points as a tiebreaker.
+ * Scoring and activation are set by the admin (meta table); picks stay secret until kickoff.
  */
 import type { BonusPhase, BonusReveal, BonusSettingsDto } from '../shared/api';
 import { currentSeason } from './config';
@@ -9,7 +9,7 @@ import { db, getMeta, setMeta } from './db';
 import { fetchStandings } from './espn';
 
 export type { BonusPhase, BonusReveal };
-/** Activation, barème et moment de la révélation, réglés par l'admin. */
+/** Activation, scoring and reveal moment, set by the admin. */
 export type BonusSettings = BonusSettingsDto;
 
 const DEFAULTS: BonusSettings = { enabled: true, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' };
@@ -19,7 +19,7 @@ export function bonusSettings(): BonusSettings {
     const s = JSON.parse(getMeta('bonus_settings') ?? 'null');
     if (s) return { enabled: !!s.enabled, points: { ...DEFAULTS.points, ...s.points }, reveal: s.reveal === 'superbowl' ? 'superbowl' : 'wildcard' };
   } catch {
-    /* réglages illisibles : valeurs par défaut */
+    /* unreadable settings: use defaults */
   }
   return DEFAULTS;
 }
@@ -28,7 +28,7 @@ export function saveBonusSettings(s: BonusSettings) {
   setMeta('bonus_settings', JSON.stringify(s));
 }
 
-/** Les 7 qualifiés de chaque conférence, avec leur tête de série, figés à la fin de la saison régulière. */
+/** Each conference's 7 qualified teams, with their seed, frozen at the end of the regular season. */
 export interface BonusField {
   afc: { teamId: string; seed: number }[];
   nfc: { teamId: string; seed: number }[];
@@ -51,7 +51,7 @@ export function bonusResult(season = currentSeason()): BonusResult {
   return raw ? (JSON.parse(raw) as BonusResult) : { afc: null, nfc: null, sb: null, sbTotal: null };
 }
 
-/** Coup d'envoi du premier match de Wild Card (= clôture des choix). */
+/** Kickoff of the first Wild Card game (= picks close). */
 export function bonusLockAt(season = currentSeason()): number | null {
   const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 19').get(season) as { k: number | null };
   return r.k;
@@ -64,18 +64,18 @@ export function bonusPhase(now = Date.now(), season = currentSeason()): BonusPha
   return now < lock ? 'open' : 'locked';
 }
 
-/** Coup d'envoi du Super Bowl, s'il est déjà au calendrier. */
+/** Super Bowl kickoff, if already scheduled. */
 export function superBowlKickoff(season = currentSeason()): number | null {
   const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 22').get(season) as { k: number | null };
   return r.k;
 }
 
-/** Moment où les choix de la bande deviennent visibles (null si pas encore connu). */
+/** When the group's picks become visible (null if not known yet). */
 export function bonusRevealAt(season = currentSeason()): number | null {
   return bonusSettings().reveal === 'superbowl' ? superBowlKickoff(season) : bonusLockAt(season);
 }
 
-/** Les choix (et donc les points bonus) sont-ils dévoilés ? */
+/** Are the picks (and therefore the bonus points) revealed? */
 export function bonusRevealed(now = Date.now(), season = currentSeason()): boolean {
   if (bonusPhase(now, season) !== 'locked') return false;
   const at = bonusRevealAt(season);
@@ -104,11 +104,11 @@ export function saveBonusPick(p: BonusPick) {
   ).run(p.playerId, currentSeason(), p.afc, p.nfc, p.sb, p.sbTotal, Date.now());
 }
 
-/** Points bonus gagnés par joueur (0 si la fonction est désactivée ou si rien n'est encore joué). */
+/** Bonus points earned per player (0 if the feature is disabled or nothing has been played yet). */
 export function bonusPointsByPlayer(season = currentSeason()): Map<number, number> {
   const out = new Map<number, number>();
   const s = bonusSettings();
-  // Tant que les choix sont secrets, les points bonus aussi : sinon le classement trahirait qui a quoi.
+  // As long as picks are secret, so are bonus points: otherwise the leaderboard would give away who picked what.
   if (!s.enabled || !bonusRevealed(Date.now(), season)) return out;
   const r = bonusResult(season);
   for (const p of bonusPicks(season)) {
@@ -118,7 +118,7 @@ export function bonusPointsByPlayer(season = currentSeason()): Map<number, numbe
   return out;
 }
 
-/** Écart au vrai total du Super Bowl, pour départager les égalités. null tant que le Super Bowl n'est pas joué. */
+/** Distance from the actual Super Bowl total, to break ties. null until the Super Bowl is played. */
 export function tiebreakDistances(season = currentSeason()): Map<number, number> | null {
   if (!bonusSettings().enabled) return null;
   const total = bonusResult(season).sbTotal;
@@ -127,8 +127,8 @@ export function tiebreakDistances(season = currentSeason()): Map<number, number>
 }
 
 /**
- * Appelé chaque minute : fige les qualifiés quand la saison régulière est finie et les Wild Cards connues,
- * puis note les champions au fil des playoffs.
+ * Called every minute: freezes the qualified teams once the regular season is over and the Wild Cards are known,
+ * then records the champions as the playoffs go.
  */
 export async function bonusTick() {
   const season = currentSeason();
@@ -148,9 +148,9 @@ export async function bonusTick() {
         .map((t) => ({ teamId: t.teamId, seed: t.seed! }))
         .sort((a, b) => a.seed - b.seed);
     const field = { afc: confTeams('AFC'), nfc: confTeams('NFC') };
-    if (field.afc.length !== 7 || field.nfc.length !== 7) return; // classement pas encore à jour chez ESPN
+    if (field.afc.length !== 7 || field.nfc.length !== 7) return; // standings not yet up to date at ESPN
     setMeta(`bonus_field:${season}`, JSON.stringify(field));
-    console.log('[bonus] qualifiés figés, les choix sont ouverts');
+    console.log('[bonus] qualified teams frozen, picks are open');
     return;
   }
 
@@ -175,7 +175,7 @@ export async function bonusTick() {
       result.sbTotal = g.away_score + g.home_score;
     }
   }
-  // Les deux finalistes du Super Bowl sont aussi les champions de conférence (au cas où la finale de conf. manquerait).
+  // Both Super Bowl finalists are also the conference champions (in case the conference final is missing).
   const sbGame = db.prepare('SELECT away_id, home_id FROM games WHERE season = ? AND week = 22').get(season) as
     | { away_id: string; home_id: string }
     | undefined;

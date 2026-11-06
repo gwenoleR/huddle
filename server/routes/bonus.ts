@@ -1,4 +1,4 @@
-/** Bonus de fin de saison : choix des joueurs et réglages de l'admin. */
+/** End-of-season bonus: players' picks and admin settings. */
 import type { FastifyInstance } from 'fastify';
 import type { BonusDto, BonusPickDto, BonusSettingsDto, OkDto, Replies } from '../../shared/api';
 import {
@@ -43,7 +43,7 @@ export async function bonusRoutes(app: FastifyInstance) {
       revealAt: bonusRevealAt(),
       field: field ? { afc: fieldDto(field.afc), nfc: fieldDto(field.nfc) } : null,
       mine: mine ? pickDto(mine) : null,
-      // Avant la révélation : seulement qui a choisi (pas quoi). Après : les choix de tout le monde.
+      // Before the reveal: only who has picked (not what). After: everyone's picks.
       players: playerNames().map((pl) => {
         const p = picks.find((x) => x.playerId === pl.id);
         return {

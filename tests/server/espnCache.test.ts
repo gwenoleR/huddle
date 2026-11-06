@@ -12,14 +12,14 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-/** Une fausse source ESPN qui renvoie v1, v2, v3… à chaque appel. */
+/** A fake ESPN source returning v1, v2, v3… on each call. */
 function source() {
   let n = 0;
   return vi.fn(async () => ({ v: ++n }));
 }
 
-describe('cache ESPN', () => {
-  it('sert la copie fraîche sans rappeler ESPN', async () => {
+describe('ESPN cache', () => {
+  it('serves the fresh copy without calling ESPN again', async () => {
     const load = source();
     expect(await cached('k', load, { ttl: 10 * MIN })).toEqual({ v: 1 });
     vi.setSystemTime(NOW + 9 * MIN);
@@ -27,43 +27,43 @@ describe('cache ESPN', () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
-  it('un seul appel ESPN quand plusieurs joueurs demandent la même chose en même temps', async () => {
+  it('a single ESPN call when several players request the same thing at once', async () => {
     const load = source();
     const all = await Promise.all([1, 2, 3, 4, 5].map(() => cached('k', load, { ttl: MIN })));
     expect(all).toEqual(Array(5).fill({ v: 1 }));
     expect(load).toHaveBeenCalledTimes(1);
   });
 
-  it('périmée sans fenêtre swr : on attend la nouvelle version', async () => {
+  it('stale without an swr window: waits for the new version', async () => {
     const load = source();
     await cached('k', load, { ttl: MIN });
     vi.setSystemTime(NOW + 2 * MIN);
     expect(await cached('k', load, { ttl: MIN })).toEqual({ v: 2 });
   });
 
-  it('dans la fenêtre swr : ancienne version tout de suite, nouvelle au passage suivant', async () => {
+  it('within the swr window: old version right away, new one on the next call', async () => {
     const load = source();
     await cached('k', load, { ttl: MIN, swr: 10 * MIN });
     vi.setSystemTime(NOW + 2 * MIN);
     expect(await cached('k', load, { ttl: MIN, swr: 10 * MIN })).toEqual({ v: 1 });
-    expect(load).toHaveBeenCalledTimes(2); // rafraîchie en arrière-plan
+    expect(load).toHaveBeenCalledTimes(2); // refreshed in the background
     await vi.waitFor(async () => expect(await cached('k', load, { ttl: MIN, swr: 10 * MIN })).toEqual({ v: 2 }));
   });
 
-  it('ESPN en panne : on ressert la dernière version connue, même très vieille', async () => {
+  it('ESPN down: serves the last known version, even a very old one', async () => {
     await cached('k', source(), { ttl: MIN });
     vi.setSystemTime(NOW + 3 * 24 * 60 * MIN);
     const down = vi.fn(async () => {
-      throw new Error('ESPN en panne');
+      throw new Error('ESPN down');
     });
     expect(await cached('k', down, { ttl: MIN })).toEqual({ v: 1 });
   });
 
-  it('ESPN en panne et rien en cache : l’erreur remonte', async () => {
-    await expect(cached('k', async () => Promise.reject(new Error('ESPN en panne')), { ttl: MIN })).rejects.toThrow('ESPN en panne');
+  it('ESPN down and nothing cached: the error propagates', async () => {
+    await expect(cached('k', async () => Promise.reject(new Error('ESPN down')), { ttl: MIN })).rejects.toThrow('ESPN down');
   });
 
-  it('la durée de vie peut dépendre de la donnée', async () => {
+  it('the ttl can depend on the data', async () => {
     const load = vi.fn(async () => ({ done: true }));
     await cached('k', load, { ttl: (d) => (d.done ? FOREVER : MIN) });
     vi.setSystemTime(NOW + 365 * 24 * 60 * MIN);
@@ -71,24 +71,24 @@ describe('cache ESPN', () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
-  it('survit à un redémarrage grâce à SQLite, y compris « pour toujours »', async () => {
-    await cached('fini', async () => ({ stats: 'match terminé' }), { ttl: FOREVER });
-    await cached('frais', async () => ({ v: 1 }), { ttl: 10 * MIN });
-    expect(db.prepare("SELECT expires FROM espn_cache WHERE key = 'fini'").get()).toEqual({ expires: null });
+  it('survives a restart thanks to SQLite, including "forever"', async () => {
+    await cached('done', async () => ({ stats: 'game over' }), { ttl: FOREVER });
+    await cached('fresh', async () => ({ v: 1 }), { ttl: 10 * MIN });
+    expect(db.prepare("SELECT expires FROM espn_cache WHERE key = 'done'").get()).toEqual({ expires: null });
 
-    forgetMemory(); // redémarrage du serveur
+    forgetMemory(); // server restart
     const load = source();
-    expect(await cached('fini', load, { ttl: MIN })).toEqual({ stats: 'match terminé' });
-    expect(await cached('frais', load, { ttl: 10 * MIN })).toEqual({ v: 1 });
+    expect(await cached('done', load, { ttl: MIN })).toEqual({ stats: 'game over' });
+    expect(await cached('fresh', load, { ttl: 10 * MIN })).toEqual({ v: 1 });
     expect(load).not.toHaveBeenCalled();
   });
 
-  it('une nouvelle version de l’appli vide le cache (le format a pu changer)', async () => {
-    resetIfNewVersion('dev'); // démarrage du serveur
-    await cached('k', async () => ({ v: 'ancien format' }), { ttl: FOREVER });
-    resetIfNewVersion('dev'); // même version : on garde
-    expect(await cached('k', async () => ({ v: 'nouveau' }), { ttl: MIN })).toEqual({ v: 'ancien format' });
-    resetIfNewVersion('abc1234'); // l'appli a été mise à jour
-    expect(await cached('k', async () => ({ v: 'nouveau' }), { ttl: MIN })).toEqual({ v: 'nouveau' });
+  it('a new app version clears the cache (the format may have changed)', async () => {
+    resetIfNewVersion('dev'); // server start
+    await cached('k', async () => ({ v: 'old format' }), { ttl: FOREVER });
+    resetIfNewVersion('dev'); // same version: kept
+    expect(await cached('k', async () => ({ v: 'new' }), { ttl: MIN })).toEqual({ v: 'old format' });
+    resetIfNewVersion('abc1234'); // the app was updated
+    expect(await cached('k', async () => ({ v: 'new' }), { ttl: MIN })).toEqual({ v: 'new' });
   });
 });

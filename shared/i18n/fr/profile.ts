@@ -1,8 +1,8 @@
-/** Profil du joueur et réglages. */
+/** Player profile and settings. */
 import { common } from './common';
 
 export const profile = {
-  /** Sous le nom : « 2e sur 8 · 81 pts · saison 2026 » ; `rank` déjà mis en forme. */
+  /** Under the name: « 2e sur 8 · 81 pts · saison 2026 »; `rank` already formatted. */
   subtitle: (rank: string, players: number, points: number, season: number | string) =>
     `${rank} sur ${players} · ${points} pts · saison ${season}`,
   goodPicksLabel: (startWeek: number) => (startWeek > 1 ? `bons pronos depuis la S${startWeek}` : 'bons pronos cette saison'),
@@ -12,7 +12,7 @@ export const profile = {
   streakLabel: 'bons d’affilée',
 
   byWeek: 'Semaine par semaine',
-  /** Ligne des points repris : « S1–S8 » ou « Avant ». */
+  /** Carried-over points line: « S1–S8 » or « Avant ». */
   carriedWeeks: (startWeek: number) => (startWeek > 1 ? `S1–S${startWeek - 1}` : 'Avant'),
   carriedFrom: 'Repris de l’ancien site',
   carriedPoints: (points: number) => `${points} pts`,

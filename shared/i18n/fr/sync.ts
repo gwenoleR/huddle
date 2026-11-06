@@ -1,12 +1,12 @@
-/** État de la synchro ESPN montré à l'admin. */
+/** ESPN sync status shown to the admin. */
 export const sync = {
   never: 'Pas encore de synchro',
-  /** Synchro complète réussie : « 32 équipes, 272 matchs ». */
+  /** Successful full sync: « 32 équipes, 272 matchs ». */
   done: (teams: number, games: number) => `${teams} équipes, ${games} matchs`,
-  /** Une semaine en échec : « S9 : ESPN injoignable… » (numéro de semaine brut). */
+  /** A failed week: « S9 : ESPN injoignable… » (raw week number). */
   weekFailed: (week: number, reason: string) => `S${week} : ${reason}`,
 
-  // Erreurs d'appel à ESPN, affichées dans l'état de la synchro.
+  // ESPN call errors, shown in the sync status.
   espnPaused: (minutes: number) => `ESPN en pause encore ${minutes} min (trop d’appels)`,
   espnTimeout: 'délai dépassé (15 s)',
   espnUnreachable: (cause: string, host: string) => `ESPN injoignable (${cause}) : ${host}`,

@@ -1,10 +1,10 @@
 /**
- * Pronos des semaines jouées ailleurs (un ancien site, un tableur…), envoyés en CSV par l'admin :
- * ils remplacent les points de départ par le vrai historique.
+ * Picks for weeks played elsewhere (an old site, a spreadsheet…), uploaded as CSV by the admin:
+ * they replace the starting points with the real history.
  *
- * Format : une ligne par match, la semaine en 1re colonne sur le premier match de chaque semaine,
- * puis l'équipe à domicile, l'équipe à l'extérieur et un prono par joueur (« Prono GW », « Prono AU »…,
- * les deux premières lettres du prénom). Une case vide = pas de prono.
+ * Format: one line per game, the week in the 1st column on the first game of each week,
+ * then the home team, the away team and one pick per player ("Prono GW", "Prono AU"…,
+ * the first two letters of the first name). An empty cell = no pick.
  */
 import { currentSeason, t } from './config';
 import { db, setMeta, setStartPoints, transaction } from './db';
@@ -13,15 +13,15 @@ export interface HistoryLine {
   week: number;
   home: string;
   away: string;
-  /** Initiales du joueur → équipe choisie (nom complet), seulement s'il a pronostiqué. */
+  /** Player initials → chosen team (full name), only if they made a pick. */
   picks: Record<string, string>;
 }
 
-/** Initiales sans accents ni casse : « Léa » et « Prono LE » se reconnaissent. */
+/** Initials ignoring accents and case: "Léa" and "Prono LE" match. */
 export const initials = (s: string) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 2).toUpperCase();
 
-/** Une ligne de CSV, avec les guillemets éventuels. */
+/** One CSV line, with optional quotes. */
 function cells(line: string): string[] {
   const out: string[] = [];
   let cur = '';
@@ -29,7 +29,7 @@ function cells(line: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
     if (c === '"') {
-      // « "" » dans une cellule entre guillemets = un guillemet.
+      // '""' inside a quoted cell = one quote.
       if (quoted && line[i + 1] === '"') {
         cur += '"';
         i++;
@@ -43,7 +43,7 @@ function cells(line: string): string[] {
   return out.map((s) => s.trim());
 }
 
-/** Lit le CSV ; la semaine (« Week1 ») n'est notée que sur le premier match de chaque semaine. */
+/** Parses the CSV; the week ("Week1") is only written on the first game of each week. */
 export function parseHistory(text: string): HistoryLine[] {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) throw new Error(t.history.emptyFile);
@@ -69,15 +69,15 @@ export function parseHistory(text: string): HistoryLine[] {
 export interface ImportResult {
   games: number;
   picks: number;
-  /** Joueurs dont les points de départ sont remplacés par l'historique. */
+  /** Players whose starting points are replaced by the history. */
   players: string[];
 }
 
 /**
- * Importe l'historique, tout ou rien : si un match, une équipe ou un joueur ne colle pas, rien n'est
- * écrit et l'erreur liste tous les problèmes. Les points de départ des joueurs du fichier passent à 0 :
- * leurs points des semaines importées viennent désormais de leurs pronos.
- * Avec dryRun, tout est vérifié mais rien n'est écrit : l'admin voit ce qui va être importé.
+ * Imports the history, all or nothing: if a game, team or player doesn't match, nothing is
+ * written and the error lists every problem. Starting points of the players in the file are set to 0:
+ * their points for the imported weeks now come from their picks.
+ * With dryRun, everything is checked but nothing is written: the admin sees what will be imported.
  */
 export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): ImportResult {
   const teams = new Map(
@@ -114,7 +114,7 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
     for (const [who, pick] of Object.entries(l.picks)) {
       const candidates = byInitials.get(who) ?? [];
       if (candidates.length !== 1) {
-        // Une fois par colonne, pas à chaque match.
+        // Once per column, not for every game.
         problems.push(
           candidates.length
             ? t.history.ambiguousPlayer(who, candidates.map((c) => c.name))
@@ -129,7 +129,7 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
         continue;
       }
       usedPlayers.set(who, candidates[0]);
-      // Heure du prono inconnue : la veille du match (pour ne pas fausser le trophée « Sur le fil »).
+      // Pick time unknown: the day before the game (so as not to skew the « Sur le fil » trophy).
       rows.push({ playerId: candidates[0].id, gameId: g.id, side, at: g.kickoff - 24 * 3600_000 });
     }
   }

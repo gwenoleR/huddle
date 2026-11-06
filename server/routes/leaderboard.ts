@@ -1,4 +1,4 @@
-/** Classement de la bande, récap de la semaine, profil et bilan de saison. */
+/** Group leaderboard, weekly recap, profile and season recap. */
 import type { FastifyInstance } from 'fastify';
 import type { LeaderboardDto, ProfileDto, RecapDto, Replies, SeasonDto } from '../../shared/api';
 import { currentSeason, t } from '../config';
@@ -6,7 +6,7 @@ import { db, knownSeasons, startWeek } from '../db';
 import { awards, latestRecapWeek, liveProjection, recap, standings, streak, weeklyResults } from '../scoring';
 import { requireAuth } from './guards';
 
-/** ?season=2025 : une saison passée ; sans paramètre, la saison en cours. null si la saison est inconnue. */
+/** ?season=2025: a past season; without the parameter, the current season. null if the season is unknown. */
 function seasonParam(raw: string | undefined): number | null {
   if (!raw) return currentSeason();
   const s = Number(raw);
@@ -21,7 +21,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
       const season = seasonParam(req.query.season);
       if (season === null) return reply.code(404).send({ error: t.api.unknownSeason });
       const current = season === currentSeason();
-      // Une saison passée se consulte en entier, pas semaine par semaine.
+      // A past season is viewed as a whole, not week by week.
       const week = req.query.week && current ? Number(req.query.week) : undefined;
       return {
         season,
@@ -29,7 +29,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
         week: week ?? null,
         startWeek: startWeek(season),
         rows: standings(week, season),
-        // En saison, pendant les matchs : projection « si ça finit comme ça ».
+        // During the season, while games are on: "if it ends like this" projection.
         live: week || !current ? null : liveProjection()
       };
     }
@@ -70,7 +70,7 @@ export async function leaderboardRoutes(app: FastifyInstance) {
       season,
       seasons: knownSeasons(),
       startWeek: startWeek(season),
-      // Une saison passée est terminée, même s'il manque des matchs en base.
+      // A past season is over, even if games are missing from the database.
       finished: sb?.status === 'final' || season !== currentSeason(),
       finalGames: games.n,
       rows: standings(undefined, season),

@@ -1,9 +1,9 @@
 declare const __APP_VERSION__: string;
 
-/** Version de l'interface chargée sur ce téléphone (hash court du commit). */
+/** Version of the UI loaded on this phone (short commit hash). */
 export const APP_VERSION = __APP_VERSION__;
 
-/** Force la récupération de la dernière version : nouveau service worker, caches vidés, rechargement. */
+/** Forces fetching the latest version: new service worker, caches cleared, reload. */
 export async function reloadLatest() {
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
@@ -15,19 +15,19 @@ export async function reloadLatest() {
   }
 }
 
-/** Une mise à jour est à proposer : le serveur a une autre version, que le joueur n'a pas déjà repoussée. */
+/** An update should be offered: the server has another version, which the player hasn't already dismissed. */
 export function needsUpdate(server: string | null, client: string, dismissed: string | null): boolean {
   return !!server && server !== client && server !== dismissed;
 }
 
 const DISMISSED_KEY = 'update-dismissed';
 
-/** « Plus tard » : on ne redemande pas pour cette version tant que l'appli reste ouverte. */
+/** "Later": don't ask again for this version while the app stays open. */
 export function dismissUpdate(server: string) {
   try {
     sessionStorage.setItem(DISMISSED_KEY, server);
   } catch {
-    /* pas de stockage : on redemandera */
+    /* no storage: we'll ask again */
   }
 }
 
@@ -39,7 +39,7 @@ export function dismissedUpdate(): string | null {
   }
 }
 
-/** Version publiée sur le serveur (null si injoignable). */
+/** Version published on the server (null if unreachable). */
 export async function serverVersion(): Promise<string | null> {
   try {
     const d = await fetch('/api/health', { cache: 'no-store' }).then((r) => r.json());

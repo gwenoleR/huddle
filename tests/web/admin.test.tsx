@@ -7,7 +7,7 @@ import { Admin } from '../../web/src/screens/Admin';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Serveur simulé : juste ce que la page admin lit au chargement. */
+/** Fake server: just what the admin page reads on load. */
 const fetchMock = vi.fn(async (url: string) => {
   if (url === '/api/admin/players')
     return new Response(
@@ -18,7 +18,7 @@ const fetchMock = vi.fn(async (url: string) => {
     );
   if (url === '/api/admin/bonus') return new Response(JSON.stringify({ enabled: false, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' }));
   if (url === '/api/admin/sync') return new Response(JSON.stringify({ at: null, ok: true, message: '', games: 272 }));
-  throw new Error(`appel inattendu ${url}`);
+  throw new Error(`unexpected call ${url}`);
 });
 
 let el: HTMLDivElement;
@@ -46,8 +46,8 @@ async function render(isAdmin: boolean) {
   await act(async () => {});
 }
 
-describe('page Administration', () => {
-  it('trois parties : joueurs, saison, données', async () => {
+describe('Admin page', () => {
+  it('three sections: players, season, data', async () => {
     await render(true);
     const titles = [...el.querySelectorAll('.section-title')].map((h) => h.textContent);
     expect(titles).toEqual(['Joueurs · 2', 'Saison', 'Données']);
@@ -55,7 +55,7 @@ describe('page Administration', () => {
     expect(el.textContent).toContain('Importer l’historique');
   });
 
-  it('pas admin : rien à voir, aucun appel à l’API admin', async () => {
+  it('not admin: nothing to see, no call to the admin API', async () => {
     await render(false);
     expect(el.textContent).toContain('Réservé aux admins');
     expect(fetchMock).not.toHaveBeenCalled();

@@ -1,15 +1,15 @@
 /**
- * Client de l'API ESPN (non officielle, gratuite, sans clé).
- * Si elle change un jour, c'est le seul fichier à adapter.
+ * ESPN API client (unofficial, free, no key).
+ * If it ever changes, this is the only file to adapt.
  */
 import type { EspnStatsDto, LiveDto, NflTeamRow, PreviewDto, PreviewSideDto } from '../shared/api';
 import { t } from './config';
 
 export type PreviewSide = PreviewSideDto;
-/** L'avant-match tel qu'ESPN le donne ; la place au classement est ajoutée par la route. */
+/** The preview as ESPN provides it; the standings position is added by the route. */
 export type Preview = Omit<PreviewDto, 'standing'>;
 export type LiveInfo = LiveDto;
-/** Une équipe au classement, sans sa fiche (ajoutée par la route depuis la base). */
+/** A team in the standings, without its details (added by the route from the database). */
 export type StandingTeam = Omit<NflTeamRow, 'team'>;
 export interface NflStandings {
   conferences: { abbr: string; divisions: { name: string; teams: StandingTeam[] }[] }[];
@@ -18,9 +18,9 @@ export interface NflStandings {
 const BASE = process.env.ESPN_BASE ?? 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const UA = 'prono-entre-potes/1.0';
 
-// ---------- Appels à ESPN : compteur et pause ----------
+// ---------- ESPN calls: counter and pause ----------
 
-/** Horodatage de chaque appel (et des erreurs) sur les dernières 24 h, pour l'écran admin. */
+/** Timestamp of each call (and of errors) over the last 24 h, for the admin screen. */
 const calls: number[] = [];
 const failures: number[] = [];
 let pausedUntil = 0;
@@ -43,7 +43,7 @@ export function espnStats(now = Date.now()): EspnStatsDto {
   };
 }
 
-/** Pour les tests. */
+/** For tests. */
 export function resetEspnStats() {
   calls.length = failures.length = 0;
   pausedUntil = strikes = 0;
@@ -61,16 +61,16 @@ async function getJson(url: string): Promise<any> {
     res = await fetch(url, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15_000) });
   } catch (e: any) {
     remember(failures, now);
-    // « fetch failed » seul ne dit rien : on remonte la vraie cause (ENOTFOUND = DNS, ECONNREFUSED, délai…).
+    // "fetch failed" alone says nothing: surface the real cause (ENOTFOUND = DNS, ECONNREFUSED, timeout…).
     const cause = e?.cause?.code ?? e?.cause?.message ?? (e?.name === 'TimeoutError' ? t.sync.espnTimeout : e?.message);
     throw new Error(t.sync.espnUnreachable(cause, new URL(url).host));
   }
   if (res.status === 429) {
-    // ESPN demande de ralentir : on s'arrête 5 min, puis 10, 20… jusqu'à 1 h si ça se répète.
+    // ESPN asks us to slow down: stop for 5 min, then 10, 20… up to 1 h if it keeps happening.
     remember(failures, now);
     pausedUntil = now + Math.min(PAUSE_BASE * 2 ** strikes, PAUSE_MAX);
     strikes++;
-    console.warn(`[espn] 429 : pause jusqu'à ${new Date(pausedUntil).toISOString()}`);
+    console.warn(`[espn] 429: paused until ${new Date(pausedUntil).toISOString()}`);
     throw new Error(t.sync.espnTooManyCalls);
   }
   if (!res.ok) {
@@ -121,7 +121,7 @@ export async function fetchTeams(): Promise<EspnTeam[]> {
   }));
 }
 
-/** ESPN : saison régulière = type 2, semaines 1–18 ; playoffs = type 3, semaines 1, 2, 3 et 5 (la 4 est le Pro Bowl). */
+/** ESPN: regular season = type 2, weeks 1–18; playoffs = type 3, weeks 1, 2, 3 and 5 (4 is the Pro Bowl). */
 const POST_TO_APP: Record<number, number> = { 1: 19, 2: 20, 3: 21, 5: 22 };
 
 export function toAppWeek(seasonType: number, week: number): number | null {
@@ -144,7 +144,7 @@ export async function fetchWeek(season: number, appWeek: number): Promise<EspnGa
   return (d.events ?? []).map((e: any) => parseEvent(e, appWeek)).filter(Boolean) as EspnGame[];
 }
 
-/** Ligne d'état d'un match (« Q3 · 4:12 », « Mi-temps », « Terminé »), dans la langue de l'instance. */
+/** A game's status line (« Q3 · 4:12 », « Mi-temps », « Terminé »), in the instance's language. */
 function gameDetail(status: any, state: GameStatus): string | null {
   const type = status?.type ?? {};
   const period = Number(status?.period ?? 0);
@@ -192,7 +192,7 @@ function parseEvent(e: any, week: number): EspnGame | null {
   };
 }
 
-// ---------- Avant-match (fiche match) ----------
+// ---------- Preview (match screen) ----------
 
 function injuryPart(type: unknown): string | null {
   if (typeof type !== 'string' || !type) return null;
@@ -206,7 +206,7 @@ const STATUS: Record<string, PreviewSide['injuries'][number]['status']> = {
   questionable: 'questionable'
 };
 const SEVERITY = { out: 0, doubtful: 1, questionable: 2 };
-/** Les postes qui font le plus basculer un match passent en premier. */
+/** Positions that swing a game the most come first. */
 const POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'OT', 'G', 'C', 'DE', 'DT', 'LB', 'CB', 'S', 'K', 'P'];
 const posRank = (p: string | null) => {
   const i = POSITION_ORDER.indexOf(p ?? '');
@@ -227,7 +227,7 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
 
     const last = (d.lastFiveGames ?? []).find((x: any) => String(x.team?.id) === id);
     const form = (last?.events ?? []).map((e: any) => ({
-      result: e.gameResult === 'W' ? 'V' : e.gameResult === 'L' ? 'D' : 'N',
+      result: (e.gameResult === 'W' || e.gameResult === 'L' ? e.gameResult : 'T') as 'W' | 'L' | 'T',
       opponent: e.opponent?.abbreviation ?? '?',
       home: e.atVs !== '@',
       score: e.score ?? ''
@@ -263,7 +263,7 @@ export async function fetchPreview(gameId: string): Promise<Preview> {
   return { away: side('away'), home: side('home'), odds };
 }
 
-// ---------- Pendant le match (fiche match) ----------
+// ---------- During the game (match screen) ----------
 
 const toSeconds = (clock: unknown) => {
   const m = /^(\d+):(\d+)/.exec(String(clock ?? ''));
@@ -280,7 +280,7 @@ function playText(p: any): string | null {
   return t.espn.play(String(p?.type?.text ?? ''), Number(p?.statYardage ?? 0));
 }
 
-/** Stats comparées, dans l'ordre d'affichage ; les libellés sont dans le dictionnaire (t.espn.stats). */
+/** Compared stats, in display order; labels are in the dictionary (t.espn.stats). */
 const STAT_ROWS: { key: keyof typeof t.espn.stats; lowerIsBetter?: boolean; show?: (v: string) => string; value?: (v: string) => number }[] = [
   { key: 'totalYards' },
   { key: 'netPassingYards' },
@@ -329,7 +329,7 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
   const winProb: LiveInfo['winProb'] = [];
   for (const w of d.winprobability ?? []) {
     const p = byId.get(String(w.playId));
-    // Les temps morts et fins de période portent parfois une valeur aberrante : on les ignore.
+    // Timeouts and period ends sometimes carry an outlier value: skip them.
     if (!p || w.homeWinPercentage == null || /timeout|end period|end of half|end of game/i.test(p.type?.text ?? '')) continue;
     const period = Number(p.period?.number ?? 1);
     maxPeriod = Math.max(maxPeriod, period);
@@ -337,7 +337,7 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
     winProb.push({ t: at, away: Math.round((1 - Number(w.homeWinPercentage)) * 1000) / 10 });
   }
 
-  // Garde-fou : un point isolé qui saute de plus de 25 points par rapport à ses deux voisins est retiré.
+  // Safeguard: an isolated point that jumps more than 25 points from both its neighbours is removed.
   for (let i = winProb.length - 2; i > 0; i--) {
     const [a, b, c] = [winProb[i - 1].away, winProb[i].away, winProb[i + 1].away];
     if (Math.abs(b - a) > 25 && Math.abs(b - c) > 25 && Math.abs(a - c) < 25) winProb.splice(i, 1);
@@ -399,7 +399,7 @@ export async function fetchLive(gameId: string, playoffs: boolean): Promise<Live
   return { winProb, length: 3600 + Math.max(0, maxPeriod - 4) * otLength, scoring, stats, leaders, situation };
 }
 
-// ---------- Classement NFL ----------
+// ---------- NFL standings ----------
 
 function streakText(v: unknown): string | null {
   const m = /^([WLT])(\d+)$/.exec(String(v ?? ''));

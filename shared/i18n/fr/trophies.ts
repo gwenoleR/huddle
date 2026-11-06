@@ -1,11 +1,11 @@
-/** Trophées de la saison : titres, règles et détails (calculés par le serveur). Clés = identifiants des trophées. */
+/** Season trophies: titles, rules and details (computed by the server). Keys = trophy ids. */
 import { common } from './common';
 
 export const trophies = {
   'best-week': {
     title: 'Meilleure semaine',
     rule: 'Le plus grand nombre de bons pronos en une seule semaine. À égalité, la semaine avec le moins de matchs l’emporte (13 sur 13 bat 13 sur 16).',
-    /** « 13 sur 14 en semaine 9 » (week = libellé long de la semaine). */
+    /** « 13 sur 14 en semaine 9 » (week = the week's long label). */
     detail: (good: number, finals: number, week: string) => `${good} sur ${finals} en ${week.toLowerCase()}`
   },
   sniper: {
@@ -41,7 +41,7 @@ export const trophies = {
   nostradamus: {
     title: 'Nostradamus',
     rule: 'Avoir annoncé le vainqueur du Super Bowl dans le bonus de fin de saison, avant même la Wild Card. Si plusieurs l’ont trouvé, le plus proche du total de points du Super Bowl l’emporte.',
-    /** gap = écart avec le vrai total de points du Super Bowl (0 = pile). */
+    /** gap = distance from the actual Super Bowl total points (0 = spot on). */
     detail: (team: string, total: number, gap: number) =>
       `Les ${team} champions, annoncés avant la Wild Card · ${total} pts au total (${gap ? `écart ${gap}` : 'pile poil !'})`
   }

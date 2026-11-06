@@ -1,18 +1,18 @@
 /**
- * Retour d'une fiche match : la liste des matchs reprend là où on l'avait laissée.
- * Partout ailleurs (autre semaine, autre onglet), la liste repart en haut.
+ * Back from a match page: the games list resumes where it was left.
+ * Everywhere else (another week, another tab), the list starts back at the top.
  *
- * On retient la position seulement au moment où on quitte la liste pour une fiche ; elle est
- * oubliée dès qu'on va ailleurs que sur une fiche ou la liste, et utilisée une seule fois.
+ * The position is saved only when leaving the list for a match page; it is forgotten as soon
+ * as we go anywhere other than a match page or the list, and used only once.
  */
 import { type RefObject, useLayoutEffect } from 'react';
 
 let saved: { key: string; top: number } | null = null;
 
-/** Les pages d'où un retour doit retrouver la position : les fiches match. */
+/** Pages from which going back must restore the position: match pages. */
 export const isDetail = (hash: string) => /^#\/match\//.test(hash);
-/** Pages qui ne font pas oublier la position : la fiche elle-même et la liste des matchs. */
-const keepsMemory = (hash: string) => /^#\/match(\/|s(\/|$)|$)/.test(hash);
+/** Pages that don't discard the position: the match page itself and the games list. */
+const keepsMemory = (hash: string) => /^#\/match(\/|es(\/|$)|$)/.test(hash);
 
 if (typeof window !== 'undefined') {
   addEventListener('hashchange', () => {
@@ -20,12 +20,12 @@ if (typeof window !== 'undefined') {
   });
 }
 
-/** On quitte la liste : on retient la position seulement si on part vers une fiche. */
+/** Leaving the list: save the position only when heading to a match page. */
 export function leaveList(key: string, top: number, to: string) {
   saved = isDetail(to) ? { key, top } : null;
 }
 
-/** On arrive sur la liste : la position à reprendre (une seule fois), sinon tout en haut. */
+/** Arriving on the list: the position to restore (only once), otherwise the very top. */
 export function enterList(key: string): number {
   const top = saved?.key === key ? saved.top : 0;
   saved = null;
@@ -33,8 +33,8 @@ export function enterList(key: string): number {
 }
 
 /**
- * À poser sur le premier élément de l'écran : la zone qui défile est son parent (.screen).
- * `ready` indique que la liste est affichée (sinon la hauteur n'est pas encore là pour s'y replacer).
+ * To put on the screen's first element: the scrolling area is its parent (.screen).
+ * `ready` means the list is displayed (otherwise the height isn't there yet to scroll back to).
  */
 export function useScrollMemory(ref: RefObject<HTMLElement | null>, key: string | null, ready: boolean) {
   useLayoutEffect(() => {

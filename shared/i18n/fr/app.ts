@@ -1,4 +1,4 @@
-/** Coquille de l'appli : navigation, messages généraux, mise à jour, notifications côté téléphone. */
+/** App shell: navigation, general messages, update, notifications on the phone side. */
 export const app = {
   sessionExpired: 'Ta session a expiré, reconnecte-toi.',
 

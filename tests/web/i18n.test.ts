@@ -9,7 +9,7 @@ const fresh = async () => {
 const ok = (body: object) => async () => new Response(JSON.stringify(body));
 const CONFIG = { appName: 'Les Gros Pronos', appShortName: 'Gros', lang: 'fr', points: { regular: 1, playoffs: 3 } };
 
-/** Stockage du téléphone, en mémoire (le localStorage expérimental de Node masque celui de jsdom). */
+/** Phone storage, in memory (Node's experimental localStorage shadows jsdom's). */
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
   return {
@@ -29,14 +29,14 @@ beforeEach(() => {
   document.title = '';
 });
 
-describe('dictionnaires', () => {
-  it('le français est la langue par défaut, et le secours d’une langue inconnue', () => {
+describe('dictionaries', () => {
+  it('French is the default language, and the fallback for an unknown one', () => {
     expect(Object.keys(DICTIONARIES)).toContain('fr');
     expect(messages('xx')).toBe(messages('fr'));
     expect(messages(undefined).common.locale).toBe('fr-FR');
   });
 
-  it('quelques textes communs', () => {
+  it('a few common texts', () => {
     const t = messages('fr');
     expect([t.common.pronos(1), t.common.pronos(3), t.common.matches(2), t.common.points(1)]).toEqual(['1 prono', '3 pronos', '2 matchs', '1 pt']);
     expect([t.common.weekLabel(9), t.common.weekLabel(9, true), t.common.weekLabel(22)]).toEqual(['S9', 'Semaine 9', 'Super Bowl']);
@@ -45,8 +45,8 @@ describe('dictionnaires', () => {
   });
 });
 
-describe('réglages au démarrage de l’appli', () => {
-  it('premier lancement : ceux du serveur, gardés pour la suite', async () => {
+describe('settings at app startup', () => {
+  it('first launch: the server\'s, kept for later', async () => {
     const i18n = await fresh();
     await i18n.loadConfig(ok(CONFIG));
     expect(i18n.config).toEqual(CONFIG);
@@ -55,24 +55,24 @@ describe('réglages au démarrage de l’appli', () => {
     expect(JSON.parse(localStorage.getItem('prono-config')!)).toEqual(CONFIG);
   });
 
-  it('lancements suivants : tout de suite ceux du téléphone, ceux du serveur pour la fois d’après', async () => {
-    localStorage.setItem('prono-config', JSON.stringify({ ...CONFIG, appName: 'Ancien nom' }));
+  it('later launches: the phone\'s right away, the server\'s for next time', async () => {
+    localStorage.setItem('prono-config', JSON.stringify({ ...CONFIG, appName: 'Old name' }));
     const i18n = await fresh();
     await i18n.loadConfig(ok(CONFIG));
-    expect(i18n.config.appName).toBe('Ancien nom');
+    expect(i18n.config.appName).toBe('Old name');
     await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('prono-config')!).appName).toBe('Les Gros Pronos'));
   });
 
-  it('serveur injoignable et rien sur le téléphone : réglages par défaut', async () => {
+  it('server unreachable and nothing on the phone: default settings', async () => {
     const i18n = await fresh();
     await i18n.loadConfig(async () => {
-      throw new Error('hors ligne');
+      throw new Error('offline');
     });
     expect(i18n.config).toEqual(i18n.DEFAULT_CONFIG);
     expect(i18n.t.common.appName).toBe('Prono NFL entre potes');
   });
 
-  it('réglages abîmés sur le téléphone : ignorés', async () => {
+  it('corrupted settings on the phone: ignored', async () => {
     localStorage.setItem('prono-config', '{"appName":42');
     const i18n = await fresh();
     await i18n.loadConfig(ok(CONFIG));

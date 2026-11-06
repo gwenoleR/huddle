@@ -5,7 +5,7 @@ import { drawRecap, RECAP_H, RECAP_W } from '../lib/recapImage';
 import { BackLink, Loading } from './shared';
 import { config, t } from '../lib/i18n';
 
-/** Récap de la semaine : image générée sur le téléphone, partagée via le menu Partager du système. */
+/** Weekly recap: image generated on the phone, shared through the system Share menu. */
 export function Recap({ week, notify }: { week?: number; notify: (m: string) => void }) {
   const q = useRecap(week);
   const data = q.data ?? null;
@@ -14,7 +14,7 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
   const [drawError, setDrawError] = useState<string | null>(null);
   const error = q.error?.message ?? drawError;
 
-  // L'image est préparée à l'avance : le partage doit partir directement du toucher sur le bouton.
+  // The image is prepared in advance: sharing must start directly from the tap on the button.
   useEffect(() => {
     if (!data) return;
     let objectUrl: string | null = null;
@@ -45,7 +45,7 @@ export function Recap({ week, notify }: { week?: number; notify: (m: string) => 
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/classement" label={t.leaderboard.title} />
+        <BackLink href="#/standings" label={t.leaderboard.title} />
       </header>
       <main className="stack" style={{ gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

@@ -8,7 +8,7 @@ import { keys } from '../lib/queries';
 import { useBonus } from '../lib/data';
 import { t } from '../lib/i18n';
 
-/** Bonus de fin de saison : règles, choix (avant la Wild Card), puis révélation et résultats. */
+/** End-of-season bonus: rules, picks (before the Wild Card round), then reveal and results. */
 export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; notify: (m: string) => void }) {
   const qc = useQueryClient();
   const q = useBonus();
@@ -20,8 +20,8 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
   const [total, setTotal] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Le formulaire part de mes choix enregistrés, une seule fois : un rafraîchissement ne doit pas
-  // écraser ce que je suis en train de modifier.
+  // The form starts from my saved picks, only once: a refresh must not overwrite what I'm
+  // currently editing.
   const [filled, setFilled] = useState(false);
   useEffect(() => {
     if (filled || !d) return;
@@ -33,7 +33,7 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
     setTotal(String(d.mine.sbTotal));
   }, [d, filled]);
 
-  // Le vainqueur du Super Bowl doit rester un des deux champions choisis.
+  // The Super Bowl winner must stay one of the two chosen champions.
   useEffect(() => {
     if (sb && sb !== afc && sb !== nfc) setSb(null);
   }, [afc, nfc, sb]);
@@ -60,7 +60,7 @@ export function Bonus({ me, theme, notify }: { me: Me; theme: 'dark' | 'light'; 
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 0', display: 'flex', alignItems: 'center' }}>
-        <BackLink href="#/classement" label={t.leaderboard.title} />
+        <BackLink href="#/standings" label={t.leaderboard.title} />
       </header>
       <main className="stack" style={{ gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -255,7 +255,7 @@ function PickLine({ pick, result }: { pick: BonusPickDto; result: BonusDto['resu
   );
 }
 
-/** Qui a déjà fait ses choix (sans dire lesquels), présenté comme sur la fiche match. */
+/** Who has already made their picks (without saying which), shown like on the match page. */
 function WhoChose({ players, me, locked }: { players: BonusDto['players']; me: Me; locked?: boolean }) {
   return (
     <section className="grid-2">

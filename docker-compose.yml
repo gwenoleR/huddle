@@ -1,13 +1,13 @@
 services:
   prono:
-    # Image publiée par GitHub Actions à chaque push sur main (nécessite « docker login ghcr.io »).
+    # Image published by GitHub Actions on every push to main (requires `docker login ghcr.io`).
     image: ghcr.io/gwenoler/pronos:latest
     container_name: prono
     restart: unless-stopped
     environment:
-      PUBLIC_URL: ${PUBLIC_URL:?Renseigne PUBLIC_URL dans .env}
+      PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in .env}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
-      # Réglages facultatifs de l'instance (voir le README, « Réglages ») :
+      # Optional instance settings (see the README, "Settings"):
       APP_NAME: ${APP_NAME:-}
       APP_SHORT_NAME: ${APP_SHORT_NAME:-}
       APP_LANG: ${APP_LANG:-fr}
@@ -16,11 +16,11 @@ services:
       TZ: ${TZ:-Europe/Paris}
     volumes:
       - prono-data:/data
-    # Le cloudflared de ton infra pointe vers http://<ip-du-serveur>:3847
+    # Your cloudflared points to http://<server-ip>:3847
     ports:
       - "3847:3000"
-    # Variante : si ton cloudflared est sur un réseau Docker partagé, décommente
-    # ces lignes (et le bloc « networks » en bas), retire « ports » et pointe le tunnel vers http://prono:3000
+    # Alternative: if your cloudflared is on a shared Docker network, uncomment
+    # these lines (and the "networks" block at the bottom), remove "ports" and point the tunnel to http://prono:3000
     # networks:
     #   - cloudflared
 
@@ -30,4 +30,4 @@ volumes:
 # networks:
 #   cloudflared:
 #     external: true
-#     name: <nom-du-réseau-de-ton-cloudflared>
+#     name: <your-cloudflared-network-name>

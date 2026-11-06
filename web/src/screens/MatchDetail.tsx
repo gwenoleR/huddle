@@ -21,7 +21,7 @@ export function MatchDetail({ id, me, theme, notify }: { id: string; me: Me; the
   return (
     <div className="screen-inner">
       <header style={{ padding: '16px 8px 4px', display: 'flex', alignItems: 'center' }}>
-        <BackLink href={`#/matchs/${g.week}`} label={g.weekLabel} />
+        <BackLink href={`#/matches/${g.week}`} label={g.weekLabel} />
       </header>
       <main className="stack" style={{ gap: 16 }}>
         <MatchCard

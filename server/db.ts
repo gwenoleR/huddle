@@ -12,17 +12,17 @@ db.exec(`
   PRAGMA foreign_keys = ON;
 `);
 
-for (const m of migrate(db)) console.log(`[db] migration ${m.version} : ${m.name}`);
+for (const m of migrate(db)) console.log(`[db] migration ${m.version}: ${m.name}`);
 
-/** Premier démarrage avec un fichier seed : on crée ses joueurs. Sans seed, le groupe se crée depuis l'appli. */
+/** First start with a seed file: create its players. Without a seed, the group is created from the app. */
 const { n } = db.prepare('SELECT COUNT(*) AS n FROM players').get() as { n: number };
 if (n === 0 && seed) {
   const insert = db.prepare('INSERT INTO players (name, is_admin, created_at) VALUES (?, ?, ?)');
-  for (const j of seed.joueurs) {
-    const { lastInsertRowid } = insert.run(j.prenom, j.admin ? 1 : 0, Date.now());
-    if (j.pointsDeDepart) setStartPoints(Number(lastInsertRowid), j.pointsDeDepart);
+  for (const p of seed.players) {
+    const { lastInsertRowid } = insert.run(p.name, p.admin ? 1 : 0, Date.now());
+    if (p.startPoints) setStartPoints(Number(lastInsertRowid), p.startPoints);
   }
-  console.log(`[db] ${seed.joueurs.length} joueurs importés depuis le seed`);
+  console.log(`[db] ${seed.players.length} players imported from the seed`);
 }
 
 export function getMeta(key: string): string | undefined {
@@ -46,14 +46,14 @@ export function transaction<T>(fn: () => T): T {
   }
 }
 
-// ---------- Saisons ----------
+// ---------- Seasons ----------
 
-/** Première semaine dont les pronos comptent pour une saison (1, sauf reprise en cours de saison). */
+/** First week whose picks count for a season (1, unless taken over mid-season). */
 export function startWeek(season = currentSeason()): number {
   return Number(getMeta(`start_week:${season}`) ?? 1);
 }
 
-/** Points de départ d'un joueur pour une saison (repris d'un autre site, ou arrivée en cours de saison). */
+/** A player's starting points for a season (carried over from another site, or joining mid-season). */
 export function setStartPoints(playerId: number, points: number, season = currentSeason()) {
   db.prepare(
     `INSERT INTO player_seasons (player_id, season, start_points) VALUES (?, ?, ?)
@@ -61,7 +61,7 @@ export function setStartPoints(playerId: number, points: number, season = curren
   ).run(playerId, season, points);
 }
 
-/** Saisons qu'on peut consulter : celles qui ont des matchs en base, et toujours la saison en cours. */
+/** Seasons that can be browsed: those with games in the database, plus always the current season. */
 export function knownSeasons(): number[] {
   const rows = db.prepare('SELECT DISTINCT season FROM games').all() as { season: number }[];
   return [...new Set([...rows.map((r) => r.season), currentSeason()])].sort((a, b) => b - a);

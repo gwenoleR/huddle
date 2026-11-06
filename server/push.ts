@@ -4,7 +4,7 @@ import { db, getMeta, setMeta, startWeek } from './db';
 import { standings } from './scoring';
 import { bonusLockAt, bonusPhase, bonusPicks, bonusSettings } from './bonus';
 
-/** Clés VAPID : prises dans l'environnement, sinon en base ; générées au tout premier besoin. */
+/** VAPID keys: taken from the environment, otherwise from the database; generated when first needed. */
 let vapid: { publicKey: string; privateKey: string } | null = null;
 function vapidKeys() {
   if (vapid) return vapid;
@@ -14,9 +14,9 @@ function vapidKeys() {
     ({ publicKey, privateKey } = webpush.generateVAPIDKeys());
     setMeta('vapid_public', publicKey);
     setMeta('vapid_private', privateKey);
-    console.log('[push] clés VAPID générées et enregistrées en base');
+    console.log('[push] VAPID keys generated and saved to the database');
   }
-  // Apple refuse un « subject » en localhost : en prod, l'URL publique (Cloudflare) fait l'affaire.
+  // Apple rejects a localhost "subject": in production, the public URL (Cloudflare) does the job.
   const subject = process.env.VAPID_SUBJECT || (PUBLIC_URL.startsWith('https://') ? PUBLIC_URL : 'mailto:prono@example.com');
   webpush.setVapidDetails(subject, publicKey, privateKey);
   vapid = { publicKey, privateKey };
@@ -56,9 +56,9 @@ export async function sendToPlayer(playerId: number, payload: PushPayload): Prom
       });
       sent++;
     } catch (err: any) {
-      // Abonnement expiré ou désinstallé : on le supprime.
+      // Expired or uninstalled subscription: delete it.
       if (err?.statusCode === 404 || err?.statusCode === 410) deleteSubscription(s.endpoint);
-      else console.warn('[push] échec', err?.statusCode, err?.body ?? err?.message);
+      else console.warn('[push] failed', err?.statusCode, err?.body ?? err?.message);
     }
   }
   return sent;
@@ -68,7 +68,7 @@ const alreadySent = (key: string) => !!db.prepare('SELECT 1 FROM sent_notificati
 const markSent = (key: string) =>
   db.prepare('INSERT OR IGNORE INTO sent_notifications (key, sent_at) VALUES (?, ?)').run(key, Date.now());
 
-// Heure dans le fuseau du serveur (TZ, Europe/Paris dans l'image Docker) : celui de la bande.
+// Time in the server's time zone (TZ, Europe/Paris in the Docker image): the group's.
 const hourFmt = new Intl.DateTimeFormat(t.common.locale, { hour: '2-digit', minute: '2-digit' });
 
 function subscribedPlayers(): { id: number; name: string }[] {
@@ -77,7 +77,7 @@ function subscribedPlayers(): { id: number; name: string }[] {
     .all() as { id: number; name: string }[];
 }
 
-/** Rappel ~1 h avant un coup d'envoi pour ceux qui n'ont pas encore pronostiqué. */
+/** Reminder ~1 h before a kickoff for those who haven't picked yet. */
 async function reminders(now: number) {
   const games = db
     .prepare(
@@ -95,18 +95,18 @@ async function reminders(now: number) {
     );
     if (!missing.length) continue;
     const first = missing[0];
-    const matchs = missing.map((g) => `${g.away} @ ${g.home}`);
+    const matchups = missing.map((g) => `${g.away} @ ${g.home}`);
     await sendToPlayer(p.id, {
       title: t.notifications.reminderTitle(missing.length),
-      body: t.notifications.reminderBody(hourFmt.format(first.kickoff), matchs),
-      url: '/#/matchs',
+      body: t.notifications.reminderBody(hourFmt.format(first.kickoff), matchups),
+      url: '/#/matches',
       tag: `remind-${first.kickoff}`
     });
     for (const g of missing) markSent(`remind:${p.id}:${g.id}`);
   }
 }
 
-/** Résultats quand tous les matchs d'une semaine sont terminés. */
+/** Results once all games of a week are final. */
 async function weekResults(now: number) {
   const weeks = db
     .prepare(
@@ -120,7 +120,7 @@ async function weekResults(now: number) {
     const key = `week:${currentSeason()}:${w.week}`;
     if (alreadySent(key)) continue;
     markSent(key);
-    if (w.last < now - 3 * 24 * 3600_000) continue; // vieille semaine au premier démarrage : pas de notif
+    if (w.last < now - 3 * 24 * 3600_000) continue; // old week on first startup: no notification
 
     const season = standings();
     const weekRows = standings(w.week);
@@ -131,7 +131,7 @@ async function weekResults(now: number) {
       await sendToPlayer(p.id, {
         title: t.notifications.weekDoneTitle(weekLabel(w.week, true)),
         body: t.notifications.weekDoneBody(mine.good, w.total, me.rank, me.points),
-        url: '/#/classement',
+        url: '/#/standings',
         tag: key
       });
     }
@@ -139,9 +139,9 @@ async function weekResults(now: number) {
 }
 
 /**
- * « Ton prono bascule » : dans le dernier quart-temps (ou en prolongation), quand l'équipe qui mène change,
- * on prévient ceux qui ont pronostiqué ce match. Une égalité ne compte pas comme un changement.
- * Un retournement dans les dernières secondes peut n'être vu qu'avec le match déjà terminé : il compte aussi.
+ * "Your pick is flipping": in the last quarter (or overtime), when the leading team changes,
+ * notify those who picked this game. A tie doesn't count as a change.
+ * A comeback in the final seconds may only be seen once the game is already final: it counts too.
  */
 async function flips() {
   const games = db
@@ -197,7 +197,7 @@ async function flips() {
   }
 }
 
-/** Bonus de fin de saison : annonce à l'ouverture des choix, puis rappel ~1 h avant la clôture. */
+/** End-of-season bonus: announcement when picks open, then a reminder ~1 h before they close. */
 async function bonusNotifications(now: number) {
   if (bonusPhase(now) !== 'open') return;
   const lock = bonusLockAt()!;

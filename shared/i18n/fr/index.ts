@@ -1,7 +1,7 @@
 /**
- * Dictionnaire français : la référence. Une autre langue (en.ts…) doit avoir exactement la même forme
- * (type Messages) : le typecheck signale toute clé manquante ou en trop.
- * Un fichier par partie de l'appli ; les textes avec des valeurs sont des fonctions.
+ * French dictionary: the reference. Another language (en.ts…) must have exactly the same shape
+ * (type Messages): the typecheck flags any missing or extra key.
+ * One file per part of the app; texts with values are functions.
  */
 import { common } from './common';
 import { matches } from './matches';

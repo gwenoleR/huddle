@@ -32,7 +32,7 @@ const me = { id: 3, name: 'Bea', isAdmin: false };
 let qc: QueryClient;
 let el: HTMLDivElement;
 let root: Root;
-/** Réponse du serveur au prono, choisie par chaque test ; les relectures renvoient l'état « serveur ». */
+/** Server response to the pick, chosen by each test; refetches return the "server" state. */
 let pickStatus = 200;
 let resolvePick: () => void = () => {};
 const calls: string[] = [];
@@ -64,7 +64,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Monte usePick et renvoie la fonction de prono. */
+/** Mounts usePick and returns the pick function. */
 function mountPick(notify = vi.fn()) {
   let pick!: (g: Pick<GameDto, 'id' | 'week' | 'myPick'>, s: Side) => Promise<void>;
   function Probe() {
@@ -84,8 +84,8 @@ const flush = () => act(async () => new Promise((r) => setTimeout(r, 0)));
 const listGame = () => qc.getQueryData<WeekDto>(keys.week(10))!.games[0];
 const detailGame = () => qc.getQueryData<GameDetailDto>(keys.game('g1'))!;
 
-describe('faire un prono', () => {
-  it('apparaît tout de suite dans la liste ET sur la fiche, avant la réponse du serveur', async () => {
+describe('making a pick', () => {
+  it('shows up right away in the list AND on the game page, before the server answers', async () => {
     const { pick } = mountPick();
     let done!: Promise<void>;
     await act(async () => {
@@ -101,7 +101,7 @@ describe('faire un prono', () => {
     });
   });
 
-  it('serveur d’accord : on relit la semaine et la fiche pour confirmer', async () => {
+  it('server accepts: refetches the week and the game page to confirm', async () => {
     const { pick, notify } = mountPick();
     await act(async () => {
       const p = pick(game, 'away');
@@ -114,7 +114,7 @@ describe('faire un prono', () => {
     expect(qc.getQueryState(keys.game('g1'))!.isInvalidated).toBe(true);
   });
 
-  it('serveur refuse : tout revient comme avant aux deux endroits, avec son message', async () => {
+  it('server rejects: everything is restored in both places, with its message', async () => {
     pickStatus = 409;
     const { pick, notify } = mountPick();
     await act(async () => {
@@ -128,13 +128,13 @@ describe('faire un prono', () => {
     expect(detailGame()).toMatchObject({ myPick: null, waiting: ['Bea', 'Gwen'] });
   });
 
-  it('même choix qu’avant : rien n’est envoyé', async () => {
+  it('same pick as before: nothing is sent', async () => {
     const { pick } = mountPick();
     await act(async () => pick({ ...game, myPick: 'away' }, 'away'));
     expect(calls).toEqual([]);
   });
 
-  it('fiche pas encore ouverte : la liste se met à jour quand même', async () => {
+  it('game page not opened yet: the list still updates', async () => {
     qc.removeQueries({ queryKey: keys.game('g1') });
     const { pick } = mountPick();
     await act(async () => {
@@ -148,8 +148,8 @@ describe('faire un prono', () => {
   });
 });
 
-describe('une même donnée, une seule requête', () => {
-  it('deux composants qui affichent la même semaine ne la demandent qu’une fois', async () => {
+describe('same data, a single request', () => {
+  it('two components showing the same week request it only once', async () => {
     qc.clear();
     function Week() {
       useWeek(10);
@@ -167,7 +167,7 @@ describe('une même donnée, une seule requête', () => {
     expect(calls.filter((c) => c === 'GET /api/weeks/10')).toHaveLength(1);
   });
 
-  it('pas de semaine connue : rien n’est demandé', async () => {
+  it('no known week: nothing is requested', async () => {
     qc.clear();
     function Week() {
       useWeek(undefined);

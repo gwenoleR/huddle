@@ -1,9 +1,12 @@
 /**
- * Forme des données échangées entre le serveur et l'appli.
- * Un seul fichier pour les deux : si le serveur change un champ, le front ne compile plus,
- * au lieu d'afficher « undefined » chez les potes.
- * Uniquement des types (aucun code) : rien de ce fichier n'arrive dans les bundles.
+ * Shape of the data exchanged between the server and the app.
+ * One file for both: if the server changes a field, the front end stops compiling,
+ * instead of showing "undefined" to the players.
+ * Types only (no code): nothing from this file ends up in the bundles.
  */
+
+/** A team's result in a game: win, loss, tie. */
+export type GameResult = 'W' | 'L' | 'T';
 
 export type Side = 'away' | 'home';
 export type GameStatus = 'scheduled' | 'live' | 'final' | 'postponed';
@@ -73,7 +76,7 @@ export interface LiveRow extends StandingRow {
 
 export interface LeaderboardDto {
   season: number;
-  /** Saisons consultables, la plus récente d'abord (toujours au moins la saison en cours). */
+  /** Browsable seasons, most recent first (always at least the current season). */
   seasons: number[];
   week: number | null;
   startWeek: number;
@@ -108,7 +111,7 @@ export interface AwardDto {
   id: string;
   title: string;
   rule: string;
-  /** null tant que le trophée n'est pas attribué. */
+  /** null until the trophy is awarded. */
   who: string | null;
   detail: string | null;
 }
@@ -126,7 +129,7 @@ export interface SeasonDto {
 export interface PreviewSideDto {
   record: string | null;
   venueRecord: string | null;
-  form: { result: 'V' | 'D' | 'N'; opponent: string; home: boolean; score: string }[];
+  form: { result: GameResult; opponent: string; home: boolean; score: string }[];
   winChance: number | null;
   injuries: { name: string; position: string | null; status: 'out' | 'doubtful' | 'questionable'; part: string | null }[];
   injuredReserve: number;
@@ -187,9 +190,9 @@ export interface TeamSheetDto {
     home: boolean;
     opponent: TeamDto;
     score: string | null;
-    result: 'V' | 'D' | 'N' | null;
+    result: GameResult | null;
   }[];
-  bande: { name: string; with: number; withGood: number; against: number; againstGood: number }[];
+  band: { name: string; with: number; withGood: number; against: number; againstGood: number }[];
 }
 
 export interface BonusDto {
@@ -221,14 +224,14 @@ export interface WeekDto {
   games: GameDto[];
 }
 
-/** /api/games/:id : le match, plus qui n'a pas encore pronostiqué. */
+/** /api/games/:id: the game, plus who hasn't picked yet. */
 export type GameDetailDto = GameDto & { weekLabel: string; waiting: string[]; counted: boolean };
 
-/** /api/config : réglages de l'instance, publics (lus avant même la connexion). */
+/** /api/config: the instance's public settings (read even before login). */
 export interface ConfigDto {
   appName: string;
   appShortName: string;
-  /** Langue des textes (dictionnaires dans shared/i18n). */
+  /** Language of the texts (dictionaries in shared/i18n). */
   lang: string;
   points: { regular: number; playoffs: number };
 }
@@ -247,7 +250,7 @@ export interface EspnStatsDto {
   lastHour: number;
   lastDay: number;
   errorsLastHour: number;
-  /** ESPN a demandé de ralentir : plus aucun appel avant cette heure. */
+  /** ESPN asked us to slow down: no more calls before this time. */
   pausedUntil: number | null;
 }
 
@@ -279,22 +282,22 @@ export interface AdminPlayerDto {
   hasPin: boolean;
 }
 
-/** /api/admin/history : ce qui est (ou serait, à blanc) importé. */
+/** /api/admin/history: what is (or would be, on a dry run) imported. */
 export interface HistoryImportDto {
   games: number;
   picks: number;
-  /** Joueurs dont les points de départ sont remplacés par l'historique. */
+  /** Players whose starting points are replaced by the history. */
   players: string[];
   dryRun: boolean;
 }
 
-/** Toute erreur renvoyée par l'API. */
+/** Any error returned by the API. */
 export interface ErrorDto {
   error: string;
-  /** Connexion : essais restants, ou minutes avant de pouvoir réessayer. */
+  /** Login: remaining attempts, or minutes before retrying is allowed. */
   attemptsLeft?: number;
   retryInMinutes?: number;
 }
 
-/** Réponses possibles d'une route : la donnée, ou une erreur. */
+/** A route's possible replies: the data, or an error. */
 export type Replies<T> = { 200: T; '4xx': ErrorDto; '5xx': ErrorDto };

@@ -1,4 +1,4 @@
-/** Page Administration. */
+/** Administration page. */
 import { common, count } from './common';
 
 export const admin = {
@@ -8,22 +8,22 @@ export const admin = {
   seasonSection: 'Saison',
   dataSection: 'Données',
 
-  /** Ligne d'état des appels ESPN ; `pausedUntil` déjà mis en forme (« 19:40 »). */
+  /** ESPN calls status line; `pausedUntil` already formatted (« 19:40 »). */
   espn: (lastHour: number, lastDay: number, errors: number, pausedUntil: string | null) => {
     if (pausedUntil) return `ESPN demande de ralentir : appels en pause jusqu’à ${pausedUntil}`;
     return `${count(lastHour, 'appel')} ESPN sur la dernière heure${errors ? ` · ${errors} en erreur` : ''} · ${lastDay} sur 24 h`;
   },
 
-  // Synchro ESPN
+  // ESPN sync
   syncDone: (games: number) => `Synchro faite : ${games} matchs`,
   syncLabel: 'Données ESPN',
-  /** « Dernière synchro mar. 19:40 · » ou « Échec mar. 19:40 · » ; `when` déjà mis en forme. */
+  /** « Dernière synchro mar. 19:40 · » or « Échec mar. 19:40 · »; `when` already formatted. */
   syncWhen: (ok: boolean, when: string) => `${ok ? 'Dernière synchro' : 'Échec'} ${when} · `,
   syncGames: (games: number) => `${games} matchs en base`,
   syncing: 'Synchro en cours… (≈ 15 s)',
   syncNow: 'Synchroniser maintenant',
 
-  // Bonus de fin de saison
+  // End-of-season bonus
   bonusAfc: 'Champion AFC',
   bonusNfc: 'Champion NFC',
   bonusSb: 'Vainqueur du Super Bowl',
@@ -44,7 +44,7 @@ export const admin = {
   revealWildcardHelp: 'Dès la clôture des choix : on suit qui est encore en course pendant les playoffs.',
   revealSuperbowlHelp: 'Au coup d’envoi du Super Bowl : suspense jusqu’au bout, points bonus ajoutés à ce moment-là.',
 
-  // Joueurs
+  // Players
   added: (name: string) => `${name} ajouté`,
   confirmResetPin: (name: string) => `Effacer le code de ${name} ? Il en choisira un nouveau à sa prochaine connexion.`,
   pinReset: (name: string) => `Code de ${name} effacé`,
@@ -68,7 +68,7 @@ export const admin = {
   startPoints: 'Points de départ (s’il arrive en cours de saison)',
   add: 'Ajouter',
 
-  // Import de l'historique
+  // History import
   imported: (picks: number) => `${common.pronos(picks)} importés`,
   importLabel: 'Importer l’historique',
   importHelp:

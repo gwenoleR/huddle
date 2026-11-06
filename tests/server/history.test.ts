@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-// Comme en prod après l'import : toute la saison compte, dès la semaine 1.
-// (Lu au chargement de config.ts : à poser avant d'importer le serveur.)
+// As in prod after the import: the whole season counts, from week 1.
+// (Read when config.ts loads: must be set before importing the server.)
 process.env.START_WEEK = '1';
 const { importHistory, parseHistory } = await import('../../server/history');
 const { standings } = await import('../../server/scoring');
@@ -12,7 +12,7 @@ const { setStartPoints } = await import('../../server/db');
 beforeEach(() => {
   resetDb();
   db.exec("DELETE FROM players WHERE name NOT IN ('Gwen', 'Audrey', 'Bea', 'Bud', 'Max')");
-  // Les joueurs ont leurs points repris de l'ancien site, comme en prod avant l'import.
+  // Players have their points carried over from the old site, as in prod before the import.
   for (const [name, pts] of Object.entries({ Gwen: 73, Audrey: 72, Bea: 71, Bud: 69, Max: 64 }))
     setStartPoints(pid(name), pts);
 });
@@ -22,7 +22,7 @@ Week1,KC Chiefs,BUF Bills,KC Chiefs,BUF Bills,,KC Chiefs,KC Chiefs
 ,DAL Cowboys ,SF 49ers,SF 49ers,SF 49ers,DAL Cowboys,DAL Cowboys,"SF 49ers"
 week2,PHI Eagles,DET Lions,PHI Eagles,PHI Eagles,PHI Eagles,DET Lions,PHI Eagles`;
 
-/** Les trois matchs du CSV ci-dessus, terminés. */
+/** The three games of the CSV above, final. */
 function games() {
   return {
     g1: addGame({ id: 'g1', week: 1, away: 'BUF', home: 'KC', kickoff: NOW - 60 * DAY, score: [20, 27] }),
@@ -33,22 +33,22 @@ function games() {
 const pickOf = (name: string, game: string) =>
   (db.prepare('SELECT side FROM picks WHERE player_id = ? AND game_id = ?').get(pid(name), game) as { side: string } | undefined)?.side ?? null;
 
-describe('lecture du fichier', () => {
-  it('semaines, équipes (espaces en trop retirés), pronos vides et guillemets', () => {
+describe('file parsing', () => {
+  it('weeks, teams (extra spaces trimmed), empty picks and quotes', () => {
     const lines = parseHistory(CSV);
     expect(lines).toHaveLength(3);
     expect(lines[0]).toEqual({ week: 1, home: 'KC Chiefs', away: 'BUF Bills', picks: { BE: 'KC Chiefs', AU: 'BUF Bills', GW: 'KC Chiefs', BU: 'KC Chiefs' } });
     expect(lines[1]).toMatchObject({ week: 1, home: 'DAL Cowboys', picks: { BU: 'SF 49ers' } });
-    expect(lines[2].week).toBe(2); // « week2 » en minuscules
+    expect(lines[2].week).toBe(2); // lowercase "week2"
   });
 
-  it('refuse une semaine illisible', () => {
+  it('rejects an unreadable week', () => {
     expect(() => parseHistory(',Home,Away,Prono GW\nSemaine 1,KC Chiefs,BUF Bills,KC Chiefs')).toThrow('semaine illisible');
   });
 });
 
 describe('import', () => {
-  it('ajoute les pronos du bon côté et passe les points de départ à 0', () => {
+  it('adds picks on the right side and sets starting points to 0', () => {
     const { g1, g2, g3 } = games();
     const r = importHistory(parseHistory(CSV));
     expect(r).toEqual({ games: 3, picks: 14, players: ['Bea', 'Audrey', 'Gwen', 'Bud', 'Max'] });
@@ -58,15 +58,15 @@ describe('import', () => {
     expect((db.prepare('SELECT SUM(start_points) AS s FROM player_seasons').get() as { s: number }).s).toBe(0);
   });
 
-  it('le classement vient alors des pronos', () => {
+  it('standings then come from the picks', () => {
     games();
     importHistory(parseHistory(CSV));
     const pts = Object.fromEntries(standings().map((r) => [r.name, r.points]));
-    // g1 : KC gagne ; g2 : SF gagne ; g3 : DET gagne.
+    // g1: KC wins; g2: SF wins; g3: DET wins.
     expect(pts).toEqual({ Bea: 2, Bud: 2, Gwen: 2, Audrey: 1, Max: 0 });
   });
 
-  it('heure des pronos inconnue : la veille du match (pas de faux « Sur le fil »)', () => {
+  it('unknown pick time: the day before the game (no false "last minute" award)', () => {
     const { g1 } = games();
     importHistory(parseHistory(CSV));
     const at = (db.prepare("SELECT updated_at FROM picks WHERE game_id = 'g1' LIMIT 1").get() as { updated_at: number }).updated_at;
@@ -74,7 +74,7 @@ describe('import', () => {
     expect(kickoff - at).toBe(DAY);
   });
 
-  it('un joueur absent du fichier garde ses points de départ', () => {
+  it('a player missing from the file keeps their starting points', () => {
     db.prepare("INSERT INTO players (name, created_at) VALUES ('Zoé', 0)").run();
     setStartPoints(pid('Zoé'), 40);
     games();
@@ -82,7 +82,7 @@ describe('import', () => {
     expect(standings().find((r) => r.name === 'Zoé')!.points).toBe(40);
   });
 
-  it('tout ou rien : la moindre erreur n’écrit rien, et toutes les erreurs sont listées', () => {
+  it('all or nothing: any error writes nothing, and all errors are listed', () => {
     games();
     const bad = `${CSV}\n,NYJ Jets,MIA Dolphins,NYJ Jets,,,,\n,KC Chiefs,BUF Bills,KC Chiefs,,,,\n,PHI Eagles,DET Lions,,,,BAL Ravens,`
       .replace('Prono BU', 'Prono ZZ');
@@ -92,7 +92,7 @@ describe('import', () => {
     } catch (e) {
       message = (e as Error).message;
     }
-    expect(message).toContain('équipe inconnue'); // NYJ n'est pas dans les équipes de test
+    expect(message).toContain('équipe inconnue'); // NYJ is not among the test teams
     expect(message).toContain('joueur « ZZ » inconnu');
     expect(message).toContain('« BAL Ravens » ne joue pas ce match');
     expect(message).toContain('match en double');
@@ -100,14 +100,14 @@ describe('import', () => {
     expect(standings().find((r) => r.name === 'Gwen')!.points).toBe(73);
   });
 
-  it('match pas encore en base : rien n’est importé', () => {
+  it('game not yet in the database: nothing is imported', () => {
     addGame({ id: 'g1', week: 1, away: 'BUF', home: 'KC', score: [20, 27] });
     expect(() => importHistory(parseHistory(CSV))).toThrow('match introuvable');
   });
 });
 
-describe('import à blanc', () => {
-  it('vérifie et compte sans rien écrire', () => {
+describe('dry-run import', () => {
+  it('checks and counts without writing anything', () => {
     games();
     expect(importHistory(parseHistory(CSV), { dryRun: true })).toEqual({ games: 3, picks: 14, players: ['Bea', 'Audrey', 'Gwen', 'Bud', 'Max'] });
     expect((db.prepare('SELECT COUNT(*) AS n FROM picks').get() as { n: number }).n).toBe(0);
@@ -115,26 +115,26 @@ describe('import à blanc', () => {
     expect(getMetaValue('history_import:2026')).toBeUndefined();
   });
 
-  it('les erreurs sortent aussi à blanc', () => {
+  it('errors are reported in dry runs too', () => {
     expect(() => importHistory(parseHistory(CSV), { dryRun: true })).toThrow('match introuvable');
   });
 
-  it('fichier vide', () => {
+  it('empty file', () => {
     expect(() => parseHistory(',Home,Away,Prono GW\n')).toThrow('Fichier vide');
   });
 });
 
-describe('import réel', () => {
-  it('note la date de l’import', () => {
+describe('real import', () => {
+  it('records the import date', () => {
     games();
     importHistory(parseHistory(CSV));
     expect(JSON.parse(getMetaValue('history_import:2026')!)).toMatchObject({ games: 3, picks: 14 });
   });
 });
 
-describe('le vrai fichier de l’ancien site', () => {
-  it('semaine 8 sur les vrais résultats ESPN : on retrouve les bons pronos de chacun', () => {
-    // Équipes et résultats de la semaine 8 enregistrés chez ESPN (tests/fixtures/espn).
+describe('the real file from the old site', () => {
+  it('week 8 against real ESPN results: everyone\'s correct picks match', () => {
+    // Week 8 teams and results recorded from ESPN (tests/fixtures/espn).
     db.exec('DELETE FROM teams');
     const teams = JSON.parse(readFileSync('tests/fixtures/espn/teams.json', 'utf8')).sports[0].leagues[0].teams;
     for (const { team: t } of teams)
@@ -156,7 +156,7 @@ describe('le vrai fichier de l’ancien site', () => {
     expect(good).toEqual({ Bea: 10, Audrey: 10, Max: 7, Gwen: 8, Bud: 11 });
   });
 
-  it('le fichier entier se lit : 8 semaines, 121 matchs, 2 pronos manquants (Audrey)', () => {
+  it('the whole file parses: 8 weeks, 121 games, 2 missing picks (Audrey)', () => {
     const lines = parseHistory(readFileSync('tests/fixtures/pronos-2026.csv', 'utf8'));
     expect(new Set(lines.map((l) => l.week))).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8]));
     expect(lines).toHaveLength(121);
@@ -164,15 +164,15 @@ describe('le vrai fichier de l’ancien site', () => {
   });
 });
 
-describe('initiales', () => {
-  it('sans accents ni casse', async () => {
+describe('initials', () => {
+  it('without accents or case', async () => {
     const { initials } = await import('../../server/history');
     expect([initials('Léa'), initials('élodie'), initials('gw')]).toEqual(['LE', 'EL', 'GW']);
   });
 });
 
-describe('messages d’erreur', () => {
-  it('un joueur inconnu est signalé une seule fois, pas à chaque match', () => {
+describe('error messages', () => {
+  it('an unknown player is reported once, not for every game', () => {
     games();
     let message = '';
     try {
@@ -183,7 +183,7 @@ describe('messages d’erreur', () => {
     expect(message.match(/« ZZ »/g)).toHaveLength(1);
   });
 
-  it('deux joueurs avec les mêmes initiales : on dit lesquels', () => {
+  it('two players with the same initials: says which ones', () => {
     db.prepare("INSERT INTO players (name, created_at) VALUES ('Benoît', 0)").run();
     games();
     expect(() => importHistory(parseHistory(CSV))).toThrow('« BE » ambigu : Bea, Benoît');

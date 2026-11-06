@@ -1,7 +1,7 @@
 /**
- * Plusieurs saisons dans la même base : la saison en cours change toute seule le 1er juin, et les
- * saisons passées restent consultables (classement, bilan) avec leurs propres points de départ.
- * Dans les tests, la saison en cours est 2026, reprise en semaine 9 (tests/fixtures/seed.json).
+ * Multiple seasons in the same database: the current season switches by itself on June 1, and
+ * past seasons stay viewable (standings, summary) with their own starting points.
+ * In tests, the current season is 2026, starting at week 9 (tests/fixtures/seed.json).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,18 +42,18 @@ async function login(name: string) {
 }
 const get = async (url: string) => app.inject({ method: 'GET', url, headers: { cookie: await login('Gwen') } });
 
-/** Saison 2025 : Bea et Audrey ont joué, les autres pas encore arrivés. */
+/** Season 2025: Bea and Audrey played, the others hadn't joined yet. */
 function season2025() {
-  const g1 = addGame({ season: 2025, week: 3, kickoff: NOW - 400 * DAY, score: [10, 20] }); // KC gagne
-  const g2 = addGame({ season: 2025, week: 22, kickoff: NOW - 300 * DAY, score: [30, 20], away: 'SF', home: 'BUF' }); // Super Bowl, SF gagne
+  const g1 = addGame({ season: 2025, week: 3, kickoff: NOW - 400 * DAY, score: [10, 20] }); // KC wins
+  const g2 = addGame({ season: 2025, week: 22, kickoff: NOW - 300 * DAY, score: [30, 20], away: 'SF', home: 'BUF' }); // Super Bowl, SF wins
   pick('Bea', g1, 'home');
   pick('Bea', g2, 'away');
   pick('Audrey', g1, 'away');
   setStartPoints(pid('Audrey'), 1, 2025);
 }
 
-describe('saison en cours', () => {
-  it('suit la date si rien ne la fige : nouvelle saison le 1er juin', () => {
+describe('current season', () => {
+  it('follows the date unless pinned: new season on June 1', () => {
     const pinned = process.env.SEASON;
     delete process.env.SEASON;
     try {
@@ -64,20 +64,20 @@ describe('saison en cours', () => {
     }
   });
 
-  it('chaque saison a sa première semaine comptée (la reprise en S9 ne vaut que pour 2026)', () => {
+  it('each season has its own first counted week (start at week 9 only applies to 2026)', () => {
     expect(startWeek(2026)).toBe(9);
     expect(startWeek(2025)).toBe(1);
   });
 
-  it('saisons consultables : celles qui ont des matchs, plus la saison en cours, la plus récente d’abord', () => {
+  it('viewable seasons: those with games, plus the current season, most recent first', () => {
     expect(knownSeasons()).toEqual([2026]);
     season2025();
     expect(knownSeasons()).toEqual([2026, 2025]);
   });
 });
 
-describe('saison passée', () => {
-  it('classement : ses pronos, ses points de départ, et seulement ceux qui y ont joué', () => {
+describe('past season', () => {
+  it('standings: its picks, its starting points, and only those who played in it', () => {
     season2025();
     const rows = standings(undefined, 2025);
     expect(rows.map((r) => [r.name, r.points, r.startPoints])).toEqual([
@@ -86,58 +86,58 @@ describe('saison passée', () => {
     ]);
   });
 
-  it('n’entre pas dans la saison en cours', () => {
+  it('does not leak into the current season', () => {
     season2025();
     const now = Object.fromEntries(standings().map((r) => [r.name, r.points]));
-    expect(now).toEqual({ Gwen: 73, Audrey: 72, Bea: 71, Bud: 69, Max: 64 }); // les points de départ 2026, rien de 2025
+    expect(now).toEqual({ Gwen: 73, Audrey: 72, Bea: 71, Bud: 69, Max: 64 }); // 2026 starting points, nothing from 2025
   });
 
-  it('trophées calculés sur la saison demandée', () => {
+  it('awards computed for the requested season', () => {
     season2025();
     const best = awards(2025).find((a) => a.id === 'best-week')!;
     expect(best.who).toBe('Bea');
     expect(awards().find((a) => a.id === 'best-week')!.who).toBeNull();
   });
 
-  it('API classement : ?season=2025, sans semaine ni direct', async () => {
+  it('leaderboard API: ?season=2025, without week or live', async () => {
     season2025();
     addGame({ week: 10, kickoff: NOW - 3600_000, status: 'live', score: [7, 0] });
     const res = (await get('/api/leaderboard?season=2025&week=3')).json();
     expect(res).toMatchObject({ season: 2025, seasons: [2026, 2025], week: null, startWeek: 1, live: null });
     expect(res.rows.map((r: { name: string }) => r.name)).toEqual(['Bea', 'Audrey']);
-    // Sans paramètre : la saison en cours, avec le direct.
+    // Without a parameter: the current season, with live data.
     const now = (await get('/api/leaderboard')).json();
     expect(now.season).toBe(2026);
     expect(now.live).not.toBeNull();
   });
 
-  it('API bilan : ?season=2025', async () => {
+  it('season summary API: ?season=2025', async () => {
     season2025();
     const res = (await get('/api/season?season=2025')).json();
     expect(res).toMatchObject({ season: 2025, seasons: [2026, 2025], finished: true, finalGames: 2 });
     expect(res.rows[0].name).toBe('Bea');
   });
 
-  it('une saison passée est terminée, même sans Super Bowl en base', async () => {
+  it('a past season is finished, even without a Super Bowl in the database', async () => {
     addGame({ season: 2025, week: 1, kickoff: NOW - 400 * DAY, score: [10, 20] });
     expect((await get('/api/season?season=2025')).json().finished).toBe(true);
     expect((await get('/api/season')).json().finished).toBe(false);
   });
 
-  it('saison inconnue : 404', async () => {
+  it('unknown season: 404', async () => {
     expect((await get('/api/leaderboard?season=1999')).statusCode).toBe(404);
     expect((await get('/api/season?season=abc')).statusCode).toBe(404);
   });
 });
 
-describe('points de départ par saison', () => {
-  it('l’admin les règle pour la saison en cours, les autres saisons ne bougent pas', async () => {
+describe('starting points per season', () => {
+  it('the admin sets them for the current season, other seasons are unchanged', async () => {
     season2025();
     const cookie = await login('Gwen');
     await app.inject({ method: 'PATCH', url: `/api/admin/players/${pid('Audrey')}`, payload: { startPoints: 10 }, headers: { cookie } });
     const rows = (await app.inject({ method: 'GET', url: '/api/admin/players', headers: { cookie } })).json();
     expect(rows.find((p: { name: string }) => p.name === 'Audrey').startPoints).toBe(10);
     expect(standings(undefined, 2025).find((r) => r.name === 'Audrey')!.startPoints).toBe(1);
-    setStartPoints(pid('Audrey'), 72); // remis comme dans le seed
+    setStartPoints(pid('Audrey'), 72); // restored as in the seed
   });
 });

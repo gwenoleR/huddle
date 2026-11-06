@@ -1,15 +1,15 @@
 /**
- * Cache des données ESPN prises à la demande (avant-match, direct, classement NFL).
+ * Cache for ESPN data fetched on demand (preview, live, NFL standings).
  *
- * - Un seul appel à la fois par donnée : si 5 joueurs ouvrent le même match, ESPN n'est appelé qu'une fois.
- * - Une donnée un peu périmée est servie tout de suite et rafraîchie en arrière-plan (fenêtre « swr »).
- * - Si ESPN ne répond pas, on ressert la dernière version connue.
- * - Tout est rangé dans SQLite : un redémarrage ne fait pas tout re-télécharger, et les stats
- *   d'un match terminé depuis longtemps ne sont plus jamais redemandées.
+ * - Only one call at a time per item: if 5 players open the same game, ESPN is called only once.
+ * - Slightly stale data is served right away and refreshed in the background (the "swr" window).
+ * - If ESPN doesn't respond, the last known version is served again.
+ * - Everything is stored in SQLite: a restart doesn't re-download everything, and the stats
+ *   of a game finished long ago are never requested again.
  */
 import { db, getMeta, setMeta } from './db';
 
-/** Durée de vie infinie : la donnée ne change plus (match terminé depuis longtemps). */
+/** Infinite lifetime: the data no longer changes (game finished long ago). */
 export const FOREVER = Infinity;
 
 interface Entry {
@@ -23,7 +23,7 @@ const memory = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 let writes = 0;
 
-/** Après une mise à jour de l'appli, le format des données a pu changer : on repart de zéro (appelé au démarrage). */
+/** After an app update, the data format may have changed: start from scratch (called on startup). */
 export function resetIfNewVersion(version = process.env.APP_VERSION ?? 'dev') {
   if (getMeta('espn_cache_version') === version) return;
   db.exec('DELETE FROM espn_cache');
@@ -46,7 +46,7 @@ function read(key: string): Entry | null {
 function keep(key: string, entry: Entry) {
   memory.delete(key);
   memory.set(key, entry);
-  // La mémoire garde les plus récentes ; le reste reste disponible dans SQLite.
+  // Memory keeps the most recent entries; the rest remains available in SQLite.
   if (memory.size > MEMORY_MAX) memory.delete(memory.keys().next().value!);
 }
 
@@ -58,14 +58,14 @@ function write(key: string, data: unknown, ttl: number) {
     `INSERT INTO espn_cache (key, at, expires, data) VALUES (?, ?, ?, ?)
      ON CONFLICT(key) DO UPDATE SET at = excluded.at, expires = excluded.expires, data = excluded.data`
   ).run(key, at, Number.isFinite(expires) ? expires : null, JSON.stringify(data));
-  // De temps en temps, on jette ce qui est périmé depuis plus d'une semaine.
+  // Every now and then, drop entries that expired more than a week ago.
   if (++writes % 200 === 0) db.prepare('DELETE FROM espn_cache WHERE expires IS NOT NULL AND expires < ?').run(at - 7 * 24 * 3600_000);
 }
 
 export interface CacheOptions<T> {
-  /** Durée pendant laquelle la donnée est considérée fraîche (ms), éventuellement selon son contenu. */
+  /** How long the data is considered fresh (ms), possibly depending on its content. */
   ttl: number | ((data: T) => number);
-  /** Au-delà, pendant cette durée, on sert l'ancienne version et on rafraîchit en arrière-plan. */
+  /** Beyond that, for this long, serve the old version and refresh in the background. */
   swr?: number;
 }
 
@@ -87,7 +87,7 @@ export async function cached<T>(key: string, load: () => Promise<T>, opts: Cache
   const hit = read(key);
   if (hit && now < hit.expires) return hit.data as T;
   if (hit && opts.swr && now < hit.expires + opts.swr) {
-    refresh(key, load, opts).catch((e) => console.warn(`[espn] rafraîchissement de ${key} raté :`, (e as Error).message));
+    refresh(key, load, opts).catch((e) => console.warn(`[espn] refresh of ${key} failed:`, (e as Error).message));
     return hit.data as T;
   }
   try {
@@ -98,12 +98,12 @@ export async function cached<T>(key: string, load: () => Promise<T>, opts: Cache
   }
 }
 
-/** Pour les tests : oublie la copie en mémoire, comme après un redémarrage (SQLite reste). */
+/** For tests: forget the in-memory copy, as after a restart (SQLite remains). */
 export function forgetMemory() {
   memory.clear();
 }
 
-/** Pour les tests. */
+/** For tests. */
 export function clearEspnCache() {
   memory.clear();
   inflight.clear();

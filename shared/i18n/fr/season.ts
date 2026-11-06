@@ -1,8 +1,8 @@
-/** Bilan de saison et trophées (affichage). */
+/** Season recap and trophies (display). */
 import { common } from './common';
 
 export const season = {
-  /** D'où viennent les points : « 81 bons pronos + 8 de bonus », « 40 repris + 5 dans l’appli ». */
+  /** Where the points come from: « 81 bons pronos + 8 de bonus », « 40 repris + 5 dans l’appli ». */
   pointsOrigin: (r: { good: number; startPoints: number; bonus: number; points: number }) => {
     if (r.startPoints) return `${r.startPoints} repris + ${r.points - r.startPoints} dans l’appli`;
     return `${common.goodPicks(r.good)}${r.bonus ? ` + ${r.bonus} de bonus` : ''}`;
@@ -13,7 +13,7 @@ export const season = {
     `Saison ${season} ${finished ? 'terminée' : 'en cours'} · ${games} matchs joués`,
   title: 'Bilan de saison',
   championTitle: (finished: boolean) => (finished ? 'Titre de la saison' : 'En tête pour l’instant'),
-  /** Unité après les points du champion (précédée d'une espace). */
+  /** Unit after the champion's points (preceded by a space). */
   pointsUnit: ' pts',
   standingsTitle: (finished: boolean) => (finished ? 'Classement final' : 'Classement actuel'),
   trophiesTitle: 'Les trophées de la bande',
@@ -22,11 +22,11 @@ export const season = {
   previousSeasons: 'Saisons précédentes',
   otherSeasons: 'Autres saisons',
 
-  /** Ligne sous le titre d'un trophée : « Gwen · 12 bons pronos d’affilée », ou personne. */
+  /** Line under a trophy's title: « Gwen · 12 bons pronos d’affilée », or nobody. */
   awardLine: (who: string | null, detail: string | null, finished: boolean) =>
     who ? `${who} · ${detail}` : finished ? 'Personne' : 'Personne pour l’instant',
 
-  /** Fenêtre d'un trophée */
+  /** A trophy's dialog */
   itsYou: 'C’est toi !',
   nobody: (finished: boolean) => (finished ? 'Personne ne l’a décroché cette saison.' : 'Personne ne le mérite encore. La place est libre.'),
   howToWin: 'Comment on le gagne',

@@ -1,4 +1,4 @@
-/** Notifications : qui reçoit quoi, et jamais deux fois. L'envoi réel est remplacé par une doublure. */
+/** Notifications: who gets what, and never twice. Actual sending is replaced by a test double. */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 const sendNotification = vi.fn();
@@ -10,7 +10,7 @@ const { notificationsTick, sendToPlayer } = await import('../../server/push');
 const { DAY, HOUR, NOW, TEAMS, addGame, db, pick, picks, pid, resetDb, setGame, setMeta, subscribe } = await import('./helpers');
 const { saveBonusPick } = await import('../../server/bonus');
 
-/** Les notifications envoyées depuis le dernier appel, avec le prénom du destinataire. */
+/** Notifications sent since the last call, with the recipient's name. */
 function sent(): { to: string; title: string; body: string; url?: string }[] {
   const out = sendNotification.mock.calls.map(([sub, payload]) => ({ to: sub.endpoint.split('/').at(-1), ...JSON.parse(payload) }));
   sendNotification.mockClear();
@@ -22,12 +22,12 @@ beforeEach(() => {
   sendNotification.mockReset().mockResolvedValue({});
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
-  for (const name of ['Gwen', 'Audrey', 'Bea']) subscribe(name); // Bud et Max n'ont pas activé les notifs
+  for (const name of ['Gwen', 'Audrey', 'Bea']) subscribe(name); // Bud and Max haven't enabled notifications
 });
 afterEach(() => vi.useRealTimers());
 
-describe('envoi', () => {
-  it('supprime un abonnement expiré (410) et continue', async () => {
+describe('sending', () => {
+  it('removes an expired subscription (410) and carries on', async () => {
     subscribe('Gwen', 'https://push.example/Gwen-2');
     sendNotification.mockRejectedValueOnce({ statusCode: 410 });
     expect(await sendToPlayer(pid('Gwen'), { title: 't', body: 'b' })).toBe(1);
@@ -36,8 +36,8 @@ describe('envoi', () => {
   });
 });
 
-describe('rappel avant le coup d’envoi', () => {
-  it('prévient ~1 h avant ceux qui n’ont pas pronostiqué, une seule fois', async () => {
+describe('reminder before kickoff', () => {
+  it('notifies those without a pick ~1 h before, only once', async () => {
     const g = addGame({ week: 10, kickoff: NOW + HOUR, away: 'BUF', home: 'KC' });
     pick('Gwen', g, 'away');
     await notificationsTick(NOW);
@@ -48,14 +48,14 @@ describe('rappel avant le coup d’envoi', () => {
     expect(sent()).toEqual([]);
   });
 
-  it('regroupe les matchs du même créneau', async () => {
+  it('groups games in the same time slot', async () => {
     addGame({ week: 10, kickoff: NOW + HOUR, away: 'BUF', home: 'KC' });
     addGame({ week: 10, kickoff: NOW + HOUR, away: 'SF', home: 'DAL' });
     await notificationsTick(NOW);
     expect(sent().find((n) => n.to === 'Bea')).toMatchObject({ title: 'Il te manque 2 pronos', body: expect.stringContaining('BUF @ KC, SF @ DAL') });
   });
 
-  it('rien trop tôt, ni pour les semaines d’avant la reprise', async () => {
+  it('nothing too early, nor for weeks before the start week', async () => {
     addGame({ week: 10, kickoff: NOW + 2 * HOUR });
     addGame({ week: 8, kickoff: NOW + HOUR });
     await notificationsTick(NOW);
@@ -63,15 +63,15 @@ describe('rappel avant le coup d’envoi', () => {
   });
 });
 
-describe('ton prono bascule', () => {
+describe('your pick flips', () => {
   const live = (score: [number, number], detail: string) => addGame({ id: 'g', week: 10, status: 'live', score, detail, away: 'BUF', home: 'KC' });
 
-  it('prévient quand l’équipe qui mène change dans le dernier quart-temps', async () => {
+  it('notifies when the leading team changes in the fourth quarter', async () => {
     live([10, 7], 'Q4 · 8:00');
     picks('g', { Gwen: 'away', Audrey: 'home' });
-    pick('Bud', 'g', 'away'); // pas abonné
+    pick('Bud', 'g', 'away'); // not subscribed
     await notificationsTick(NOW);
-    expect(sent()).toEqual([]); // première mesure : on note juste qui mène
+    expect(sent()).toEqual([]); // first reading: just records who leads
 
     setGame('g', { home_score: 14, detail: 'Q4 · 3:10' });
     await notificationsTick(NOW);
@@ -84,30 +84,30 @@ describe('ton prono bascule', () => {
     });
   });
 
-  it('rien avant le dernier quart-temps, mais le changement est retenu', async () => {
+  it('nothing before the fourth quarter, but the change is recorded', async () => {
     live([10, 7], 'Q2 · 5:00');
     picks('g', { Gwen: 'away' });
     await notificationsTick(NOW);
     setGame('g', { home_score: 14, detail: 'Q3 · 1:00' });
     await notificationsTick(NOW);
     expect(sent()).toEqual([]);
-    setGame('g', { detail: 'Q4 · 14:00' }); // toujours KC devant : pas de bascule
+    setGame('g', { detail: 'Q4 · 14:00' }); // KC still ahead: no flip
     await notificationsTick(NOW);
     expect(sent()).toEqual([]);
   });
 
-  it('une égalité n’est pas une bascule', async () => {
+  it('a tie is not a flip', async () => {
     live([10, 7], 'Q4 · 5:00');
     picks('g', { Gwen: 'away' });
     await notificationsTick(NOW);
     setGame('g', { home_score: 10 });
     await notificationsTick(NOW);
-    setGame('g', { away_score: 13 }); // BUF repasse devant : même équipe qu'avant
+    setGame('g', { away_score: 13 }); // BUF back in front: same team as before
     await notificationsTick(NOW);
     expect(sent()).toEqual([]);
   });
 
-  it('un renversement vu seulement au coup de sifflet final compte aussi', async () => {
+  it('a comeback seen only at the final whistle counts too', async () => {
     live([20, 17], 'Q4 · 0:30');
     picks('g', { Gwen: 'away', Audrey: 'home' });
     await notificationsTick(NOW);
@@ -122,8 +122,8 @@ describe('ton prono bascule', () => {
   });
 });
 
-describe('fin de semaine', () => {
-  it('envoie le bilan une fois tous les matchs terminés, une seule fois', async () => {
+describe('end of week', () => {
+  it('sends the recap once all games are final, only once', async () => {
     const g1 = addGame({ week: 10, kickoff: NOW - DAY, score: [24, 17] });
     const g2 = addGame({ week: 10, kickoff: NOW - HOUR, status: 'live', score: [0, 3] });
     picks(g1, { Bea: 'away' });
@@ -134,25 +134,25 @@ describe('fin de semaine', () => {
     await notificationsTick(NOW);
     const out = sent().filter((n) => n.title === 'Semaine 10 terminée');
     expect(out.map((n) => n.to).sort()).toEqual(['Audrey', 'Bea', 'Gwen']);
-    expect(out.find((n) => n.to === 'Bea')!.body).toBe('Tu as fait 1 sur 2. Tu es 2e avec 72 pts.'); // à égalité avec Audrey
+    expect(out.find((n) => n.to === 'Bea')!.body).toBe('Tu as fait 1 sur 2. Tu es 2e avec 72 pts.'); // tied with Audrey
     await notificationsTick(NOW);
     expect(sent()).toEqual([]);
   });
 
-  it('pas de bilan pour une vieille semaine au premier démarrage', async () => {
+  it('no recap for an old week on first start', async () => {
     addGame({ week: 9, kickoff: NOW - 10 * DAY, score: [24, 17] });
     await notificationsTick(NOW);
     expect(sent()).toEqual([]);
   });
 });
 
-describe('bonus de fin de saison', () => {
+describe('end-of-season bonus', () => {
   const open = (lockIn: number) => {
     setMeta('bonus_field:2026', JSON.stringify({ afc: [{ teamId: TEAMS.BUF.id, seed: 1 }], nfc: [{ teamId: TEAMS.SF.id, seed: 1 }] }));
     addGame({ week: 19, kickoff: NOW + lockIn });
   };
 
-  it('annonce l’ouverture une seule fois', async () => {
+  it('announces the opening only once', async () => {
     open(3 * DAY);
     await notificationsTick(NOW);
     const out = sent();
@@ -162,7 +162,7 @@ describe('bonus de fin de saison', () => {
     expect(sent()).toEqual([]);
   });
 
-  it('rappel ~1 h avant la clôture, seulement à ceux qui n’ont pas choisi', async () => {
+  it('reminder ~1 h before lock, only to those who have not picked', async () => {
     open(HOUR);
     saveBonusPick({ playerId: pid('Gwen'), afc: TEAMS.BUF.id, nfc: TEAMS.SF.id, sb: TEAMS.BUF.id, sbTotal: 45 });
     await notificationsTick(NOW);
@@ -172,7 +172,7 @@ describe('bonus de fin de saison', () => {
     expect(sent()).toEqual([]);
   });
 
-  it('rien quand le bonus est désactivé', async () => {
+  it('nothing when the bonus is disabled', async () => {
     setMeta('bonus_settings', JSON.stringify({ enabled: false, points: { afc: 3, nfc: 3, sb: 5 }, reveal: 'wildcard' }));
     open(HOUR);
     await notificationsTick(NOW);
