@@ -159,25 +159,6 @@
   padding-bottom: 96px;
 }
 
-/* Home hero with the launch video: on wide screens, text and video side by side, the video wider
-   than VitePress's default image column (a third of the width, made for square images). */
-@media (min-width: 960px) {
-  .VPHero.has-image .container {
-    align-items: center;
-  }
-  .VPHero.has-image .main {
-    max-width: 470px !important;
-    width: auto !important;
-    flex-shrink: 0;
-  }
-  .VPHero.has-image .image {
-    flex: 1 1 auto !important;
-    margin-left: 48px !important;
-  }
-  .VPHero .image-container {
-    justify-content: flex-end;
-  }
-}
 @media (max-width: 959px) {
   /* VitePress pulls the hero image up under the nav bar on small screens. */
   .VPHero .image {

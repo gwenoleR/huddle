@@ -7,6 +7,9 @@ layout: home
 hero:
   name: Huddle
   text: Les pronos NFL de la bande
+  image:
+    src: /screens/games.jpg
+    alt: Les matchs de la semaine dans Huddle, avec les pronos de chacun
   tagline: Une petite appli que vous hébergez vous-même pour votre groupe de potes. Un prono par match, les scores en direct, et enfin la réponse à la question qui fâche — qui s’y connaît vraiment. Sans pub, sans paris, sans compte à créer.
   actions:
     - theme: brand
