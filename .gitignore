@@ -5,3 +5,7 @@ data
 *.log
 .DS_Store
 .claude/launch.json
+
+# VitePress
+site/.vitepress/dist
+site/.vitepress/cache

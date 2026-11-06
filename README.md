@@ -1,5 +1,7 @@
 # Huddle
 
+**[Website and documentation](https://gwenoler.github.io/huddle/)** · [Releases](https://github.com/gwenoleR/huddle/releases) · [Changelog](CHANGELOG.md)
+
 An NFL picks app for a group of friends: a mobile PWA you install on your home screen, that you host yourself with Docker. One instance = one group.
 
 - **Games** of the week with team logos, one tap to make a pick, and the group's split under each game.
@@ -50,9 +52,9 @@ Pick whichever fits your setup:
 docker compose pull && docker compose up -d
 ```
 
-The database migrates by itself on start; a copy beforehand never hurts:
+The database migrates by itself on start; a copy beforehand never hurts (stop the app first, so the copy is complete):
 ```bash
-docker compose cp huddle:/data/huddle.db ./huddle-backup.db
+docker compose stop huddle && docker compose cp huddle:/data/huddle.db ./huddle-backup.db && docker compose start huddle
 ```
 
 What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md) (and on the GitHub releases page). Versions follow semver: a **major** version (2.0.0) may need something from you, and its changelog says exactly what; minor and patch versions never do. The app notices when the server is newer and offers to reload.
@@ -100,9 +102,9 @@ PIN security: 5 wrong attempts lock that name for 15 minutes, and 20 wrong attem
 - Tracked season: the current one based on the date (see above). To pin it (tests, demo), set `SEASON=2026`.
 - Sync: full season once a day, current weeks every hour, **every 2 minutes during games**.
 - SQLite database in the `huddle-data` Docker volume (`/data/huddle.db`; installs from before the rename keep `/data/prono.db`).
-  Backup:
+  Backup (with the app stopped, so the copy is complete):
   ```bash
-  docker compose cp huddle:/data/huddle.db ./huddle-backup.db
+  docker compose stop huddle && docker compose cp huddle:/data/huddle.db ./huddle-backup.db && docker compose start huddle
   ```
 
 ## Development

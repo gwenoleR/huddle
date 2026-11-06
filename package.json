@@ -18,7 +18,10 @@
     "icons": "pwa-assets-generator",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:snapshot": "tsx scripts/snapshot-db.ts"
+    "db:snapshot": "tsx scripts/snapshot-db.ts",
+    "docs:dev": "vitepress dev site",
+    "docs:build": "vitepress build site",
+    "docs:preview": "vitepress preview site"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.1",
@@ -46,6 +49,7 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
+    "vitepress": "^1.6.4",
     "vitest": "^3.2.7",
     "workbox-core": "^7.3.0",
     "workbox-precaching": "^7.3.0",
