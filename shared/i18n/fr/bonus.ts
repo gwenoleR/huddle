@@ -29,7 +29,7 @@ export const bonus = {
   totalLabel: 'Total de points au Super Bowl',
   totalHelp: 'Les deux équipes additionnées. Sert seulement à départager les égalités.',
   totalPlaceholder: 'ex. 47',
-  submit: (update: boolean) => (update ? 'Mettre à jour mes choix' : 'Valider mes choix'),
+  submit: (update: boolean): string => (update ? 'Mettre à jour mes choix' : 'Valider mes choix'),
   saved: 'Choix enregistrés. Secret jusqu’au coup d’envoi !',
 
   resultsTitle: 'Les résultats',
@@ -54,6 +54,6 @@ export const bonus = {
   pickGap: (gap: number) => ` (écart ${gap})`,
 
   chose: 'Ont choisi',
-  notChosen: (locked: boolean) => (locked ? 'Pas de choix' : 'Pas encore'),
+  notChosen: (locked: boolean): string => (locked ? 'Pas de choix' : 'Pas encore'),
   nobody: 'Personne'
 };

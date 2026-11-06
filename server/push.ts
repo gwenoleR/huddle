@@ -69,7 +69,7 @@ const markSent = (key: string) =>
   db.prepare('INSERT OR IGNORE INTO sent_notifications (key, sent_at) VALUES (?, ?)').run(key, Date.now());
 
 // Time in the server's time zone (TZ, Europe/Paris in the Docker image): the group's.
-const hourFmt = new Intl.DateTimeFormat(t.common.locale, { hour: '2-digit', minute: '2-digit' });
+const hourFmt = new Intl.DateTimeFormat(t.common.locale, { hour: t.common.hour, minute: '2-digit' });
 
 function subscribedPlayers(): { id: number; name: string }[] {
   return db

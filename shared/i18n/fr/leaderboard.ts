@@ -39,7 +39,7 @@ export const leaderboard = {
   },
 
   /** Rank superscript in the big card: « er » (1er), « e » (2e). */
-  rankSuffix: (rank: number) => (rank === 1 ? 'er' : 'e'),
+  rankSuffix: (rank: number): string => (rank === 1 ? 'er' : 'e'),
   headline: (rank: number, live: boolean) => {
     if (live) return rank === 1 ? 'Tu finirais en tête' : rank <= 3 ? `Tu finirais ${rank}e, sur le podium` : `Tu finirais ${rank}e`;
     return rank === 1 ? 'Tu mènes la danse' : rank <= 3 ? 'Tu es sur le podium' : 'Accroche-toi';

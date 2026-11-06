@@ -16,7 +16,7 @@ export const notifications = {
     `Tu as fait ${good} sur ${total}. Tu es ${common.ordinal(rank)} avec ${points} pts.`,
 
   /** The pick flips late in the game (score « KC 24–21 BUF », detail « Q4 · 2:00 »). */
-  flipTitle: (good: boolean, done: boolean) =>
+  flipTitle: (good: boolean, done: boolean): string =>
     good ? (done ? 'Renversement final, ton prono passe !' : 'Ça tourne pour toi !') : done ? 'Crucifié sur le fil…' : 'Aïe, ça bascule…',
   flipBody: (f: { done: boolean; good: boolean; leader: string; picked: string; score: string; detail: string | null }) =>
     f.done

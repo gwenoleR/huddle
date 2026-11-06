@@ -12,13 +12,13 @@ export const season = {
   eyebrow: (season: number | string, finished: boolean, games: number) =>
     `Saison ${season} ${finished ? 'terminée' : 'en cours'} · ${games} matchs joués`,
   title: 'Bilan de saison',
-  championTitle: (finished: boolean) => (finished ? 'Titre de la saison' : 'En tête pour l’instant'),
+  championTitle: (finished: boolean): string => (finished ? 'Titre de la saison' : 'En tête pour l’instant'),
   /** Unit after the champion's points (preceded by a space). */
   pointsUnit: ' pts',
-  standingsTitle: (finished: boolean) => (finished ? 'Classement final' : 'Classement actuel'),
+  standingsTitle: (finished: boolean): string => (finished ? 'Classement final' : 'Classement actuel'),
   trophiesTitle: 'Les trophées de la bande',
   noTrophiesYet: 'Les trophées arrivent après les premiers matchs joués.',
-  toWinTitle: (finished: boolean) => (finished ? 'Pas attribués cette saison' : 'Encore à gagner'),
+  toWinTitle: (finished: boolean): string => (finished ? 'Pas attribués cette saison' : 'Encore à gagner'),
   previousSeasons: 'Saisons précédentes',
   otherSeasons: 'Autres saisons',
 
@@ -28,7 +28,7 @@ export const season = {
 
   /** A trophy's dialog */
   itsYou: 'C’est toi !',
-  nobody: (finished: boolean) => (finished ? 'Personne ne l’a décroché cette saison.' : 'Personne ne le mérite encore. La place est libre.'),
+  nobody: (finished: boolean): string => (finished ? 'Personne ne l’a décroché cette saison.' : 'Personne ne le mérite encore. La place est libre.'),
   howToWin: 'Comment on le gagne',
   ruleNote: 'Seuls les matchs terminés comptent. Le trophée peut changer de main à tout moment.',
   close: 'Compris'

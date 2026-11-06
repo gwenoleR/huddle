@@ -48,7 +48,7 @@ export function parseHistory(text: string): HistoryLine[] {
   const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) throw new Error(t.history.emptyFile);
   const header = cells(lines[0]);
-  const players = header.slice(3).map((h) => initials(h.replace(/^prono\s+/i, '')));
+  const players = header.slice(3).map((h) => initials(h.replace(/^(prono|pick)\s+/i, '')));
   const out: HistoryLine[] = [];
   let week = 0;
   for (const [i, line] of lines.slice(1).entries()) {

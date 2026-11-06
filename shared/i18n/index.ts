@@ -5,15 +5,17 @@
  * `t.common.pronos(3)` when it depends on values (plurals, names, numbers). No string keys
  * and no runtime interpolation: the typecheck verifies every usage and every translation.
  *
- * To add a language: copy fr/ to en/, translate, add it to DICTIONARIES. The instance
- * picks its language with APP_LANG.
+ * Languages: French (fr/, the reference whose shape every other dictionary must match) and
+ * English (en/). To add one: copy fr/ to a new folder, translate, add it to DICTIONARIES.
+ * The instance picks its language with APP_LANG.
  */
 import { fr } from './fr';
+import { en } from './en';
 
 /** Shape of a dictionary: that of the French one. */
 export type Messages = typeof fr;
 
-export const DICTIONARIES: Record<string, Messages> = { fr };
+export const DICTIONARIES: Record<string, Messages> = { fr, en };
 
 export const DEFAULT_LANG = 'fr';
 

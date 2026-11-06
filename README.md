@@ -74,7 +74,7 @@ All optional, in the `.env` next to `docker-compose.yml` (then `docker compose u
 | --- | --- | --- |
 | `APP_NAME` | Huddle | App name: title, login screen, installed app |
 | `APP_SHORT_NAME` | Huddle | Name under the home screen icon |
-| `APP_LANG` | `fr` | Language of the texts and notifications (only French exists for now) |
+| `APP_LANG` | `fr` | Language of the app and notifications: `fr` (French) or `en` (English) |
 | `POINTS_REGULAR` | 1 | Points for a correct pick in the regular season |
 | `POINTS_PLAYOFFS` | 2 | Points for a correct pick in the playoffs (Wild Card to Super Bowl) |
 | `TZ` | Europe/Paris | Time zone for times in notifications. In the app, everyone sees times in their phone's time zone |
@@ -83,7 +83,7 @@ Scoring applies to the whole season, games already played included: changing it 
 
 ### Translating the app
 
-All texts live in `shared/i18n/fr/`, one file per part of the app (games, leaderboard, profile, notifications…). For a new language: copy `fr/` to `en/`, translate, add it to `DICTIONARIES` in `shared/i18n/index.ts`, then set `APP_LANG=en`. Texts with values are functions (plurals, names, numbers): translate the whole sentence. The typecheck rejects a translation that is missing a text.
+All texts live in `shared/i18n/<lang>/` (`fr/` and `en/`), one file per part of the app (games, leaderboard, profile, notifications…). For a new language, say German: copy `en/` to `de/`, translate, add it to `DICTIONARIES` in `shared/i18n/index.ts`, then set `APP_LANG=de`. Dates, times (12 or 24 h) and numbers follow the dictionary's `locale`. Texts with values are functions (plurals, names, numbers): translate the whole sentence. The typecheck rejects a translation that is missing a text.
 
 ## Admin
 

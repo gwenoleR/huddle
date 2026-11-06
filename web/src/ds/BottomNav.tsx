@@ -1,10 +1,10 @@
 import { cx } from './cx';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import './BottomNav.css';
 import { t } from '../lib/i18n';
 
 export function BottomNav({ active, onChange }: { active: string; onChange?: (id: string) => void }) {
-  const items = [
+  const items: { id: IconName; label: string }[] = [
     { id: 'matches', label: t.ds.nav.matches },
     { id: 'standings', label: t.ds.nav.standings },
     { id: 'profile', label: t.ds.nav.profile }

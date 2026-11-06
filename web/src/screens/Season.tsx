@@ -91,7 +91,7 @@ export function Season({ me, season }: { me: Me; season?: number }) {
 function TrophyBadge({ won, size = 40 }: { won: boolean; size?: number }) {
   return (
     <span className={`trophy-badge${won ? ' trophy-won' : ''}`} style={{ width: size, height: size }} aria-hidden>
-      <Icon name="classement" size={Math.round(size * 0.55)} />
+      <Icon name="standings" size={Math.round(size * 0.55)} />
     </span>
   );
 }

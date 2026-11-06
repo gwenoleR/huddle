@@ -7,6 +7,7 @@
  * - Everything is stored in SQLite: a restart doesn't re-download everything, and the stats
  *   of a game finished long ago are never requested again.
  */
+import { APP_LANG, APP_VERSION } from './config';
 import { db, getMeta, setMeta } from './db';
 
 /** Infinite lifetime: the data no longer changes (game finished long ago). */
@@ -23,8 +24,12 @@ const memory = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 let writes = 0;
 
-/** After an app update, the data format may have changed: start from scratch (called on startup). */
-export function resetIfNewVersion(version = process.env.APP_VERSION ?? 'dev') {
+/**
+ * Called on startup. The cache holds data already turned into display text, so it starts from scratch
+ * after an app update (the format may have changed) or a language change (APP_LANG): otherwise
+ * finished games, kept forever, would stay in the old language.
+ */
+export function resetIfNewVersion(version = `${APP_VERSION}:${APP_LANG}`) {
   if (getMeta('espn_cache_version') === version) return;
   db.exec('DELETE FROM espn_cache');
   memory.clear();

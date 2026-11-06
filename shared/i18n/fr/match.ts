@@ -18,7 +18,7 @@ export const match = {
   /** Quarter: « Q1 »… then « Prol. ». */
   period: (p: number) => (p > 4 ? 'Prol.' : `Q${p}`),
   /** « Les <b>Bills</b> ont la balle »: sentence pieces, the (highlighted) team in the middle. */
-  hasBall: <T>(team: T) => ['Les ', team, ' ont la balle'] as const,
+  hasBall: <T>(team: T): readonly [string, T, string] => ['Les ', team, ' ont la balle'],
   redZone: 'Zone rouge',
   lastPlay: (text: string, abbr: string | null) => `Dernière action : ${text}${abbr ? ` (${abbr})` : ''}`,
   winChances: 'Chances de victoire',
@@ -33,8 +33,11 @@ export const match = {
   /** Before the game. */
   favoriteTitle: 'Le favori',
   /** « Les <b>Bills</b>, avec environ 3,5 pts d’avance attendus »: pieces, the team in the middle. */
-  favorite: <T>(team: T, spread: string | null) =>
-    ['Les ', team, spread ? `, avec environ ${spread} pts d’avance attendus` : ''] as const,
+  favorite: <T>(team: T, spread: string | null): readonly [string, T, string] => [
+    'Les ',
+    team,
+    spread ? `, avec environ ${spread} pts d’avance attendus` : ''
+  ],
   tossUp: 'Pile ou face pour les bookmakers',
   winChancesEspn: 'Chances de victoire (ESPN)',
   chancesLabel: (away: string, awayPct: number, home: string, homePct: number) => `${away} ${awayPct} %, ${home} ${homePct} %`,

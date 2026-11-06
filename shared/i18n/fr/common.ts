@@ -14,6 +14,8 @@ export const common = {
   /** Language of dates and numbers (Intl) and of the page (<html lang>). */
   locale: 'fr-FR',
   htmlLang: 'fr',
+  /** How hours are written: « 02:15 » (2-digit, 24 h in French). */
+  hour: '2-digit' as '2-digit' | 'numeric',
 
   /** App name if the instance doesn't set one (APP_NAME). */
   appName: 'Huddle',

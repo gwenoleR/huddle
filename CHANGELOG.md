@@ -6,6 +6,13 @@ from whoever hosts the app (it is always spelled out here), minor and patch vers
 
 ## [Unreleased]
 
+### Added
+- English: set `APP_LANG=en` for the whole app (screens, notifications, error messages, game details)
+  in English, with 12-hour times. History CSV columns may be named `Pick GW` as well as `Prono GW`.
+
+### Fixed
+- Bottom navigation icons were missing (and the trophy icon in the season recap).
+
 ### Changed
 - Install names follow the app's name: folder `~/huddle`, Compose service `huddle`, volume
   `huddle-data`, database file `/data/huddle.db`. **Existing installs**: nothing to do, an existing

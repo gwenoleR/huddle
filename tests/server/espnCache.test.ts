@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FOREVER, cached, clearEspnCache, forgetMemory, resetIfNewVersion } from '../../server/espnCache';
-import { db } from '../../server/db';
+import { db, getMeta } from '../../server/db';
 
 const NOW = Date.parse('2026-11-08T18:00:00Z');
 const MIN = 60_000;
@@ -90,5 +90,14 @@ describe('ESPN cache', () => {
     expect(await cached('k', async () => ({ v: 'new' }), { ttl: MIN })).toEqual({ v: 'old format' });
     resetIfNewVersion('abc1234'); // the app was updated
     expect(await cached('k', async () => ({ v: 'new' }), { ttl: MIN })).toEqual({ v: 'new' });
+  });
+
+  it('by default the version includes the language: switching APP_LANG clears the cache too', async () => {
+    const { APP_VERSION, APP_LANG } = await import('../../server/config');
+    resetIfNewVersion();
+    expect(getMeta('espn_cache_version')).toBe(`${APP_VERSION}:${APP_LANG}`);
+    await cached('k2', async () => ({ v: 'fr text' }), { ttl: FOREVER });
+    resetIfNewVersion(`${APP_VERSION}:en`); // restarted with APP_LANG=en
+    expect(await cached('k2', async () => ({ v: 'en text' }), { ttl: MIN })).toEqual({ v: 'en text' });
   });
 });

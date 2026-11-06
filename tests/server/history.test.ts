@@ -42,6 +42,11 @@ describe('file parsing', () => {
     expect(lines[2].week).toBe(2); // lowercase "week2"
   });
 
+  it('player columns may be "Prono GW" or "Pick GW"', () => {
+    const lines = parseHistory(',Home,Away,Pick GW,prono au\nWeek1,KC Chiefs,BUF Bills,KC Chiefs,BUF Bills');
+    expect(lines[0].picks).toEqual({ GW: 'KC Chiefs', AU: 'BUF Bills' });
+  });
+
   it('rejects an unreadable week', () => {
     expect(() => parseHistory(',Home,Away,Prono GW\nSemaine 1,KC Chiefs,BUF Bills,KC Chiefs')).toThrow('semaine illisible');
   });

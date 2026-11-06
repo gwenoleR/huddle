@@ -14,7 +14,7 @@ const quarter = (period: number) => (period > 4 ? 'Prol.' : `Q${period}`);
 export const espn = {
   /** Status line under the score, stored with the game. */
   detail: {
-    final: (overtime: boolean) => (overtime ? 'Terminé · prol.' : 'Terminé'),
+    final: (overtime: boolean): string => (overtime ? 'Terminé · prol.' : 'Terminé'),
     postponed: 'Reporté',
     halftime: 'Mi-temps',
     endOfPeriod: (period: number) => `Fin ${quarter(period)}`,
