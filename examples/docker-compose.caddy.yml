@@ -5,7 +5,7 @@
 #   docker compose -f docker-compose.caddy.yml up -d
 services:
   huddle:
-    image: ghcr.io/gwenoler/pronos:latest
+    image: ghcr.io/gwenoler/huddle:latest
     restart: unless-stopped
     environment:
       PUBLIC_URL: https://${DOMAIN:?Set DOMAIN in .env}

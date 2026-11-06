@@ -12,6 +12,9 @@ from whoever hosts the app (it is always spelled out here), minor and patch vers
   `/data/prono.db` keeps being used. If you replace your `docker-compose.yml` with the new one, keep
   your old volume by renaming `huddle-data` back to your volume's name (e.g. `prono-data`), or the
   app will start on a new, empty volume.
+- The repository and the image are now named `huddle`: `ghcr.io/gwenoler/huddle`. **Existing installs**:
+  replace `ghcr.io/gwenoler/pronos` with `ghcr.io/gwenoler/huddle` in your `docker-compose.yml`; the old
+  image name no longer gets updates.
 
 ## [1.0.0] - 2026-11-06
 
@@ -38,8 +41,8 @@ has been using all season, packaged so that any group can host its own. MIT lice
 - Settings through environment variables: `APP_NAME`, `APP_SHORT_NAME`, `APP_LANG`, `POINTS_*`, `TZ`.
 - All texts in one dictionary per language (`shared/i18n/`); French only for now.
 - Push notifications: reminder before an unpicked game, weekly results, picks flipping late in a game.
-- Docker image for amd64 and arm64 on `ghcr.io/gwenoler/pronos`.
+- Docker image for amd64 and arm64 on `ghcr.io/gwenoler/huddle`.
 - Upgrade safety: every release's sample database must migrate cleanly with later versions.
 
-[Unreleased]: https://github.com/gwenoleR/pronos/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/gwenoleR/pronos/releases/tag/v1.0.0
+[Unreleased]: https://github.com/gwenoleR/huddle/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/gwenoleR/huddle/releases/tag/v1.0.0

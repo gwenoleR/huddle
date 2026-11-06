@@ -1,6 +1,6 @@
 name: Docker image
 
-# Checks types and runs the tests, then publishes the image to ghcr.io/gwenoler/pronos
+# Checks types and runs the tests, then publishes the image to ghcr.io/gwenoler/huddle
 # for amd64 and arm64 (Raspberry Pi, Synology, Apple silicon):
 # - every push to main → tags `edge` and `sha-<short hash>`, version "1.2.0-edge.abc1234"
 # - every tag vX.Y.Z    → tags `X.Y.Z`, `X.Y`, `X`, `latest`, plus a GitHub release
@@ -66,7 +66,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # The image name is lowercased: ghcr.io/gwenoler/pronos
+      # The image name is lowercased: ghcr.io/gwenoler/huddle
       - id: meta
         uses: docker/metadata-action@v6
         with:
@@ -105,4 +105,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          # Rerunning a release (e.g. to republish its images) updates its notes instead of failing.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          fi

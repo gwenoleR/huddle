@@ -17,7 +17,7 @@ You need a machine that runs Docker (a home server, a NAS, a Raspberry Pi, a sma
 1. **A folder with two files**:
    ```bash
    mkdir -p ~/huddle && cd ~/huddle
-   curl -O https://raw.githubusercontent.com/gwenoleR/pronos/main/docker-compose.yml
+   curl -O https://raw.githubusercontent.com/gwenoleR/huddle/main/docker-compose.yml
    echo "PUBLIC_URL=https://huddle.example.com" > .env
    ```
    `PUBLIC_URL` is the address everyone will type on their phone. The other settings are optional (see [Settings](#settings) and [`.env.example`](.env.example)).
@@ -57,7 +57,7 @@ docker compose cp huddle:/data/huddle.db ./huddle-backup.db
 
 What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md) (and on the GitHub releases page). Versions follow semver: a **major** version (2.0.0) may need something from you, and its changelog says exactly what; minor and patch versions never do. The app notices when the server is newer and offers to reload.
 
-Image tags on `ghcr.io/gwenoler/pronos` (amd64 and arm64):
+Image tags on `ghcr.io/gwenoler/huddle` (amd64 and arm64):
 
 | Tag | What you get |
 | --- | --- |

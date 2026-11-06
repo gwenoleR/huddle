@@ -6,7 +6,7 @@
 services:
   huddle:
     # `latest` = the last release. Pin a version with :1 or :1.0, or follow main with :edge.
-    image: ghcr.io/gwenoler/pronos:latest
+    image: ghcr.io/gwenoler/huddle:latest
     restart: unless-stopped
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in .env}
