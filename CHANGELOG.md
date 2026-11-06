@@ -6,6 +6,11 @@ from whoever hosts the app (it is always spelled out here), minor and patch vers
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-06
+
+Huddle in English, and install names that match the app's name. The renames below only concern
+installs made from the private 1.0.0 image, before the project went public: nothing to do otherwise.
+
 ### Added
 - English: set `APP_LANG=en` for the whole app (screens, notifications, error messages, game details)
   in English, with 12-hour times. History CSV columns may be named `Pick GW` as well as `Prono GW`.
@@ -51,5 +56,6 @@ has been using all season, packaged so that any group can host its own. MIT lice
 - Docker image for amd64 and arm64 on `ghcr.io/gwenoler/huddle`.
 - Upgrade safety: every release's sample database must migrate cleanly with later versions.
 
-[Unreleased]: https://github.com/gwenoleR/huddle/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/gwenoleR/huddle/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/gwenoleR/huddle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/gwenoleR/huddle/releases/tag/v1.0.0
