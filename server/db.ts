@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
-import { DATA_DIR, DB_FILE, seed } from './config';
+import { DATA_DIR, DB_FILE, currentSeason, seed } from './config';
 import { migrate } from './schema';
 
 mkdirSync(DATA_DIR, { recursive: true });
@@ -17,8 +17,11 @@ for (const m of migrate(db)) console.log(`[db] migration ${m.version} : ${m.name
 /** Premier démarrage avec un fichier seed : on crée ses joueurs. Sans seed, le groupe se crée depuis l'appli. */
 const { n } = db.prepare('SELECT COUNT(*) AS n FROM players').get() as { n: number };
 if (n === 0 && seed) {
-  const insert = db.prepare('INSERT INTO players (name, start_points, is_admin, created_at) VALUES (?, ?, ?, ?)');
-  for (const j of seed.joueurs) insert.run(j.prenom, j.pointsDeDepart, j.admin ? 1 : 0, Date.now());
+  const insert = db.prepare('INSERT INTO players (name, is_admin, created_at) VALUES (?, ?, ?)');
+  for (const j of seed.joueurs) {
+    const { lastInsertRowid } = insert.run(j.prenom, j.admin ? 1 : 0, Date.now());
+    if (j.pointsDeDepart) setStartPoints(Number(lastInsertRowid), j.pointsDeDepart);
+  }
   console.log(`[db] ${seed.joueurs.length} joueurs importés depuis le seed`);
 }
 
@@ -41,4 +44,25 @@ export function transaction<T>(fn: () => T): T {
     db.exec('ROLLBACK');
     throw e;
   }
+}
+
+// ---------- Saisons ----------
+
+/** Première semaine dont les pronos comptent pour une saison (1, sauf reprise en cours de saison). */
+export function startWeek(season = currentSeason()): number {
+  return Number(getMeta(`start_week:${season}`) ?? 1);
+}
+
+/** Points de départ d'un joueur pour une saison (repris d'un autre site, ou arrivée en cours de saison). */
+export function setStartPoints(playerId: number, points: number, season = currentSeason()) {
+  db.prepare(
+    `INSERT INTO player_seasons (player_id, season, start_points) VALUES (?, ?, ?)
+     ON CONFLICT(player_id, season) DO UPDATE SET start_points = excluded.start_points`
+  ).run(playerId, season, points);
+}
+
+/** Saisons qu'on peut consulter : celles qui ont des matchs en base, et toujours la saison en cours. */
+export function knownSeasons(): number[] {
+  const rows = db.prepare('SELECT DISTINCT season FROM games').all() as { season: number }[];
+  return [...new Set([...rows.map((r) => r.season), currentSeason()])].sort((a, b) => b - a);
 }

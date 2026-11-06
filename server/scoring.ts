@@ -1,6 +1,6 @@
 import type { AwardDto, LeaderboardDto, LiveRow, ProfileDto, RecapDto, StandingRow } from '../shared/api';
-import { SEASON, START_WEEK, weekLabel } from './config';
-import { db } from './db';
+import { currentSeason, weekLabel } from './config';
+import { db, startWeek } from './db';
 import { bonusPicks, bonusPointsByPlayer, bonusResult, bonusSettings, tiebreakDistances } from './bonus';
 
 export type { LiveRow, StandingRow };
@@ -17,17 +17,21 @@ export const pointsFor = (week: number) => (week >= FIRST_PLAYOFF_WEEK ? PLAYOFF
 /** La même règle, pour les requêtes SQL (g = la table games). */
 const POINTS_SQL = `(CASE WHEN g.week >= ${FIRST_PLAYOFF_WEEK} THEN ${PLAYOFF_POINTS} ELSE ${REGULAR_POINTS} END)`;
 
-/** Classement : points des bons pronos (depuis la première semaine comptée), + points de départ éventuels (saison). */
-export function standings(week?: number): StandingRow[] {
+/**
+ * Classement d'une saison : points des bons pronos (depuis la première semaine comptée), + points de départ
+ * éventuels. Pour une saison passée, seuls ceux qui y ont joué apparaissent.
+ */
+export function standings(week?: number, season = currentSeason()): StandingRow[] {
   const weekFilter = week ? 'AND g.week = ?' : '';
-  const params: number[] = [SEASON, START_WEEK, ...(week ? [week] : [])];
+  const params: number[] = [season, season, startWeek(season), ...(week ? [week] : [])];
   const rows = db
     .prepare(
-      `SELECT p.id, p.name, p.start_points AS startPoints,
+      `SELECT p.id, p.name, COALESCE(MAX(ps.start_points), 0) AS startPoints,
          COALESCE(SUM(CASE WHEN g.status = 'final' AND k.side = g.winner THEN 1 ELSE 0 END), 0) AS good,
          COALESCE(SUM(CASE WHEN g.status = 'final' AND k.side = g.winner THEN ${POINTS_SQL} ELSE 0 END), 0) AS earned,
          COALESCE(SUM(CASE WHEN g.status = 'final' THEN 1 ELSE 0 END), 0) AS played
        FROM players p
+       LEFT JOIN player_seasons ps ON ps.player_id = p.id AND ps.season = ?
        LEFT JOIN picks k ON k.player_id = p.id
        LEFT JOIN games g ON g.id = k.game_id AND g.season = ? AND g.week >= ? ${weekFilter}
        GROUP BY p.id`
@@ -36,12 +40,16 @@ export function standings(week?: number): StandingRow[] {
 
   // Classement de la saison : on ajoute le bonus de fin de saison ; une fois le Super Bowl joué,
   // l'écart au total de points annoncé départage les égalités (le plus proche passe devant).
-  const bonus = week ? new Map<number, number>() : bonusPointsByPlayer();
-  const tie = week ? null : tiebreakDistances();
-  const withPoints = rows.map(({ earned, ...r }) => {
-    const b = bonus.get(r.id) ?? 0;
-    return { ...r, bonus: b, points: (week ? 0 : r.startPoints) + earned + b, tie: tie ? tie.get(r.id) ?? Infinity : 0 };
-  });
+  const bonus = week ? new Map<number, number>() : bonusPointsByPlayer(season);
+  const tie = week ? null : tiebreakDistances(season);
+  const past = season !== currentSeason();
+  const withPoints = rows
+    .map(({ earned, ...r }) => {
+      const b = bonus.get(r.id) ?? 0;
+      return { ...r, bonus: b, points: (week ? 0 : r.startPoints) + earned + b, tie: tie ? tie.get(r.id) ?? Infinity : 0 };
+    })
+    // Saison passée : pas de ligne à 0 pour ceux qui sont arrivés depuis.
+    .filter((r) => !past || r.played > 0 || r.startPoints > 0 || r.bonus > 0);
   withPoints.sort((a, b) => b.points - a.points || a.tie - b.tie || a.name.localeCompare(b.name, 'fr'));
   // Rangs à égalité : 1, 2, 2, 4
   const same = (x: (typeof withPoints)[number], y: (typeof withPoints)[number]) => x.points === y.points && x.tie === y.tie;
@@ -65,7 +73,7 @@ export function weeklyResults(playerId: number): WeekResult[] {
          WHERE g.season = ? AND g.week >= ? AND g.status = 'final'
          GROUP BY g.week ORDER BY g.week DESC`
       )
-      .all(playerId, SEASON, START_WEEK) as { week: number; good: number; finals: number }[]
+      .all(playerId, currentSeason(), startWeek()) as { week: number; good: number; finals: number }[]
   ).map((r) => ({ ...r, good: r.good ?? 0, label: weekLabel(r.week) }));
 }
 
@@ -77,7 +85,7 @@ export function streak(playerId: number): number {
        WHERE k.player_id = ? AND g.season = ? AND g.week >= ? AND g.status = 'final'
        ORDER BY g.kickoff DESC`
     )
-    .all(playerId, SEASON, START_WEEK) as { ok: number }[];
+    .all(playerId, currentSeason(), startWeek()) as { ok: number }[];
   let n = 0;
   for (const r of rows) {
     if (!r.ok) break;
@@ -101,8 +109,8 @@ const TROPHIES: { id: string; title: string; rule: string }[] = [
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
 /** Calcule chaque trophée : le gagnant et une ligne de détail, ou null si personne ne le mérite encore. */
-function computeTrophy(id: string): { who: string; detail: string } | null {
-  const args = [SEASON, START_WEEK] as const;
+function computeTrophy(id: string, season: number): { who: string; detail: string } | null {
+  const args = [season, startWeek(season)] as const;
   switch (id) {
     case 'best-week': {
       const r = db
@@ -187,9 +195,9 @@ function computeTrophy(id: string): { who: string; detail: string } | null {
       return r && r.n >= 3 ? { who: r.name, detail: `${plural(r.n, 'prono')} dans le dernier quart d’heure` } : null;
     }
     case 'nostradamus': {
-      const res = bonusResult();
+      const res = bonusResult(season);
       if (!res.sb || res.sbTotal == null) return null;
-      const best = bonusPicks()
+      const best = bonusPicks(season)
         .filter((p) => p.sb === res.sb)
         .sort((a, b) => Math.abs(a.sbTotal - res.sbTotal!) - Math.abs(b.sbTotal - res.sbTotal!))[0];
       if (!best) return null;
@@ -202,12 +210,12 @@ function computeTrophy(id: string): { who: string; detail: string } | null {
   return null;
 }
 
-/** Tous les trophées, attribués ou non (who = null), pour le bilan. */
-export function awards(): Award[] {
+/** Tous les trophées d'une saison, attribués ou non (who = null), pour le bilan. */
+export function awards(season = currentSeason()): Award[] {
   // Nostradamus n'existe que si le bonus de fin de saison est activé.
   const on = bonusSettings().enabled;
   return TROPHIES.filter((t) => on || t.id !== 'nostradamus').map((t) => {
-    const won = computeTrophy(t.id);
+    const won = computeTrophy(t.id, season);
     return { ...t, who: won?.who ?? null, detail: won?.detail ?? null };
   });
 }
@@ -226,7 +234,7 @@ export function liveProjection(): LiveProjection | null {
       `SELECT id, week, away_score AS a, home_score AS h FROM games
        WHERE season = ? AND week >= ? AND status = 'live'`
     )
-    .all(SEASON, START_WEEK) as { id: string; week: number; a: number | null; h: number | null }[];
+    .all(currentSeason(), startWeek()) as { id: string; week: number; a: number | null; h: number | null }[];
   if (!live.length) return null;
 
   const base = standings();
@@ -261,14 +269,14 @@ export function liveProjection(): LiveProjection | null {
 export function latestRecapWeek(): number | null {
   const row = db
     .prepare("SELECT MAX(week) AS w FROM games WHERE season = ? AND week >= ? AND status = 'final'")
-    .get(SEASON, START_WEEK) as { w: number | null };
+    .get(currentSeason(), startWeek()) as { w: number | null };
   return row.w;
 }
 
 export function recap(week: number): Recap {
   const counts = db
     .prepare("SELECT COUNT(*) AS total, SUM(status = 'final') AS finals FROM games WHERE season = ? AND week = ?")
-    .get(SEASON, week) as { total: number; finals: number | null };
+    .get(currentSeason(), week) as { total: number; finals: number | null };
   const season = new Map(standings().map((r) => [r.id, r]));
   const rows = standings(week).map((r) => ({ ...r, seasonPoints: season.get(r.id)!.points, seasonRank: season.get(r.id)!.rank }));
 
@@ -279,7 +287,7 @@ export function recap(week: number): Recap {
        FROM games g JOIN teams ta ON ta.id = g.away_id JOIN teams th ON th.id = g.home_id
        WHERE g.season = ? AND g.week = ? AND g.status = 'final' AND g.winner IN ('away', 'home')`
     )
-    .all(SEASON, week) as { id: string; winner: 'away' | 'home'; a: number; h: number; away: string; home: string }[];
+    .all(currentSeason(), week) as { id: string; winner: 'away' | 'home'; a: number; h: number; away: string; home: string }[];
   const pickStmt = db.prepare('SELECT k.side, p.name FROM picks k JOIN players p ON p.id = k.player_id WHERE k.game_id = ?');
   let blunder: Recap['blunder'] = null;
   for (const g of games) {

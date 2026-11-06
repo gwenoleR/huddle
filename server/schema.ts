@@ -9,11 +9,14 @@
  * avant ce fichier, et doivent passer sans rien casser sur une base déjà en service.
  */
 import type { DatabaseSync } from 'node:sqlite';
+import { INITIAL_START_WEEK, currentSeason } from './config';
 
 export interface Migration {
   version: number;
   name: string;
   sql: string;
+  /** Reprise des données, dans la même transaction, une fois le SQL joué. */
+  after?: (db: DatabaseSync) => void;
 }
 
 export const MIGRATIONS: Migration[] = [
@@ -118,6 +121,28 @@ export const MIGRATIONS: Migration[] = [
     data TEXT NOT NULL
   );
 `
+  },
+  {
+    version: 4,
+    name: 'plusieurs saisons : points de départ et première semaine par saison',
+    // Les points de départ appartiennent à une saison (repris d'un autre site, ou arrivée en cours de route) :
+    // ils quittent la table des joueurs. La première semaine comptée de chaque saison est dans meta
+    // (start_week:<saison>, 1 par défaut).
+    sql: `
+  CREATE TABLE player_seasons (
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    season INTEGER NOT NULL,
+    start_points INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (player_id, season)
+  );
+`,
+    after(db) {
+      const season = currentSeason();
+      db.prepare('INSERT INTO player_seasons (player_id, season, start_points) SELECT id, ?, start_points FROM players WHERE start_points > 0').run(season);
+      db.exec('ALTER TABLE players DROP COLUMN start_points');
+      if (INITIAL_START_WEEK > 1)
+        db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)").run(`start_week:${season}`, String(INITIAL_START_WEEK));
+    }
   }
 ];
 
@@ -131,6 +156,7 @@ export function migrate(db: DatabaseSync, migrations: Migration[] = MIGRATIONS):
     db.exec('BEGIN');
     try {
       db.exec(m.sql);
+      m.after?.(db);
       db.exec(`PRAGMA user_version = ${Number(m.version)}`);
       db.exec('COMMIT');
     } catch (e) {

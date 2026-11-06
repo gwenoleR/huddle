@@ -20,7 +20,6 @@ export const SYNC_ENABLED = process.env.SYNC !== 'off';
  * le premier venu crée le groupe depuis son téléphone (il en devient l'admin).
  */
 export interface Seed {
-  saison?: number;
   semaineDeReprise?: number;
   joueurs: { prenom: string; pointsDeDepart: number; admin?: boolean }[];
 }
@@ -28,15 +27,26 @@ export interface Seed {
 const seedPath = process.env.SEED_FILE;
 export const seed: Seed | null = seedPath && existsSync(seedPath) ? JSON.parse(readFileSync(seedPath, 'utf8')) : null;
 
-/** Saison NFL en cours à une date : celle qui démarre en septembre (les playoffs de février comptent pour l'année d'avant). */
+/**
+ * Saison affichée à une date. Une saison NFL va de septembre au Super Bowl de février ; elle reste
+ * affichée jusqu'à fin mai (classement final, bilan), puis la suivante prend le relais le 1er juin,
+ * quand ESPN a publié son calendrier : on peut alors déjà pronostiquer la semaine 1.
+ */
 export function seasonAt(t: number): number {
   const d = new Date(t);
-  return d.getUTCMonth() < 2 ? d.getUTCFullYear() - 1 : d.getUTCFullYear();
+  return d.getUTCMonth() < 5 ? d.getUTCFullYear() - 1 : d.getUTCFullYear();
 }
 
-export const SEASON = Number(process.env.SEASON ?? seed?.saison ?? seasonAt(Date.now()));
-/** Première semaine dont les pronos comptent (1 : toute la saison). */
-export const START_WEEK = Number(process.env.START_WEEK ?? seed?.semaineDeReprise ?? 1);
+/** Saison en cours, recalculée à chaque appel (le serveur tourne d'une saison à l'autre). SEASON la fige. */
+export function currentSeason(now = Date.now()): number {
+  return process.env.SEASON ? Number(process.env.SEASON) : seasonAt(now);
+}
+
+/**
+ * Première semaine comptée pour la saison en cours au moment de la mise à jour vers plusieurs saisons
+ * (migration 4) ou de la création des joueurs du seed. Les saisons suivantes comptent dès la semaine 1.
+ */
+export const INITIAL_START_WEEK = Number(process.env.START_WEEK ?? seed?.semaineDeReprise ?? 1);
 
 /** Semaines de l'appli : 1 à 18 = saison régulière, puis 19 Wild Card, 20 Div., 21 Conf., 22 Super Bowl. */
 export const WEEK_LABELS: Record<number, { short: string; long: string }> = {

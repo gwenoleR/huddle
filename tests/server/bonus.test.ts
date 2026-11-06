@@ -6,7 +6,8 @@ vi.mock('../../server/espn', async (orig) => ({ ...(await orig<typeof import('..
 const { fetchStandings } = await import('../../server/espn');
 const bonus = await import('../../server/bonus');
 const { standings } = await import('../../server/scoring');
-const { DAY, HOUR, NOW, TEAMS, addGame, db, pid, resetDb, setMeta } = await import('./helpers');
+const { DAY, HOUR, NOW, TEAMS, addGame, pid, resetDb, setMeta } = await import('./helpers');
+const { setStartPoints } = await import('../../server/db');
 
 const { BUF, KC, SF, PHI } = TEAMS;
 const FIELD = {
@@ -145,7 +146,7 @@ describe('points et départage', () => {
   });
 
   it('à égalité de points, le plus proche du total du Super Bowl passe devant', () => {
-    db.prepare("UPDATE players SET start_points = 60 WHERE name IN ('Audrey', 'Bud', 'Bea')").run();
+    for (const name of ['Audrey', 'Bud', 'Bea']) setStartPoints(pid(name), 60);
     result({ afc: TEAMS.BAL.id, nfc: TEAMS.DET.id, sb: TEAMS.BAL.id, sbTotal: 47 }); // personne n'a de point bonus
     const rows = standings().filter((r) => ['Audrey', 'Bud', 'Bea'].includes(r.name));
     expect(rows.map((r) => [r.name, r.rank])).toEqual([

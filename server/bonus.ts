@@ -4,7 +4,7 @@
  * Barème et activation réglables par l'admin (table meta), choix secrets jusqu'au coup d'envoi.
  */
 import type { BonusPhase, BonusReveal, BonusSettingsDto } from '../shared/api';
-import { SEASON } from './config';
+import { currentSeason } from './config';
 import { db, getMeta, setMeta } from './db';
 import { fetchStandings } from './espn';
 
@@ -34,8 +34,8 @@ export interface BonusField {
   nfc: { teamId: string; seed: number }[];
 }
 
-export function bonusField(): BonusField | null {
-  const raw = getMeta(`bonus_field:${SEASON}`);
+export function bonusField(season = currentSeason()): BonusField | null {
+  const raw = getMeta(`bonus_field:${season}`);
   return raw ? (JSON.parse(raw) as BonusField) : null;
 }
 
@@ -46,39 +46,39 @@ export interface BonusResult {
   sbTotal: number | null;
 }
 
-export function bonusResult(): BonusResult {
-  const raw = getMeta(`bonus_result:${SEASON}`);
+export function bonusResult(season = currentSeason()): BonusResult {
+  const raw = getMeta(`bonus_result:${season}`);
   return raw ? (JSON.parse(raw) as BonusResult) : { afc: null, nfc: null, sb: null, sbTotal: null };
 }
 
 /** Coup d'envoi du premier match de Wild Card (= clôture des choix). */
-export function bonusLockAt(): number | null {
-  const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 19').get(SEASON) as { k: number | null };
+export function bonusLockAt(season = currentSeason()): number | null {
+  const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 19').get(season) as { k: number | null };
   return r.k;
 }
 
-export function bonusPhase(now = Date.now()): BonusPhase {
+export function bonusPhase(now = Date.now(), season = currentSeason()): BonusPhase {
   if (!bonusSettings().enabled) return 'off';
-  const lock = bonusLockAt();
-  if (!bonusField() || !lock) return 'waiting';
+  const lock = bonusLockAt(season);
+  if (!bonusField(season) || !lock) return 'waiting';
   return now < lock ? 'open' : 'locked';
 }
 
 /** Coup d'envoi du Super Bowl, s'il est déjà au calendrier. */
-export function superBowlKickoff(): number | null {
-  const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 22').get(SEASON) as { k: number | null };
+export function superBowlKickoff(season = currentSeason()): number | null {
+  const r = db.prepare('SELECT MIN(kickoff) AS k FROM games WHERE season = ? AND week = 22').get(season) as { k: number | null };
   return r.k;
 }
 
 /** Moment où les choix de la bande deviennent visibles (null si pas encore connu). */
-export function bonusRevealAt(): number | null {
-  return bonusSettings().reveal === 'superbowl' ? superBowlKickoff() : bonusLockAt();
+export function bonusRevealAt(season = currentSeason()): number | null {
+  return bonusSettings().reveal === 'superbowl' ? superBowlKickoff(season) : bonusLockAt(season);
 }
 
 /** Les choix (et donc les points bonus) sont-ils dévoilés ? */
-export function bonusRevealed(now = Date.now()): boolean {
-  if (bonusPhase(now) !== 'locked') return false;
-  const at = bonusRevealAt();
+export function bonusRevealed(now = Date.now(), season = currentSeason()): boolean {
+  if (bonusPhase(now, season) !== 'locked') return false;
+  const at = bonusRevealAt(season);
   return at != null && now >= at;
 }
 
@@ -90,10 +90,10 @@ export interface BonusPick {
   sbTotal: number;
 }
 
-export function bonusPicks(): BonusPick[] {
+export function bonusPicks(season = currentSeason()): BonusPick[] {
   return db
     .prepare('SELECT player_id AS playerId, afc, nfc, sb, sb_total AS sbTotal FROM bonus_picks WHERE season = ?')
-    .all(SEASON) as unknown as BonusPick[];
+    .all(season) as unknown as BonusPick[];
 }
 
 export function saveBonusPick(p: BonusPick) {
@@ -101,17 +101,17 @@ export function saveBonusPick(p: BonusPick) {
     `INSERT INTO bonus_picks (player_id, season, afc, nfc, sb, sb_total, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(player_id, season) DO UPDATE SET afc = excluded.afc, nfc = excluded.nfc, sb = excluded.sb,
        sb_total = excluded.sb_total, updated_at = excluded.updated_at`
-  ).run(p.playerId, SEASON, p.afc, p.nfc, p.sb, p.sbTotal, Date.now());
+  ).run(p.playerId, currentSeason(), p.afc, p.nfc, p.sb, p.sbTotal, Date.now());
 }
 
 /** Points bonus gagnés par joueur (0 si la fonction est désactivée ou si rien n'est encore joué). */
-export function bonusPointsByPlayer(): Map<number, number> {
+export function bonusPointsByPlayer(season = currentSeason()): Map<number, number> {
   const out = new Map<number, number>();
   const s = bonusSettings();
   // Tant que les choix sont secrets, les points bonus aussi : sinon le classement trahirait qui a quoi.
-  if (!s.enabled || !bonusRevealed()) return out;
-  const r = bonusResult();
-  for (const p of bonusPicks()) {
+  if (!s.enabled || !bonusRevealed(Date.now(), season)) return out;
+  const r = bonusResult(season);
+  for (const p of bonusPicks(season)) {
     const pts = (r.afc && p.afc === r.afc ? s.points.afc : 0) + (r.nfc && p.nfc === r.nfc ? s.points.nfc : 0) + (r.sb && p.sb === r.sb ? s.points.sb : 0);
     out.set(p.playerId, pts);
   }
@@ -119,11 +119,11 @@ export function bonusPointsByPlayer(): Map<number, number> {
 }
 
 /** Écart au vrai total du Super Bowl, pour départager les égalités. null tant que le Super Bowl n'est pas joué. */
-export function tiebreakDistances(): Map<number, number> | null {
+export function tiebreakDistances(season = currentSeason()): Map<number, number> | null {
   if (!bonusSettings().enabled) return null;
-  const total = bonusResult().sbTotal;
+  const total = bonusResult(season).sbTotal;
   if (total == null) return null;
-  return new Map(bonusPicks().map((p) => [p.playerId, Math.abs(p.sbTotal - total)]));
+  return new Map(bonusPicks(season).map((p) => [p.playerId, Math.abs(p.sbTotal - total)]));
 }
 
 /**
@@ -131,15 +131,16 @@ export function tiebreakDistances(): Map<number, number> | null {
  * puis note les champions au fil des playoffs.
  */
 export async function bonusTick() {
+  const season = currentSeason();
   if (!bonusSettings().enabled) return;
 
   if (!bonusField()) {
     const w18 = db
       .prepare("SELECT COUNT(*) AS n, SUM(status = 'final') AS f FROM games WHERE season = ? AND week = 18")
-      .get(SEASON) as { n: number; f: number | null };
-    const wc = db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ? AND week = 19').get(SEASON) as { n: number };
+      .get(season) as { n: number; f: number | null };
+    const wc = db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ? AND week = 19').get(season) as { n: number };
     if (!w18.n || w18.f !== w18.n || !wc.n) return;
-    const s = await fetchStandings(SEASON);
+    const s = await fetchStandings(season);
     const confTeams = (abbr: string) =>
       (s.conferences.find((c) => c.abbr === abbr)?.divisions ?? [])
         .flatMap((d) => d.teams)
@@ -148,7 +149,7 @@ export async function bonusTick() {
         .sort((a, b) => a.seed - b.seed);
     const field = { afc: confTeams('AFC'), nfc: confTeams('NFC') };
     if (field.afc.length !== 7 || field.nfc.length !== 7) return; // classement pas encore à jour chez ESPN
-    setMeta(`bonus_field:${SEASON}`, JSON.stringify(field));
+    setMeta(`bonus_field:${season}`, JSON.stringify(field));
     console.log('[bonus] qualifiés figés, les choix sont ouverts');
     return;
   }
@@ -162,7 +163,7 @@ export async function bonusTick() {
   const result: BonusResult = { afc: null, nfc: null, sb: null, sbTotal: null };
   const finals = db
     .prepare("SELECT week, winner, away_id, home_id, away_score, home_score FROM games WHERE season = ? AND week IN (21, 22) AND status = 'final'")
-    .all(SEASON) as { week: number; winner: string | null; away_id: string; home_id: string; away_score: number; home_score: number }[];
+    .all(season) as { week: number; winner: string | null; away_id: string; home_id: string; away_score: number; home_score: number }[];
   for (const g of finals) {
     const w = winnerId(g);
     if (g.week === 21 && w) {
@@ -175,7 +176,7 @@ export async function bonusTick() {
     }
   }
   // Les deux finalistes du Super Bowl sont aussi les champions de conférence (au cas où la finale de conf. manquerait).
-  const sbGame = db.prepare('SELECT away_id, home_id FROM games WHERE season = ? AND week = 22').get(SEASON) as
+  const sbGame = db.prepare('SELECT away_id, home_id FROM games WHERE season = ? AND week = 22').get(season) as
     | { away_id: string; home_id: string }
     | undefined;
   if (sbGame) {
@@ -184,7 +185,7 @@ export async function bonusTick() {
       if (nfcIds.has(id)) result.nfc ??= id;
     }
   }
-  const prev = getMeta(`bonus_result:${SEASON}`);
+  const prev = getMeta(`bonus_result:${season}`);
   const next = JSON.stringify(result);
-  if (prev !== next) setMeta(`bonus_result:${SEASON}`, next);
+  if (prev !== next) setMeta(`bonus_result:${season}`, next);
 }

@@ -1,7 +1,8 @@
 /** Administration : joueurs, codes, historique et synchro ESPN. */
 import type { FastifyInstance } from 'fastify';
 import type { AdminPlayerDto, HistoryImportDto, OkDto, Replies, SyncStatusDto } from '../../shared/api';
-import { db } from '../db';
+import { db, setStartPoints } from '../db';
+import { currentSeason } from '../config';
 import { espnStats } from '../espn';
 import { importHistory, parseHistory } from '../history';
 import { forceSync, syncStatus } from '../sync';
@@ -9,7 +10,13 @@ import { requireAdmin } from './guards';
 
 export async function adminRoutes(app: FastifyInstance) {
   app.get<{ Reply: Replies<AdminPlayerDto[]> }>('/api/admin/players', { preHandler: requireAdmin }, async () =>
-    (db.prepare('SELECT id, name, start_points AS startPoints, is_admin AS isAdmin, pin_hash IS NOT NULL AS hasPin FROM players ORDER BY name').all() as {
+    // Points de départ : ceux de la saison en cours.
+    (db
+      .prepare(
+        `SELECT p.id, p.name, COALESCE(ps.start_points, 0) AS startPoints, p.is_admin AS isAdmin, p.pin_hash IS NOT NULL AS hasPin
+         FROM players p LEFT JOIN player_seasons ps ON ps.player_id = p.id AND ps.season = ? ORDER BY p.name`
+      )
+      .all(currentSeason()) as {
       id: number;
       name: string;
       startPoints: number;
@@ -23,7 +30,8 @@ export async function adminRoutes(app: FastifyInstance) {
     const startPoints = Math.max(0, Math.round(Number(req.body?.startPoints ?? 0)));
     if (!name || name.length > 30) return reply.code(400).send({ error: 'Prénom invalide.' });
     try {
-      db.prepare('INSERT INTO players (name, start_points, created_at) VALUES (?, ?, ?)').run(name, startPoints, Date.now());
+      const { lastInsertRowid } = db.prepare('INSERT INTO players (name, created_at) VALUES (?, ?)').run(name, Date.now());
+      if (startPoints) setStartPoints(Number(lastInsertRowid), startPoints);
     } catch {
       return reply.code(409).send({ error: 'Ce prénom existe déjà.' });
     }
@@ -61,7 +69,7 @@ export async function adminRoutes(app: FastifyInstance) {
       if (startPoints !== undefined) {
         const pts = Number(startPoints);
         if (!Number.isInteger(pts) || pts < 0 || pts > 999) return reply.code(400).send({ error: 'Points de départ invalides.' });
-        db.prepare('UPDATE players SET start_points = ? WHERE id = ?').run(pts, id);
+        setStartPoints(id, pts);
       }
       return { ok: true };
     }

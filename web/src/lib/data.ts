@@ -52,18 +52,26 @@ export const useLive = (gameId: string, live: boolean) =>
     staleTime: live ? 20_000 : 60 * MIN
   });
 
-/** Classement de la saison (sans semaine) ou d'une semaine ; toutes les 30 s pendant les matchs. */
-export const useLeaderboard = (week: number | undefined, enabled = true) =>
+/** Classement d'une saison (en cours par défaut) ou d'une semaine ; toutes les 30 s pendant les matchs. */
+export const useLeaderboard = (week: number | undefined, season?: number, enabled = true) =>
   useQuery({
-    queryKey: keys.leaderboard(week),
-    queryFn: () => api<LeaderboardDto>(week ? `/leaderboard?week=${week}` : '/leaderboard'),
+    queryKey: keys.leaderboard(week, season),
+    queryFn: () => api<LeaderboardDto>(`/leaderboard${query({ week, season })}`),
     enabled,
     refetchInterval: (q) => (q.state.data?.live ? 30_000 : false)
   });
 
 export const useBonus = () => useQuery({ queryKey: keys.bonus, queryFn: () => api<BonusDto>('/bonus') });
 export const useProfile = () => useQuery({ queryKey: keys.profile, queryFn: () => api<ProfileDto>('/profile') });
-export const useSeason = () => useQuery({ queryKey: keys.season, queryFn: () => api<SeasonDto>('/season') });
+/** Bilan d'une saison (en cours par défaut). */
+export const useSeason = (season?: number) =>
+  useQuery({ queryKey: keys.seasonOf(season), queryFn: () => api<SeasonDto>(`/season${query({ season })}`) });
+
+/** « ?week=10&season=2025 », sans les valeurs absentes. */
+export function query(params: Record<string, number | undefined>): string {
+  const parts = Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
 
 export const useRecap = (week: number | undefined) =>
   useQuery({ queryKey: keys.recap(week), queryFn: () => api<RecapDto>(week ? `/recap?week=${week}` : '/recap') });

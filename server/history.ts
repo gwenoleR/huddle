@@ -6,8 +6,8 @@
  * puis l'équipe à domicile, l'équipe à l'extérieur et un prono par joueur (« Prono GW », « Prono AU »…,
  * les deux premières lettres du prénom). Une case vide = pas de prono.
  */
-import { SEASON } from './config';
-import { db, setMeta, transaction } from './db';
+import { currentSeason } from './config';
+import { db, setMeta, setStartPoints, transaction } from './db';
 
 export interface HistoryLine {
   week: number;
@@ -104,7 +104,7 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
       problems.push(`${where} : équipe inconnue`);
       continue;
     }
-    const g = gameStmt.get(SEASON, l.week, home, away, home, away) as { id: string; kickoff: number; away_id: string; home_id: string } | undefined;
+    const g = gameStmt.get(currentSeason(), l.week, home, away, home, away) as { id: string; kickoff: number; away_id: string; home_id: string } | undefined;
     if (!g) {
       problems.push(`${where} : match introuvable (synchro pas encore faite ?)`);
       continue;
@@ -143,9 +143,8 @@ export function importHistory(lines: HistoryLine[], { dryRun = false } = {}): Im
        ON CONFLICT(player_id, game_id) DO UPDATE SET side = excluded.side, updated_at = excluded.updated_at`
     );
     for (const r of rows) ins.run(r.playerId, r.gameId, r.side, r.at);
-    const zero = db.prepare('UPDATE players SET start_points = 0 WHERE id = ?');
-    for (const p of usedPlayers.values()) zero.run(p.id);
-    setMeta(`history_import:${SEASON}`, JSON.stringify({ at: Date.now(), games: seenGames.size, picks: rows.length }));
+    for (const p of usedPlayers.values()) setStartPoints(p.id, 0);
+    setMeta(`history_import:${currentSeason()}`, JSON.stringify({ at: Date.now(), games: seenGames.size, picks: rows.length }));
   });
   return result;
 }

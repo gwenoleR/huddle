@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { SyncStatusDto } from '../shared/api';
-import { DATA_DIR, SEASON } from './config';
+import { DATA_DIR, currentSeason } from './config';
 
 export type SyncStatus = Omit<SyncStatusDto, 'espn'>;
 import { db, getMeta, setMeta, transaction } from './db';
@@ -51,14 +51,14 @@ const upsertGame = () =>
       home_score = excluded.home_score, winner = excluded.winner, updated_at = excluded.updated_at`);
 
 export async function syncWeek(week: number) {
-  const games = await fetchWeek(SEASON, week);
+  const games = await fetchWeek(currentSeason(), week);
   const known = new Set((db.prepare('SELECT id FROM teams').all() as { id: string }[]).map((r) => r.id));
   const valid = games.filter((g: EspnGame) => known.has(g.awayId) && known.has(g.homeId));
   const stmt = upsertGame();
   const now = Date.now();
   transaction(() => {
     for (const g of valid)
-      stmt.run(g.id, SEASON, g.week, g.kickoff, g.status, g.detail, g.awayId, g.homeId, g.awayScore, g.homeScore, g.winner, now);
+      stmt.run(g.id, currentSeason(), g.week, g.kickoff, g.status, g.detail, g.awayId, g.homeId, g.awayScore, g.homeScore, g.winner, now);
   });
   return valid.length;
 }
@@ -87,7 +87,7 @@ function hotWeeks(now: number): number[] {
       `SELECT DISTINCT week FROM games WHERE season = ? AND status IN ('scheduled', 'live')
        AND kickoff <= ? AND kickoff >= ?`
     )
-    .all(SEASON, now + 10 * 60_000, now - 8 * HOUR) as { week: number }[];
+    .all(currentSeason(), now + 10 * 60_000, now - 8 * HOUR) as { week: number }[];
   return rows.map((r) => r.week);
 }
 
@@ -95,27 +95,29 @@ function hotWeeks(now: number): number[] {
 function activeWeeks(now: number): number[] {
   const rows = db
     .prepare('SELECT DISTINCT week FROM games WHERE season = ? AND kickoff BETWEEN ? AND ?')
-    .all(SEASON, now - 4 * 24 * HOUR, now + 8 * 24 * HOUR) as { week: number }[];
+    .all(currentSeason(), now - 4 * 24 * HOUR, now + 8 * 24 * HOUR) as { week: number }[];
   return rows.map((r) => r.week);
 }
 
 let lastFull = 0;
 let lastHourly = 0;
 let lastFast = 0;
+/** Saison de la dernière synchro complète : quand la saison change (1er juin), on resynchronise tout de suite. */
+let lastSeason = 0;
 
 /** Pour les tests : comme au démarrage du serveur. */
 export function resetSyncClock() {
-  lastFull = lastHourly = lastFast = 0;
+  lastFull = lastHourly = lastFast = lastSeason = 0;
 }
 
 function recordStatus(ok: boolean, message: string) {
-  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(SEASON) as { n: number }).n;
+  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(currentSeason()) as { n: number }).n;
   setMeta('sync_status', JSON.stringify({ at: Date.now(), ok, message, games }));
 }
 
 export function syncStatus(): SyncStatus {
   const raw = getMeta('sync_status');
-  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(SEASON) as { n: number }).n;
+  const games = (db.prepare('SELECT COUNT(*) AS n FROM games WHERE season = ?').get(currentSeason()) as { n: number }).n;
   if (!raw) return { at: null, ok: false, message: 'Pas encore de synchro', games };
   return { ...(JSON.parse(raw) as SyncStatus), games };
 }
@@ -125,8 +127,9 @@ async function fullSync(now: number) {
     const teams = await syncTeams();
     const games = await syncSeason();
     lastFull = lastHourly = now;
+    lastSeason = currentSeason(now);
     const msg = `${teams} équipes, ${games} matchs`;
-    console.log(`[sync] saison ${SEASON} : ${msg}`);
+    console.log(`[sync] saison ${currentSeason()} : ${msg}`);
     recordStatus(true, msg);
   } catch (e) {
     // Pas de lastFull : on réessaie au prochain passage (chaque minute) au lieu d'attendre 24 h.
@@ -148,7 +151,7 @@ function exclusive(fn: () => Promise<void>): Promise<void> {
 /** Appelé chaque minute : saison complète 1×/jour, semaines actives 1×/h, matchs en cours toutes les 2 min. */
 export function syncTick(now = Date.now()) {
   return exclusive(async () => {
-    if (now - lastFull >= 24 * HOUR) return fullSync(now);
+    if (now - lastFull >= 24 * HOUR || currentSeason(now) !== lastSeason) return fullSync(now);
     const hot = hotWeeks(now);
     if (hot.length && now - lastFast >= 2 * 60_000) {
       for (const w of hot) await syncWeek(w);

@@ -1,8 +1,8 @@
 /** Classement NFL et fiche équipe. */
 import type { FastifyInstance } from 'fastify';
 import type { NflStandingsDto, Replies, TeamSheetDto, TeamStandingDto } from '../../shared/api';
-import { SEASON, START_WEEK, weekLabel } from '../config';
-import { db } from '../db';
+import { currentSeason, weekLabel } from '../config';
+import { db, startWeek } from '../db';
 import { fetchStandings, type NflStandings, type StandingTeam } from '../espn';
 import { cached } from '../espnCache';
 import { type GameRow, type TeamRow, playerNames, teamDto, teamsById } from './dto';
@@ -11,7 +11,7 @@ import { requireAuth } from './guards';
 const MIN = 60_000;
 
 /** Classement NFL : il ne bouge qu'à la fin des matchs. Frais 30 min, puis resservi le temps d'être rafraîchi. */
-export const nflStandings = () => cached(`standings:${SEASON}`, () => fetchStandings(SEASON), { ttl: 30 * MIN, swr: 24 * 60 * MIN });
+export const nflStandings = () => cached(`standings:${currentSeason()}`, () => fetchStandings(currentSeason()), { ttl: 30 * MIN, swr: 24 * 60 * MIN });
 
 /** Place d'une équipe : « 1er AFC Est », tête de série dans sa conférence. */
 export function standingOf(s: NflStandings, teamId: string): TeamStandingDto | null {
@@ -38,7 +38,7 @@ export async function nflRoutes(app: FastifyInstance) {
       return tr ? { ...t, team: teamDto(tr) } : null;
     };
     return {
-      season: SEASON,
+      season: currentSeason(),
       conferences: s.conferences.map((c) => {
         const divisions = c.divisions.map((d) => ({ name: d.name, teams: d.teams.map(row).filter((t) => t !== null) }));
         const seeds = divisions
@@ -57,7 +57,7 @@ export async function nflRoutes(app: FastifyInstance) {
 
     const games = db
       .prepare('SELECT * FROM games WHERE season = ? AND (away_id = ? OR home_id = ?) ORDER BY kickoff')
-      .all(SEASON, t.id, t.id) as unknown as GameRow[];
+      .all(currentSeason(), t.id, t.id) as unknown as GameRow[];
     const schedule: TeamSheetDto['schedule'] = games.map((g) => {
       const home = g.home_id === t.id;
       const opp = teams.get(home ? g.away_id : g.home_id)!;
@@ -85,7 +85,7 @@ export async function nflRoutes(app: FastifyInstance) {
          FROM picks k JOIN players p ON p.id = k.player_id JOIN games g ON g.id = k.game_id
          WHERE g.season = ? AND g.week >= ? AND g.status = 'final' AND (g.away_id = ? OR g.home_id = ?)`
       )
-      .all(t.id, SEASON, START_WEEK, t.id, t.id) as { id: number; name: string; side: string; winner: string | null; teamSide: string }[];
+      .all(t.id, currentSeason(), startWeek(), t.id, t.id) as { id: number; name: string; side: string; winner: string | null; teamSide: string }[];
     const bande = playerNames()
       .map((p) => {
         const mine = rows.filter((r) => r.id === p.id);

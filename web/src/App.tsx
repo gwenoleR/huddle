@@ -88,7 +88,7 @@ export function App() {
         {route.name === 'matchs' && <Matches routeWeek={route.week} me={me} theme={theme} notify={notify} />}
         {route.name === 'match' && <MatchDetail id={route.id} me={me} theme={theme} notify={notify} />}
         {route.name === 'classement' && <Leaderboard me={me} nfl={!!route.nfl} theme={theme} />}
-        {route.name === 'bilan' && <Season me={me} />}
+        {route.name === 'bilan' && <Season me={me} season={route.season} />}
         {route.name === 'bonus' && <Bonus me={me} theme={theme} notify={notify} />}
         {route.name === 'recap' && <Recap week={route.week} notify={notify} />}
         {route.name === 'admin' && <Admin me={me} notify={notify} />}

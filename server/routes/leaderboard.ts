@@ -1,17 +1,39 @@
 /** Classement de la bande, récap de la semaine, profil et bilan de saison. */
 import type { FastifyInstance } from 'fastify';
 import type { LeaderboardDto, ProfileDto, RecapDto, Replies, SeasonDto } from '../../shared/api';
-import { SEASON, START_WEEK } from '../config';
-import { db } from '../db';
+import { currentSeason } from '../config';
+import { db, knownSeasons, startWeek } from '../db';
 import { awards, latestRecapWeek, liveProjection, recap, standings, streak, weeklyResults } from '../scoring';
 import { requireAuth } from './guards';
 
+/** ?season=2025 : une saison passée ; sans paramètre, la saison en cours. null si la saison est inconnue. */
+function seasonParam(raw: string | undefined): number | null {
+  if (!raw) return currentSeason();
+  const s = Number(raw);
+  return knownSeasons().includes(s) ? s : null;
+}
+
 export async function leaderboardRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { week?: string }; Reply: Replies<LeaderboardDto> }>('/api/leaderboard', { preHandler: requireAuth }, async (req) => {
-    const week = req.query.week ? Number(req.query.week) : undefined;
-    // En saison, pendant les matchs : projection « si ça finit comme ça ».
-    return { week: week ?? null, startWeek: START_WEEK, rows: standings(week), live: week ? null : liveProjection() };
-  });
+  app.get<{ Querystring: { week?: string; season?: string }; Reply: Replies<LeaderboardDto> }>(
+    '/api/leaderboard',
+    { preHandler: requireAuth },
+    async (req, reply) => {
+      const season = seasonParam(req.query.season);
+      if (season === null) return reply.code(404).send({ error: 'Saison inconnue.' });
+      const current = season === currentSeason();
+      // Une saison passée se consulte en entier, pas semaine par semaine.
+      const week = req.query.week && current ? Number(req.query.week) : undefined;
+      return {
+        season,
+        seasons: knownSeasons(),
+        week: week ?? null,
+        startWeek: startWeek(season),
+        rows: standings(week, season),
+        // En saison, pendant les matchs : projection « si ça finit comme ça ».
+        live: week || !current ? null : liveProjection()
+      };
+    }
+  );
 
   app.get<{ Querystring: { week?: string }; Reply: Replies<RecapDto> }>('/api/recap', { preHandler: requireAuth }, async (req, reply) => {
     const week = req.query.week ? Number(req.query.week) : latestRecapWeek();
@@ -24,8 +46,8 @@ export async function leaderboardRoutes(app: FastifyInstance) {
     const me = rows.find((r) => r.id === req.me.id)!;
     return {
       ...req.me,
-      season: SEASON,
-      startWeek: START_WEEK,
+      season: currentSeason(),
+      startWeek: startWeek(),
       players: rows.length,
       rank: me.rank,
       points: me.points,
@@ -37,11 +59,22 @@ export async function leaderboardRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get<{ Reply: Replies<SeasonDto> }>('/api/season', { preHandler: requireAuth }, async () => {
-    const sb = db.prepare('SELECT status FROM games WHERE season = ? AND week = 22').get(SEASON) as { status: string } | undefined;
-    const games = db.prepare("SELECT COUNT(*) AS n FROM games WHERE season = ? AND week >= ? AND status = 'final'").get(SEASON, START_WEEK) as {
-      n: number;
+  app.get<{ Querystring: { season?: string }; Reply: Replies<SeasonDto> }>('/api/season', { preHandler: requireAuth }, async (req, reply) => {
+    const season = seasonParam(req.query.season);
+    if (season === null) return reply.code(404).send({ error: 'Saison inconnue.' });
+    const sb = db.prepare('SELECT status FROM games WHERE season = ? AND week = 22').get(season) as { status: string } | undefined;
+    const games = db
+      .prepare("SELECT COUNT(*) AS n FROM games WHERE season = ? AND week >= ? AND status = 'final'")
+      .get(season, startWeek(season)) as { n: number };
+    return {
+      season,
+      seasons: knownSeasons(),
+      startWeek: startWeek(season),
+      // Une saison passée est terminée, même s'il manque des matchs en base.
+      finished: sb?.status === 'final' || season !== currentSeason(),
+      finalGames: games.n,
+      rows: standings(undefined, season),
+      awards: awards(season)
     };
-    return { season: SEASON, startWeek: START_WEEK, finished: sb?.status === 'final', finalGames: games.n, rows: standings(), awards: awards() };
   });
 }

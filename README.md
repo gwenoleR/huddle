@@ -5,6 +5,7 @@ L'appli de pronos NFL de la bande : une PWA mobile à installer sur l'écran d'a
 - **Matchs** de la semaine avec les logos, un tap pour pronostiquer, la répartition de la bande sous chaque match.
 - **Verrouillage** au coup d'envoi (côté serveur), **scores en direct**, points calculés automatiquement.
 - **Classement** saison / semaine, **profil** semaine par semaine, **bilan de saison** avec trophées.
+- **Saison après saison** : la nouvelle saison prend le relais toute seule le 1er juin (calendrier ESPN publié, on peut déjà pronostiquer la semaine 1). Jusque-là, la saison finie reste affichée. Les saisons passées restent consultables : lien « Saisons précédentes » en bas du Classement, vers leur bilan (classement final et trophées).
 - **Notifications** : rappel 1 h avant un match sans prono, résultats quand une semaine est terminée.
 
 Barème : 1 point par bon prono en saison régulière, **2 points en playoffs**. Les pronos des semaines 1 à 8 viennent de l'ancien site (importés en CSV depuis l'écran admin).
@@ -49,7 +50,7 @@ Pour revenir à une version précise, remplacer `latest` par son tag `sha-…` d
 ## Admin
 
 Le créateur du groupe est admin, et peut nommer d'autres admins. Les admins voient une section Admin dans leur profil :
-- **Ajouter un joueur**, avec des points de départ s'il arrive en cours de saison.
+- **Ajouter un joueur**, avec des points de départ s'il arrive en cours de saison. Les points de départ valent pour la saison en cours seulement : tout le monde repart de 0 la saison suivante.
 - Pour chaque joueur (toucher son nom) : **renommer**, **effacer le code** (il en choisit un nouveau à sa prochaine connexion), **nommer / retirer admin**, **supprimer** (ses pronos disparaissent avec lui). On ne peut ni se supprimer ni se retirer ses propres droits : il reste toujours un admin.
 - **Importer l'historique** : les semaines jouées ailleurs, en CSV. Une ligne d'en-têtes `,Home,Away,Prono GW,Prono AU,…` (les deux premières lettres du prénom, sans tenir compte des accents), puis une ligne par match avec les noms complets des équipes (`Kansas City Chiefs`), `Week1` en première colonne sur le premier match de chaque semaine, une case vide pour un prono manquant. Le fichier est d'abord vérifié à blanc (combien de pronos, pour qui), puis importé sur confirmation. C'est tout ou rien : à la moindre erreur, rien n'est écrit et tous les problèmes sont listés. Les points de départ des joueurs du fichier repassent à 0.
 
@@ -58,6 +59,7 @@ Sécurité du code PIN : 5 erreurs bloquent le prénom 15 minutes, et 20 erreurs
 ## Données
 
 - Source : l'API publique d'ESPN (non officielle, gratuite, sans clé). Tout passe par `server/espn.ts`. Si ESPN change son format, c'est le seul fichier à adapter. En secours, le fichier `games.csv` de [nflverse](https://github.com/nflverse/nfldata) contient les mêmes matchs et les identifiants ESPN.
+- Saison suivie : celle en cours d'après la date (voir plus haut). Pour la figer (tests, démo), variable `SEASON=2026`.
 - Synchronisation : saison complète 1 fois par jour, semaines en cours toutes les heures, **toutes les 2 minutes pendant les matchs**.
 - Base SQLite dans le volume Docker `prono-data` (`/data/prono.db`).
   Sauvegarde :

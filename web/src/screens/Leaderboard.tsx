@@ -6,7 +6,7 @@ import { plural } from '../lib/format';
 import { go } from '../lib/router';
 import { useBonus, useLeaderboard, useWeeks } from '../lib/data';
 import { seasonRecord } from '../lib/labels';
-import { Loading } from './shared';
+import { Loading, OtherSeasons } from './shared';
 
 export function Leaderboard({ me, nfl, theme }: { me: Me; nfl: boolean; theme: 'dark' | 'light' }) {
   return nfl ? <NflStandings theme={theme} tabs={<LeagueTabs nfl />} /> : <BandeLeaderboard me={me} tabs={<LeagueTabs nfl={false} />} />;
@@ -34,7 +34,7 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
 
   // Pendant les matchs, le classement bouge : on le rafraîchit toutes les 30 s.
   const week = scope === 'week' ? weeks?.current : undefined;
-  const q = useLeaderboard(week, !!weeks);
+  const q = useLeaderboard(week, undefined, !!weeks);
   const data = q.data;
   const error = (q.error ?? weeksQ.error)?.message ?? null;
   const live = scope === 'season' ? data?.live ?? null : null;
@@ -122,6 +122,7 @@ function BandeLeaderboard({ me, tabs }: { me: Me; tabs: ReactNode }) {
             Bonus de fin de saison
           </Button>
         )}
+        {data && <OtherSeasons seasons={data.seasons} shown={data.season} current={data.season} label="Saisons précédentes" />}
       </main>
     </div>
   );

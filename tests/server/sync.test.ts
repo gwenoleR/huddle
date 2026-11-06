@@ -158,6 +158,21 @@ describe('rythme de la synchro (appelée chaque minute)', () => {
     expect(weeksAsked()).toEqual([]);
   });
 
+  it('nouvelle saison (1er juin) : synchro complète tout de suite, sans attendre le lendemain', async () => {
+    await sync.syncTick(NOW);
+    weeksAsked();
+    process.env.SEASON = '2027';
+    try {
+      await sync.syncTick(NOW + MIN);
+      expect(new Set(fetchWeek.mock.calls.map(([season]) => season))).toEqual(new Set([2027]));
+      expect(weeksAsked()).toHaveLength(22);
+      await sync.syncTick(NOW + 2 * MIN);
+      expect(weeksAsked()).toEqual([]);
+    } finally {
+      process.env.SEASON = '2026';
+    }
+  });
+
   it('pendant les matchs : la semaine en cours toutes les 2 minutes', async () => {
     await sync.syncTick(NOW);
     weeksAsked();

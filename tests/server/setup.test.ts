@@ -14,7 +14,8 @@ delete process.env.START_WEEK;
 const Fastify = (await import('fastify')).default;
 const cookie = (await import('@fastify/cookie')).default;
 const { routes } = await import('../../server/routes');
-const { START_WEEK, seasonAt } = await import('../../server/config');
+const { seasonAt } = await import('../../server/config');
+const { startWeek } = await import('../../server/db');
 const { DAY, NOW, addGame, db, pick, resetDb } = await import('./helpers');
 
 const app = Fastify();
@@ -36,13 +37,14 @@ describe('nouvelle installation', () => {
 
   it('sans seed : aucun joueur, et toute la saison compte', async () => {
     expect((await call('GET', '/api/players')).json()).toEqual([]);
-    expect(START_WEEK).toBe(1);
+    expect(startWeek()).toBe(1);
   });
 
-  it('saison NFL selon la date : les playoffs de février comptent pour l’année d’avant', () => {
+  it('saison selon la date : la précédente reste affichée jusqu’à fin mai, la nouvelle arrive le 1er juin', () => {
     expect(seasonAt(Date.parse('2026-09-10T00:00:00Z'))).toBe(2026);
-    expect(seasonAt(Date.parse('2027-02-07T00:00:00Z'))).toBe(2026);
-    expect(seasonAt(Date.parse('2027-03-01T00:00:00Z'))).toBe(2027);
+    expect(seasonAt(Date.parse('2027-02-07T00:00:00Z'))).toBe(2026); // Super Bowl
+    expect(seasonAt(Date.parse('2027-05-31T12:00:00Z'))).toBe(2026);
+    expect(seasonAt(Date.parse('2027-06-01T00:00:00Z'))).toBe(2027);
   });
 
   it('valide le prénom et le code', async () => {

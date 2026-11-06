@@ -30,7 +30,7 @@ export function resetDb() {
   db.exec(`
     DELETE FROM picks; DELETE FROM bonus_picks; DELETE FROM games; DELETE FROM teams;
     DELETE FROM sessions; DELETE FROM push_subscriptions; DELETE FROM sent_notifications;
-    DELETE FROM meta WHERE key NOT LIKE 'vapid_%';
+    DELETE FROM meta WHERE key NOT LIKE 'vapid_%' AND key NOT LIKE 'start_week:%';
     UPDATE players SET pin_hash = NULL, failed_attempts = 0, locked_until = 0;
   `);
   const insert = db.prepare('INSERT INTO teams (id, abbr, name, display_name, color, alt_color) VALUES (?, ?, ?, ?, ?, ?)');
@@ -42,6 +42,8 @@ export const pid = (name: string) => (db.prepare('SELECT id FROM players WHERE n
 let seq = 0;
 export interface GameOpts {
   id?: string;
+  /** 2026 par défaut (la saison des tests). */
+  season?: number;
   week?: number;
   kickoff?: number;
   away?: Abbr;
@@ -60,8 +62,8 @@ export function addGame(o: GameOpts = {}): string {
   const winner = status === 'final' && a != null && h != null ? (a > h ? 'away' : h > a ? 'home' : 'tie') : null;
   db.prepare(
     `INSERT INTO games (id, season, week, kickoff, status, detail, away_id, home_id, away_score, home_score, winner, updated_at)
-     VALUES (?, 2026, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
-  ).run(id, o.week ?? 10, o.kickoff ?? NOW - DAY, status, o.detail ?? null, TEAMS[o.away ?? 'BUF'].id, TEAMS[o.home ?? 'KC'].id, a, h, winner);
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+  ).run(id, o.season ?? 2026, o.week ?? 10, o.kickoff ?? NOW - DAY, status, o.detail ?? null, TEAMS[o.away ?? 'BUF'].id, TEAMS[o.home ?? 'KC'].id, a, h, winner);
   return id;
 }
 

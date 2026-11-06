@@ -22,10 +22,13 @@ export const keys = {
   game: (id: string) => ['game', id] as const,
   preview: (id: string) => ['preview', id] as const,
   live: (id: string) => ['live', id] as const,
-  leaderboard: (week?: number) => ['leaderboard', week ?? 'season'] as const,
+  /** Saison en cours sans saison précisée ; une saison passée se consulte en entier (pas de semaine). */
+  leaderboard: (week?: number, season?: number) => ['leaderboard', week ?? 'season', season ?? 'current'] as const,
   bonus: ['bonus'] as const,
   profile: ['profile'] as const,
+  /** Préfixe de tous les bilans (pour tout recharger) ; seasonOf pour un bilan précis. */
   season: ['season'] as const,
+  seasonOf: (season?: number) => ['season', season ?? 'current'] as const,
   recap: (week?: number) => ['recap', week ?? 'last'] as const,
   nflStandings: ['nfl-standings'] as const,
   team: (abbr: string) => ['team', abbr.toUpperCase()] as const

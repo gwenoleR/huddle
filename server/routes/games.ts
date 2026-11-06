@@ -1,8 +1,8 @@
 /** Semaines, matchs, pronos, avant-match et direct. */
 import type { FastifyInstance } from 'fastify';
 import type { GameDetailDto, LiveDto, OkDto, PreviewDto, Replies, WeekDto, WeeksDto } from '../../shared/api';
-import { SEASON, START_WEEK, weekLabel } from '../config';
-import { db } from '../db';
+import { currentSeason, weekLabel } from '../config';
+import { db, startWeek } from '../db';
 import { fetchLive, fetchPreview } from '../espn';
 import { FOREVER, cached } from '../espnCache';
 import { pointsFor } from '../scoring';
@@ -20,12 +20,12 @@ export async function gamesRoutes(app: FastifyInstance) {
         `SELECT week, COUNT(*) AS games, SUM(status = 'final') AS finals, MIN(kickoff) AS first
          FROM games WHERE season = ? GROUP BY week ORDER BY week`
       )
-      .all(SEASON) as { week: number; games: number; finals: number; first: number }[];
+      .all(currentSeason()) as { week: number; games: number; finals: number; first: number }[];
     // Semaine en cours : la première qui a encore un match non terminé.
-    const current = rows.find((r) => r.finals < r.games)?.week ?? rows.at(-1)?.week ?? START_WEEK;
+    const current = rows.find((r) => r.finals < r.games)?.week ?? rows.at(-1)?.week ?? startWeek();
     return {
-      season: SEASON,
-      startWeek: START_WEEK,
+      season: currentSeason(),
+      startWeek: startWeek(),
       current,
       weeks: rows.map((r) => ({ week: r.week, label: weekLabel(r.week), longLabel: weekLabel(r.week, true), points: pointsFor(r.week) }))
     };
@@ -33,7 +33,7 @@ export async function gamesRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { week: string }; Reply: Replies<WeekDto> }>('/api/weeks/:week', { preHandler: requireAuth }, async (req) => {
     const week = Number(req.params.week);
-    const rows = db.prepare('SELECT * FROM games WHERE season = ? AND week = ? ORDER BY kickoff, id').all(SEASON, week) as unknown as GameRow[];
+    const rows = db.prepare('SELECT * FROM games WHERE season = ? AND week = ? ORDER BY kickoff, id').all(currentSeason(), week) as unknown as GameRow[];
     return { week, label: weekLabel(week, true), points: pointsFor(week), games: gamesDto(rows, req.me) };
   });
 
@@ -45,7 +45,7 @@ export async function gamesRoutes(app: FastifyInstance) {
     const waiting = (db.prepare('SELECT name FROM players ORDER BY name COLLATE NOCASE').all() as { name: string }[])
       .map((p) => p.name)
       .filter((n) => !done.has(n));
-    return { ...game, weekLabel: weekLabel(row.week, true), waiting, counted: row.week >= START_WEEK };
+    return { ...game, weekLabel: weekLabel(row.week, true), waiting, counted: row.week >= startWeek(row.season) };
   });
 
   app.put<{ Params: { id: string }; Body: { side?: string }; Reply: Replies<OkDto> }>(

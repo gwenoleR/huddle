@@ -18,6 +18,8 @@ export default defineConfig({
       DB_FILE: ':memory:',
       DATA_DIR: path.join(tmpdir(), 'prono-tests'),
       SEED_FILE: path.resolve('tests/fixtures/seed.json'),
+      // Saison figée : les tests ne dépendent pas de la date du jour.
+      SEASON: '2026',
       SYNC: 'off',
       SYNC_PAUSE_MS: '0',
       TZ: 'Europe/Paris'

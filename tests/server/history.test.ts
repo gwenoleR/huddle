@@ -7,13 +7,14 @@ process.env.START_WEEK = '1';
 const { importHistory, parseHistory } = await import('../../server/history');
 const { standings } = await import('../../server/scoring');
 const { DAY, NOW, addGame, db, getMetaValue, pid, resetDb } = await import('./helpers');
+const { setStartPoints } = await import('../../server/db');
 
 beforeEach(() => {
   resetDb();
   db.exec("DELETE FROM players WHERE name NOT IN ('Gwen', 'Audrey', 'Bea', 'Bud', 'Max')");
   // Les joueurs ont leurs points repris de l'ancien site, comme en prod avant l'import.
   for (const [name, pts] of Object.entries({ Gwen: 73, Audrey: 72, Bea: 71, Bud: 69, Max: 64 }))
-    db.prepare('UPDATE players SET start_points = ? WHERE name = ?').run(pts, name);
+    setStartPoints(pid(name), pts);
 });
 
 const CSV = `,Home,Away,Prono BE,Prono AU,Prono MA,Prono GW,Prono BU
@@ -54,7 +55,7 @@ describe('import', () => {
     expect([pickOf('Bea', g1), pickOf('Audrey', g1), pickOf('Max', g1)]).toEqual(['home', 'away', null]);
     expect(pickOf('Max', g2)).toBe('home');
     expect(pickOf('Gwen', g3)).toBe('away');
-    expect((db.prepare('SELECT SUM(start_points) AS s FROM players').get() as { s: number }).s).toBe(0);
+    expect((db.prepare('SELECT SUM(start_points) AS s FROM player_seasons').get() as { s: number }).s).toBe(0);
   });
 
   it('le classement vient alors des pronos', () => {
@@ -74,7 +75,8 @@ describe('import', () => {
   });
 
   it('un joueur absent du fichier garde ses points de départ', () => {
-    db.prepare("INSERT INTO players (name, start_points, created_at) VALUES ('Zoé', 40, 0)").run();
+    db.prepare("INSERT INTO players (name, created_at) VALUES ('Zoé', 0)").run();
+    setStartPoints(pid('Zoé'), 40);
     games();
     importHistory(parseHistory(CSV));
     expect(standings().find((r) => r.name === 'Zoé')!.points).toBe(40);
@@ -182,7 +184,7 @@ describe('messages d’erreur', () => {
   });
 
   it('deux joueurs avec les mêmes initiales : on dit lesquels', () => {
-    db.prepare("INSERT INTO players (name, start_points, created_at) VALUES ('Benoît', 0, 0)").run();
+    db.prepare("INSERT INTO players (name, created_at) VALUES ('Benoît', 0)").run();
     games();
     expect(() => importHistory(parseHistory(CSV))).toThrow('« BE » ambigu : Bea, Benoît');
   });

@@ -1,6 +1,6 @@
 import webpush from 'web-push';
-import { PUBLIC_URL, SEASON, START_WEEK, weekLabel } from './config';
-import { db, getMeta, setMeta } from './db';
+import { PUBLIC_URL, currentSeason, weekLabel } from './config';
+import { db, getMeta, setMeta, startWeek } from './db';
 import { standings } from './scoring';
 import { bonusLockAt, bonusPhase, bonusPicks, bonusSettings } from './bonus';
 
@@ -85,7 +85,7 @@ async function reminders(now: number) {
        WHERE g.season = ? AND g.week >= ? AND g.status = 'scheduled' AND g.kickoff > ? AND g.kickoff <= ?
        ORDER BY g.kickoff`
     )
-    .all(SEASON, START_WEEK, now + 45 * 60_000, now + 75 * 60_000) as { id: string; kickoff: number; away: string; home: string }[];
+    .all(currentSeason(), startWeek(), now + 45 * 60_000, now + 75 * 60_000) as { id: string; kickoff: number; away: string; home: string }[];
   if (!games.length) return;
 
   for (const p of subscribedPlayers()) {
@@ -112,11 +112,11 @@ async function weekResults(now: number) {
       `SELECT week, MAX(kickoff) AS last, SUM(status = 'final') AS finals, COUNT(*) AS total
        FROM games WHERE season = ? AND week >= ? GROUP BY week`
     )
-    .all(SEASON, START_WEEK) as { week: number; last: number; finals: number; total: number }[];
+    .all(currentSeason(), startWeek()) as { week: number; last: number; finals: number; total: number }[];
 
   for (const w of weeks) {
     if (w.finals !== w.total) continue;
-    const key = `week:${SEASON}:${w.week}`;
+    const key = `week:${currentSeason()}:${w.week}`;
     if (alreadySent(key)) continue;
     markSent(key);
     if (w.last < now - 3 * 24 * 3600_000) continue; // vieille semaine au premier démarrage : pas de notif
@@ -151,7 +151,7 @@ async function flips() {
        WHERE g.season = ? AND g.week >= ? AND g.away_score IS NOT NULL
          AND (g.status = 'live' OR (g.status = 'final' AND EXISTS (SELECT 1 FROM meta WHERE key = 'lead:' || g.id)))`
     )
-    .all(SEASON, START_WEEK) as {
+    .all(currentSeason(), startWeek()) as {
     id: string;
     status: string;
     detail: string | null;
@@ -204,7 +204,7 @@ async function bonusNotifications(now: number) {
   const lock = bonusLockAt()!;
   const { points } = bonusSettings();
   const max = points.afc + points.nfc + points.sb;
-  const openKey = `bonus-open:${SEASON}`;
+  const openKey = `bonus-open:${currentSeason()}`;
   if (!alreadySent(openKey)) {
     markSent(openKey);
     for (const p of subscribedPlayers())
@@ -218,14 +218,14 @@ async function bonusNotifications(now: number) {
   if (lock - now > 75 * 60_000 || lock - now < 45 * 60_000) return;
   const done = new Set(bonusPicks().map((b) => b.playerId));
   for (const p of subscribedPlayers()) {
-    const key = `bonus-remind:${SEASON}:${p.id}`;
+    const key = `bonus-remind:${currentSeason()}:${p.id}`;
     if (done.has(p.id) || alreadySent(key)) continue;
     markSent(key);
     await sendToPlayer(p.id, {
       title: 'Ton bonus de fin de saison 🏆',
       body: `Plus qu'une heure pour choisir tes champions (jusqu'à ${max} pts).`,
       url: '/#/bonus',
-      tag: `bonus-remind-${SEASON}`
+      tag: `bonus-remind-${currentSeason()}`
     });
   }
 }

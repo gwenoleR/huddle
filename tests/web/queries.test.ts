@@ -73,8 +73,10 @@ describe('prono affiché tout de suite', () => {
 describe('clés du cache', () => {
   it('une clé par donnée, insensible à la casse pour les équipes', () => {
     expect(keys.team('buf')).toEqual(keys.team('BUF'));
-    expect(keys.leaderboard()).toEqual(['leaderboard', 'season']);
-    expect(keys.leaderboard(10)).toEqual(['leaderboard', 10]);
+    expect(keys.leaderboard()).toEqual(['leaderboard', 'season', 'current']);
+    expect(keys.leaderboard(10)).toEqual(['leaderboard', 10, 'current']);
+    expect(keys.leaderboard(undefined, 2025)).toEqual(['leaderboard', 'season', 2025]);
+    expect(keys.seasonOf(2025).slice(0, 1)).toEqual(keys.season); // « tout recharger » touche aussi les bilans passés
     expect(keys.recap()).not.toEqual(keys.recap(10));
   });
 });

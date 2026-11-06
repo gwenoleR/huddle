@@ -72,6 +72,8 @@ describe('routes de l’appli', () => {
     ['#/bonus', { name: 'bonus' }],
     ['#/recap/10', { name: 'recap', week: 10 }],
     ['#/admin', { name: 'admin' }],
+    ['#/bilan', { name: 'bilan' }],
+    ['#/bilan/2025', { name: 'bilan', season: 2025 }],
     ['#/nimporte', { name: 'matchs' }]
   ])('%s', (hash, route) => {
     expect(parseHash(hash)).toEqual(route);

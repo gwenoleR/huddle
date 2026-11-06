@@ -1,7 +1,6 @@
 /** Mise en forme des lignes de la base pour l'API (types dans shared/api.ts). */
 import type { GameDto, TeamDto } from '../../shared/api';
-import { START_WEEK } from '../config';
-import { db } from '../db';
+import { db, startWeek } from '../db';
 import type { Me } from '../auth';
 import { pointsFor } from '../scoring';
 
@@ -16,6 +15,7 @@ export interface TeamRow {
 
 export interface GameRow {
   id: string;
+  season: number;
   week: number;
   kickoff: number;
   status: GameDto['status'];
@@ -58,7 +58,7 @@ export function teamsById(): Map<string, TeamRow> {
 }
 
 /** Un prono n'est plus possible une fois le match commencé (même si la synchro ne l'a pas encore vu). */
-export const isLocked = (g: GameRow, now = Date.now()) => g.status !== 'scheduled' || g.kickoff <= now || g.week < START_WEEK;
+export const isLocked = (g: GameRow, now = Date.now()) => g.status !== 'scheduled' || g.kickoff <= now || g.week < startWeek(g.season);
 
 export function gamesDto(rows: GameRow[], me: Me): GameDto[] {
   if (!rows.length) return [];

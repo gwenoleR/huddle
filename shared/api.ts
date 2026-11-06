@@ -72,6 +72,9 @@ export interface LiveRow extends StandingRow {
 }
 
 export interface LeaderboardDto {
+  season: number;
+  /** Saisons consultables, la plus récente d'abord (toujours au moins la saison en cours). */
+  seasons: number[];
   week: number | null;
   startWeek: number;
   rows: StandingRow[];
@@ -112,6 +115,7 @@ export interface AwardDto {
 
 export interface SeasonDto {
   season: number;
+  seasons: number[];
   startWeek: number;
   finished: boolean;
   finalGames: number;

@@ -3,8 +3,8 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { HOST, PORT, PUBLIC_URL, SEASON, START_WEEK, SYNC_ENABLED, WEB_DIR } from './config';
-import { db } from './db';
+import { HOST, PORT, PUBLIC_URL, SYNC_ENABLED, WEB_DIR, currentSeason } from './config';
+import { db, startWeek } from './db';
 import { routes } from './routes';
 import { LOGO_DIR, syncTick } from './sync';
 import { notificationsTick } from './push';
@@ -48,7 +48,7 @@ if (existsSync(WEB_DIR)) {
 }
 
 await app.listen({ port: PORT, host: HOST });
-console.log(`[prono] saison ${SEASON}, pronos comptés dès la semaine ${START_WEEK}, à l'écoute sur ${HOST}:${PORT}`);
+console.log(`[prono] saison ${currentSeason()}, pronos comptés dès la semaine ${startWeek()}, à l'écoute sur ${HOST}:${PORT}`);
 if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[prono] aucun joueur : ouvre ${PUBLIC_URL} pour créer ton groupe (tu en seras l'admin)`);
 
 let running = false;

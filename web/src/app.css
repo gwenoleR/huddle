@@ -1311,3 +1311,15 @@ button.nfl-row {
   width: 64px;
   text-align: center;
 }
+
+/* Saisons précédentes : un lien discret en bas du classement et du bilan. */
+.other-seasons {
+  margin: 0;
+  text-align: center;
+}
+.other-seasons a {
+  color: var(--ink-muted);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

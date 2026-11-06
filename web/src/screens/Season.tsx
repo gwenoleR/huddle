@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Avatar, Button, Icon, LeaderboardRow } from '../ds';
 import { type AwardDto, type Me } from '../lib/api';
-import { BackLink, Loading } from './shared';
+import { BackLink, Loading, OtherSeasons } from './shared';
 import { pointsOrigin } from '../lib/labels';
 import { useSeason } from '../lib/data';
 
-export function Season({ me }: { me: Me }) {
-  const q = useSeason();
+export function Season({ me, season }: { me: Me; season?: number }) {
+  const q = useSeason(season);
   const s = q.data;
   const error = q.error?.message ?? null;
   const [open, setOpen] = useState<AwardDto | null>(null);
@@ -50,14 +50,7 @@ export function Season({ me }: { me: Me }) {
           </h2>
           <ol style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {s.rows.map((r) => (
-              <LeaderboardRow
-                key={r.id}
-                rank={r.rank}
-                name={r.name}
-                points={r.points}
-                me={r.id === me.id}
-                record={pointsOrigin(r)}
-              />
+              <LeaderboardRow key={r.id} rank={r.rank} name={r.name} points={r.points} me={r.id === me.id} record={pointsOrigin(r)} />
             ))}
           </ol>
         </section>
@@ -66,26 +59,30 @@ export function Season({ me }: { me: Me }) {
           <h2 className="section-title" style={{ margin: 0 }}>
             Les trophées de la bande
           </h2>
-          {won.length === 0 && (
-            <div className="card card-pad muted small">Les trophées arrivent après les premiers matchs joués.</div>
-          )}
+          {won.length === 0 && <div className="card card-pad muted small">Les trophées arrivent après les premiers matchs joués.</div>}
           {won.map((a) => (
-            <AwardRow key={a.id} award={a} onOpen={() => setOpen(a)} />
+            <AwardRow key={a.id} award={a} finished={s.finished} onOpen={() => setOpen(a)} />
           ))}
         </section>
 
         {toWin.length > 0 && (
           <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <h2 className="section-title" style={{ margin: 0 }}>
-              Encore à gagner
+              {s.finished ? 'Pas attribués cette saison' : 'Encore à gagner'}
             </h2>
             {toWin.map((a) => (
-              <AwardRow key={a.id} award={a} onOpen={() => setOpen(a)} />
+              <AwardRow key={a.id} award={a} finished={s.finished} onOpen={() => setOpen(a)} />
             ))}
           </section>
         )}
+        <OtherSeasons
+          seasons={s.seasons}
+          shown={s.season}
+          current={s.seasons[0]}
+          label={s.season === s.seasons[0] ? 'Saisons précédentes' : 'Autres saisons'}
+        />
       </main>
-      <TrophyDialog award={open} me={me} onClose={() => setOpen(null)} />
+      <TrophyDialog award={open} me={me} finished={s.finished} onClose={() => setOpen(null)} />
     </div>
   );
 }
@@ -98,16 +95,27 @@ function TrophyBadge({ won, size = 40 }: { won: boolean; size?: number }) {
   );
 }
 
-function AwardRow({ award, onOpen }: { award: AwardDto; onOpen: () => void }) {
+function AwardRow({ award, finished, onOpen }: { award: AwardDto; finished: boolean; onOpen: () => void }) {
   const won = !!award.who;
   return (
     <button type="button" className="card award award-btn" onClick={onOpen} aria-haspopup="dialog">
       {won ? <Avatar name={award.who!} /> : <TrophyBadge won={false} />}
       <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1, textAlign: 'left' }}>
         <span style={{ fontSize: 16, fontWeight: 600 }}>{award.title}</span>
-        <span className="muted small">{won ? `${award.who} · ${award.detail}` : 'Personne pour l’instant'}</span>
+        <span className="muted small">{won ? `${award.who} · ${award.detail}` : finished ? 'Personne' : 'Personne pour l’instant'}</span>
       </span>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ color: 'var(--ink-muted)', flex: 'none' }}>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        style={{ color: 'var(--ink-muted)', flex: 'none' }}
+      >
         <path d="M9 6l6 6-6 6" />
       </svg>
     </button>
@@ -115,7 +123,7 @@ function AwardRow({ award, onOpen }: { award: AwardDto; onOpen: () => void }) {
 }
 
 /** Fenêtre d'explication d'un trophée (feuille qui monte du bas, fermeture par le bouton, le fond ou Échap). */
-function TrophyDialog({ award, me, onClose }: { award: AwardDto | null; me: Me; onClose: () => void }) {
+function TrophyDialog({ award, me, finished, onClose }: { award: AwardDto | null; me: Me; finished: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -127,13 +135,7 @@ function TrophyDialog({ award, me, onClose }: { award: AwardDto | null; me: Me; 
   const won = !!award?.who;
   const mine = award?.who === me.name;
   return (
-    <dialog
-      ref={ref}
-      className="sheet"
-      aria-labelledby="trophy-title"
-      onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
-    >
+    <dialog ref={ref} className="sheet" aria-labelledby="trophy-title" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
       {award && (
         <div className="sheet-body">
           <TrophyBadge won={won} size={64} />
@@ -150,7 +152,7 @@ function TrophyDialog({ award, me, onClose }: { award: AwardDto | null; me: Me; 
             </div>
           ) : (
             <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 15 }}>
-              Personne ne le mérite encore. La place est libre.
+              {finished ? 'Personne ne l’a décroché cette saison.' : 'Personne ne le mérite encore. La place est libre.'}
             </p>
           )}
           <div className="sheet-rule">

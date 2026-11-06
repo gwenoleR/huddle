@@ -6,7 +6,7 @@ export type Route =
   | { name: 'classement'; nfl?: boolean }
   | { name: 'profil' }
   | { name: 'admin' }
-  | { name: 'bilan' }
+  | { name: 'bilan'; season?: number }
   | { name: 'bonus' }
   | { name: 'recap'; week?: number };
 
@@ -22,7 +22,7 @@ export function parseHash(hash: string): Route {
     case 'admin':
       return { name: 'admin' };
     case 'bilan':
-      return { name: 'bilan' };
+      return { name: 'bilan', season: parts[1] ? Number(parts[1]) : undefined };
     case 'bonus':
       return { name: 'bonus' };
     case 'recap':

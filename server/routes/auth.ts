@@ -34,7 +34,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (!isValidPin(pin)) return reply.code(400).send({ error: 'Le code fait 4 chiffres.' });
     if (db.prepare('SELECT 1 FROM players LIMIT 1').get()) return reply.code(409).send({ error: 'Le groupe existe déjà : connecte-toi.' });
     const { lastInsertRowid } = db
-      .prepare('INSERT INTO players (name, start_points, is_admin, pin_hash, created_at) VALUES (?, 0, 1, ?, ?)')
+      .prepare('INSERT INTO players (name, is_admin, pin_hash, created_at) VALUES (?, 1, ?, ?)')
       .run(name, hashPin(pin), Date.now());
     createSession(reply, Number(lastInsertRowid));
     return { ok: true, created: true };
