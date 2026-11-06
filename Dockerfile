@@ -1,13 +1,18 @@
 # ---- Build: UI (Vite/PWA) + server (esbuild) ----
-FROM node:22-bookworm-slim AS build
+# Runs once, on the build machine's own platform: the output is plain JavaScript, the same for
+# every target. Only the final stage below is built per platform (amd64, arm64).
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-# Commit hash, passed by GitHub Actions: shown in the profile to check for updates.
+# Version ("1.2.0", "1.2.0-edge.abc1234"), passed by GitHub Actions: shown in the profile, compared for updates.
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 RUN npm run build && npm prune --omit=dev
+# The runtime dependencies must stay pure JavaScript (SQLite is built into Node): a native
+# module compiled here would not run on the other platform. Fail the build if one sneaks in.
+RUN if find node_modules -name '*.node' | grep -q .; then echo 'Native module in runtime dependencies' >&2; exit 1; fi
 
 # ---- Final image: Node + the bare minimum ----
 FROM node:22-bookworm-slim

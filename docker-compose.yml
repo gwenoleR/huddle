@@ -1,8 +1,12 @@
+# Prono: the app alone, on port 3000. Put it behind HTTPS (phones need it to install the app and
+# receive notifications): see the README, "HTTPS", or examples/docker-compose.caddy.yml.
+#
+#   echo "PUBLIC_URL=https://prono.example.com" > .env
+#   docker compose up -d
 services:
   prono:
-    # Image published by GitHub Actions on every push to main (requires `docker login ghcr.io`).
+    # `latest` = the last release. Pin a version with :1 or :1.0, or follow main with :edge.
     image: ghcr.io/gwenoler/pronos:latest
-    container_name: prono
     restart: unless-stopped
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in .env}
@@ -16,18 +20,8 @@ services:
       TZ: ${TZ:-Europe/Paris}
     volumes:
       - prono-data:/data
-    # Your cloudflared points to http://<server-ip>:3847
     ports:
-      - "3847:3000"
-    # Alternative: if your cloudflared is on a shared Docker network, uncomment
-    # these lines (and the "networks" block at the bottom), remove "ports" and point the tunnel to http://prono:3000
-    # networks:
-    #   - cloudflared
+      - "3000:3000"
 
 volumes:
   prono-data:
-
-# networks:
-#   cloudflared:
-#     external: true
-#     name: <your-cloudflared-network-name>

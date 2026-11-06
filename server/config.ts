@@ -11,9 +11,19 @@ export const WEB_DIR = process.env.WEB_DIR ?? path.join(ROOT, 'dist', 'web');
 export const PORT = Number(process.env.PORT ?? 3000);
 export const HOST = process.env.HOST ?? '0.0.0.0';
 export const PUBLIC_URL = (process.env.PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/$/, '');
-export const IS_PROD = process.env.NODE_ENV === 'production';
-/** "Secure" cookie: true behind Cloudflare (HTTPS). Browsers also accept it on http://localhost. */
-export const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? (IS_PROD ? 'true' : 'false')) === 'true';
+/**
+ * "Secure" session cookie, only sent over HTTPS. On by default when PUBLIC_URL is https (the normal
+ * setup, behind a reverse proxy or tunnel); off for a plain-http test on a LAN address, where browsers
+ * would otherwise drop the cookie and nobody could log in. COOKIE_SECURE=true|false overrides it.
+ */
+export const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? String(PUBLIC_URL.startsWith('https://'))) === 'true';
+
+/**
+ * Version of this build: "1.2.0" for a release, "1.2.0-edge.abc1234" for a build of main between two
+ * releases, "dev" locally. Set by CI (APP_VERSION build arg); shown in the profile and compared by the
+ * app to offer a reload when the server is newer.
+ */
+export const APP_VERSION = process.env.APP_VERSION || 'dev';
 export const SYNC_ENABLED = process.env.SYNC !== 'off';
 
 /**

@@ -1,6 +1,6 @@
 # Prono NFL entre potes
 
-An NFL picks app for a group of friends: a mobile PWA you install on your home screen, self-hosted in Docker and exposed through an existing Cloudflare tunnel.
+An NFL picks app for a group of friends: a mobile PWA you install on your home screen, that you host yourself with Docker. One instance = one group.
 
 - **Games** of the week with team logos, one tap to make a pick, and the group's split under each game.
 - **Locking** at kickoff (server-side), **live scores**, points computed automatically.
@@ -8,48 +8,67 @@ An NFL picks app for a group of friends: a mobile PWA you install on your home s
 - **Season after season**: the new season takes over by itself on June 1st (once ESPN publishes the schedule, week 1 is already open for picks). Until then, the finished season stays on screen. Past seasons remain available: a « Saisons précédentes » link at the bottom of the leaderboard leads to their recap (final standings and trophies).
 - **Notifications**: a reminder 1 h before a game you haven't picked, results once a week is over.
 
-Scoring: 1 point per correct pick in the regular season, **2 points in the playoffs** (configurable, see [Settings](#settings)). Picks for weeks 1 to 8 come from the old site (imported as CSV from the admin screen).
+Scoring: 1 point per correct pick in the regular season, **2 points in the playoffs** (configurable, see [Settings](#settings)).
 
-## Server setup
+## Quick start
 
-1. **Hook up the existing Cloudflare tunnel**: in Zero Trust › Networks › Tunnels › your tunnel › *Public Hostname*, add `prono.your-domain.com` → service `HTTP`, URL `<server-ip>:3847`. If your cloudflared runs on a shared Docker network, see the commented-out variant in `docker-compose.yml`: the URL then becomes `prono:3000`.
-2. **Log in to the registry** (the image is private), once per server. You need a *classic* GitHub token with the `read:packages` scope (Settings › Developer settings › Personal access tokens), pasted as the password:
-   ```bash
-   docker login ghcr.io -u gwenoleR
-   ```
-3. **Prepare a folder**: no need to clone the repo, everything is in the image. All you need is `docker-compose.yml` and a `.env`:
+You need a machine that runs Docker (a home server, a NAS, a Raspberry Pi, a small VPS — amd64 or arm64) and a web address in HTTPS: phones need HTTPS to install the app and receive notifications.
+
+1. **A folder with two files**:
    ```bash
    mkdir -p ~/prono && cd ~/prono
+   curl -O https://raw.githubusercontent.com/gwenoleR/pronos/main/docker-compose.yml
+   echo "PUBLIC_URL=https://prono.example.com" > .env
    ```
-   Copy [`docker-compose.yml`](docker-compose.yml) into it (with `scp` from your machine, or by pasting its contents), then create the `.env`:
+   `PUBLIC_URL` is the address everyone will type on their phone. The other settings are optional (see [Settings](#settings) and [`.env.example`](.env.example)).
+2. **Start it**:
    ```bash
-   echo "PUBLIC_URL=https://prono.your-domain.com" > .env
+   docker compose up -d
    ```
-   If `docker compose pull` answers `unauthorized`, step 2 is missing.
-4. **Start**:
-   ```bash
-   docker compose pull && docker compose up -d
-   ```
-   On first start, the app downloads the 32 teams, their logos and the season's 272 games (about 30 s). The database is empty: the logs tell you there are no players yet and which address to open to create your group.
-5. **Create the group**: the first person to open the address picks their first name and PIN, and becomes the admin. They then add the others from Profil › Admin. Everyone picks their own name: **the first PIN they type becomes their PIN**. Until the group exists, anyone with the address can create it, so do it right after the first start.
-6. Install the app:
-   - **iPhone** (Safari): Share › *Add to Home Screen*. Notifications only work once the app is opened from its icon (iOS 16.4 minimum). An app added before November 4, 2026 keeps a strip at the bottom of the screen (translucent status bar, read by iOS at install time): remove the icon and add it again.
+   The app listens on port 3000. On first start it downloads the 32 teams, their logos and the season's 272 games (about 30 s); the logs (`docker compose logs prono`) then say there are no players yet.
+3. **Put it behind HTTPS** so that `PUBLIC_URL` reaches port 3000: see [HTTPS](#https).
+4. **Create the group**: the first person to open the address picks their first name and a 4-digit PIN, and becomes the admin. Do it right after the first start: until the group exists, anyone with the address could create it. The admin then adds the others from Profile › Administration; each player picks their name and **the first PIN they type becomes theirs**.
+5. **Install the app** on each phone:
+   - **iPhone** (Safari): Share › *Add to Home Screen*. Notifications only work once the app is opened from its icon (iOS 16.4 minimum).
    - **Android** (Chrome): ⋮ menu › *Install app*.
-   - Then Profil › « Activer les notifications ».
+   - Then, in the profile, turn notifications on.
+
+Already have picks from earlier weeks somewhere else? The admin can import them as CSV (see [Admin](#admin)).
+
+### HTTPS
+
+Pick whichever fits your setup:
+
+- **Caddy** (simplest with a domain name and ports 80/443 open): [`examples/docker-compose.caddy.yml`](examples/docker-compose.caddy.yml) runs the app and Caddy, which gets the certificate by itself. Put `DOMAIN=prono.example.com` in `.env` instead of `PUBLIC_URL`, then `docker compose -f docker-compose.caddy.yml up -d`.
+- **Cloudflare Tunnel** (nothing to open on your router): in Zero Trust › Networks › Tunnels › your tunnel › *Public Hostname*, add your hostname → service `HTTP`, URL `<server-ip>:3000` (or `prono:3000` if cloudflared runs on the same Docker network).
+- **Your own reverse proxy** (Traefik, nginx, Nginx Proxy Manager…): forward the hostname to port 3000. The app trusts `X-Forwarded-*` headers, so the real client address is used for the login rate limit.
+- **Just trying it on your LAN**: `PUBLIC_URL=http://192.168.1.10:3000` works for logging in and making picks in a browser, but phones won't install the app nor get notifications without HTTPS.
 
 ### Updating
-
-Every push to `main` triggers GitHub Actions, which builds the image and publishes it to `ghcr.io/gwenoler/pronos` with the tags `latest` and `sha-<short commit hash>` (e.g. `sha-daade27`). Once the build is done (Actions tab of the repo, about 2 min), on the server:
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-To roll back to a specific version, replace `latest` with its `sha-…` tag in `docker-compose.yml`. To test a locally built image without going through GitHub: `docker build -t ghcr.io/gwenoler/pronos:latest .` in the repo, then `docker compose up -d`.
+The database migrates by itself on start; a copy beforehand never hurts:
+```bash
+docker compose cp prono:/data/prono.db ./prono-backup.db
+```
+
+What changed in each version is in [`CHANGELOG.md`](CHANGELOG.md) (and on the GitHub releases page). Versions follow semver: a **major** version (2.0.0) may need something from you, and its changelog says exactly what; minor and patch versions never do. The app notices when the server is newer and offers to reload.
+
+Image tags on `ghcr.io/gwenoler/pronos` (amd64 and arm64):
+
+| Tag | What you get |
+| --- | --- |
+| `latest` | The last release (default in `docker-compose.yml`) |
+| `1`, `1.0`, `1.0.0` | Pinned to a major, minor or exact version |
+| `edge` | The tip of `main`, between releases (version shown as `1.0.0-edge.abc1234`) |
+| `sha-abc1234` | One exact build, to roll back |
 
 ## Settings
 
-All optional, in the `.env` next to `docker-compose.yml` (then `docker compose up -d`):
+All optional, in the `.env` next to `docker-compose.yml` (then `docker compose up -d`). `PUBLIC_URL` is the only required one.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -68,7 +87,7 @@ All texts live in `shared/i18n/fr/`, one file per part of the app (games, leader
 
 ## Admin
 
-The group's creator is an admin and can make other players admins. Admins see an Admin section in their profile:
+The group's creator is an admin and can make other players admins. Admins get an Administration page, reached from their profile:
 - **Add a player**, with starting points if they join mid-season. Starting points only apply to the current season: everyone starts back at 0 the following season.
 - For each player (tap their name): **rename**, **clear the PIN** (they pick a new one at their next login), **grant / revoke admin**, **delete** (their picks go with them). You can neither delete yourself nor revoke your own rights: there is always an admin left.
 - **Import history**: weeks played elsewhere, as CSV. A header row `,Home,Away,Prono GW,Prono AU,…` (the first two letters of the first name, ignoring accents), then one row per game with the full team names (`Kansas City Chiefs`), `Week1` in the first column on the first game of each week, and an empty cell for a missing pick. The file is first checked in a dry run (how many picks, for whom), then imported on confirmation. It's all or nothing: on any error, nothing is written and every problem is listed. Starting points of the players in the file are reset to 0.
@@ -112,9 +131,22 @@ The UI runs on http://localhost:5173 and the API on port 3000. Other commands:
 | `web/src/screens/` | The screens ([mockups](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
 | `web/src/sw.ts` | Service worker: offline cache and notifications |
 | `tests/` | Vitest tests: in-memory SQLite database, ESPN responses recorded in `tests/fixtures/espn` |
+| `scripts/` | Release helpers: changelog notes, sample database snapshot |
+| `examples/` | Docker Compose variants (Caddy for HTTPS) |
 
 ### Tests
 
 Every new feature or fix comes with its tests. They never touch `data/` and never call ESPN or the notification servers: each test file has its own in-memory database (see `tests/server/helpers.ts` to create players, games and picks). In CI, types and tests run before the Docker image is built: if either fails, nothing is published.
 
 To refresh a recorded ESPN response, download it, then keep only the fields read by `server/espn.ts`.
+
+`tests/server/upgrade.test.ts` opens the sample database left by every release (`tests/fixtures/db/`) with the current code: migrations must run and the standings must stay the same, so an update never breaks someone's instance.
+
+### Releasing
+
+1. In `CHANGELOG.md`, move what's under *Unreleased* to a new `## [x.y.z] - date` section (and say what hosts must do, for a major version).
+2. `npm version x.y.z --no-git-tag-version` to bump `package.json`.
+3. `npm run db:snapshot -- x.y.z` to record this release's sample database for the upgrade test.
+4. Commit, then tag and push: `git tag vx.y.z && git push && git push origin vx.y.z`.
+
+CI checks that the tag matches `package.json` and has a changelog section, runs the tests, publishes the image for amd64 and arm64 with the version tags and `latest`, then creates the GitHub release with that section as notes.

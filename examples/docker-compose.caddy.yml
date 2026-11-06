@@ -1,0 +1,32 @@
+# Prono behind Caddy, which gets and renews the HTTPS certificate on its own.
+# Needs a domain name pointing to this server, and ports 80 and 443 open to the internet.
+#
+#   echo "DOMAIN=prono.example.com" > .env
+#   docker compose -f docker-compose.caddy.yml up -d
+services:
+  prono:
+    image: ghcr.io/gwenoler/pronos:latest
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://${DOMAIN:?Set DOMAIN in .env}
+      APP_NAME: ${APP_NAME:-}
+      APP_LANG: ${APP_LANG:-fr}
+      POINTS_REGULAR: ${POINTS_REGULAR:-1}
+      POINTS_PLAYOFFS: ${POINTS_PLAYOFFS:-2}
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - prono-data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${DOMAIN} --to prono:3000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  prono-data:
+  caddy-data:

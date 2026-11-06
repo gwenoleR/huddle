@@ -2,7 +2,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { HealthDto, Me, OkDto, PlayerLite, Replies } from '../../shared/api';
 import { LOCK_MINUTES, MAX_ATTEMPTS, clientIp, createSession, destroySession, hashPin, ipBlocked, isValidPin, recordIpFailure, verifyPin } from '../auth';
-import { t } from '../config';
+import { APP_VERSION, t } from '../config';
 import { db } from '../db';
 import { requireAuth } from './guards';
 
@@ -16,7 +16,7 @@ interface PlayerRow {
 export async function authRoutes(app: FastifyInstance) {
   app.get<{ Reply: HealthDto }>('/api/health', async (_req, reply) => {
     reply.header('cache-control', 'no-store');
-    return { ok: true, version: (process.env.APP_VERSION ?? 'dev').slice(0, 7) };
+    return { ok: true, version: APP_VERSION };
   });
 
   app.get<{ Reply: PlayerLite[] }>('/api/players', async () =>
