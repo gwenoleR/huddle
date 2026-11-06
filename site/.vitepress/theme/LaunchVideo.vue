@@ -7,10 +7,13 @@ const fr = computed(() => lang.value.startsWith('fr'));
 const video = ref<HTMLVideoElement>();
 const started = ref(false);
 
-/** Played only on request, with sound, once (no autoplay, no loop). */
+/** Played only on request, once (no autoplay, no loop), sound off: the controls turn it on. */
 function play() {
+  const v = video.value;
+  if (!v) return;
   started.value = true;
-  video.value?.play().catch(() => {});
+  v.muted = true;
+  v.play().catch(() => {});
 }
 </script>
 
@@ -22,6 +25,7 @@ function play() {
         :src="withBase('/video/huddle.mp4')"
         :poster="withBase('/video/huddle-poster.jpg')"
         :controls="started"
+        muted
         playsinline
         preload="none"
         width="1280"
