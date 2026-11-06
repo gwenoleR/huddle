@@ -13,6 +13,18 @@ const description =
   'Huddle is a free, open-source NFL pick’em app you host yourself for your group of friends: pick every game, live scores, standings and trophies. No ads, no betting.';
 const ogImage = abs('og.png');
 
+/** The launch video in the home pages' header (schema.org, so search engines can show it). */
+const videoJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'VideoObject',
+  name: 'Huddle in 20 seconds',
+  description: 'Making a pick in one tap, live standings that move during games, and season trophies: Huddle, the self-hosted NFL pick’em app for friends.',
+  thumbnailUrl: [abs('video/huddle-poster.jpg')],
+  contentUrl: abs('video/huddle.mp4'),
+  uploadDate: '2026-11-06',
+  duration: 'PT20S'
+};
+
 /** The home pages in each language, linked to one another (hreflang). */
 const homes = [
   { lang: 'en', href: abs() },
@@ -111,6 +123,7 @@ export default defineConfig({
       head.push(['link', { rel: 'alternate', hreflang: 'x-default', href: abs() }]);
       head.push(['meta', { property: 'og:locale', content: route.startsWith('fr') ? 'fr_FR' : 'en_US' }]);
       head.push(['script', { type: 'application/ld+json' }, JSON.stringify(softwareJsonLd)]);
+      head.push(['script', { type: 'application/ld+json' }, JSON.stringify(videoJsonLd)]);
     }
     if (route === 'guide/faq') head.push(['script', { type: 'application/ld+json' }, JSON.stringify(faqJsonLd())]);
     page.frontmatter.head = [...(page.frontmatter.head ?? []), ...head];

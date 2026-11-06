@@ -9,3 +9,6 @@ data
 # VitePress
 site/.vitepress/dist
 site/.vitepress/cache
+
+# /brag launch video work
+brag-output/

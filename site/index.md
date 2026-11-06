@@ -8,9 +8,6 @@ hero:
   name: Huddle
   text: NFL picks with your crew
   tagline: A small app you host yourself for your group of friends. Pick every game, follow them live, and settle once and for all who really knows football. No ads, no betting, no account to create.
-  image:
-    src: /screens/games.jpg
-    alt: The week's games in Huddle, with everyone's picks
   actions:
     - theme: brand
       text: Install it in 5 minutes
