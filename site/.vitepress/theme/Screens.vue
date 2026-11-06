@@ -1,13 +1,28 @@
 <script setup lang="ts">
-import { withBase } from 'vitepress';
+import { computed } from 'vue';
+import { useData, withBase } from 'vitepress';
 
-const screens = [
-  { src: '/screens/games.jpg', title: 'One tap per game', text: 'Pick before kickoff, see who went where.' },
-  { src: '/screens/game.jpg', title: 'Live and after', text: 'Win probability, scoring plays, team stats.' },
-  { src: '/screens/standings.jpg', title: 'Live standings', text: '"If it ends like this", updated during games.' },
-  { src: '/screens/recap.jpg', title: 'The weekly recap', text: 'An image made for the group chat.' },
-  { src: '/screens/trophies.jpg', title: 'Season trophies', text: 'Sharpshooter, Black cat, Nostradamus…' }
-];
+const { lang } = useData();
+const captions = {
+  en: [
+    ['One tap per game', 'Pick before kickoff, see who went where.'],
+    ['Live and after', 'Win probability, scoring plays, team stats.'],
+    ['Live standings', '"If it ends like this", updated during games.'],
+    ['The weekly recap', 'An image made for the group chat.'],
+    ['Season trophies', 'Sharpshooter, Black cat, Nostradamus…']
+  ],
+  fr: [
+    ['Un prono en un tap', 'Avant le coup d’envoi, et on voit qui a pris quoi.'],
+    ['En direct et après', 'Chances de victoire, actions, stats des équipes.'],
+    ['Le classement en direct', '« Si ça finit comme ça », pendant les matchs.'],
+    ['Le récap de la semaine', 'Une image faite pour le groupe.'],
+    ['Les trophées de la saison', 'Sniper, Chat noir, Nostradamus…']
+  ]
+};
+const files = ['games', 'game', 'standings', 'recap', 'trophies'];
+const screens = computed(() =>
+  (lang.value.startsWith('fr') ? captions.fr : captions.en).map(([title, text], i) => ({ src: `/screens/${files[i]}.jpg`, title, text }))
+);
 </script>
 
 <template>

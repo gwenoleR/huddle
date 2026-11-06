@@ -1,3 +1,8 @@
+---
+title: "FAQ: cost, betting, groups, scoring, security"
+description: "Answers about Huddle, the self-hosted NFL pick’em app: is it free, is there betting, several groups, scoring changes, offseason, PIN security, NFL and ESPN."
+---
+
 # FAQ
 
 ## Does it cost anything?

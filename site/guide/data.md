@@ -1,3 +1,8 @@
+---
+title: "Backups and where the NFL data comes from"
+description: "Back up and restore your Huddle database (one SQLite file), and learn how the NFL schedule, scores and stats sync from ESPN’s public API."
+---
+
 # Backups & data
 
 ## Where your data lives

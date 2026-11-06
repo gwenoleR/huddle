@@ -1,3 +1,8 @@
+---
+title: "Install the app on iPhone and Android"
+description: "Add Huddle to your home screen on iPhone (Safari) or Android (Chrome), turn on pick reminders and results notifications, and log in with a 4-digit PIN."
+---
+
 # On your phones
 
 Huddle is a web app you install from the browser: no app store, no account.

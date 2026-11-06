@@ -1,3 +1,8 @@
+---
+title: "Install Huddle with Docker in 5 minutes"
+description: "Install Huddle, the self-hosted NFL pick’em app, with Docker Compose: one file, one container, then create your group and share the link with your friends."
+---
+
 # Install
 
 Huddle runs as a single Docker container. You need:

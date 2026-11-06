@@ -1,3 +1,8 @@
+---
+title: "Run your group: players, CSV import, bonus, seasons"
+description: "Manage your NFL pick’em group in Huddle: add players, import past weeks’ picks from CSV, set up the end-of-season bonus, and move on to the next season."
+---
+
 # Your group
 
 The person who created the group is its admin and can make other players admins. Admins have an

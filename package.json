@@ -50,6 +50,7 @@
     "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
     "vitepress": "^1.6.4",
+    "vitepress-plugin-llms": "^1.14.0",
     "vitest": "^3.2.7",
     "workbox-core": "^7.3.0",
     "workbox-precaching": "^7.3.0",

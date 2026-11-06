@@ -1,3 +1,8 @@
+---
+title: "Settings: name, language, scoring"
+description: "Configure your Huddle instance with environment variables: app name, English or French, points per correct pick in the regular season and playoffs, time zone."
+---
+
 # Settings
 
 Everything is set with environment variables in the `.env` file next to `docker-compose.yml`, then

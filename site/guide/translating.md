@@ -1,3 +1,8 @@
+---
+title: "Translate Huddle into your language"
+description: "Huddle speaks English and French. Add a language by translating one dictionary: typed texts, whole sentences, locale-aware dates and times."
+---
+
 # Translating
 
 Huddle speaks **English** and **French**. Every text — screens, notifications, error messages,

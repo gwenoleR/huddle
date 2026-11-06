@@ -1,3 +1,8 @@
+---
+title: "Updating, versions and image tags"
+description: "Update Huddle with one command. Semantic versions, a changelog, and Docker image tags for amd64 and arm64: latest, pinned versions, edge."
+---
+
 # Updating
 
 ```bash

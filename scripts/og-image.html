@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+  Source of site/public/og.png, the image shown when the site is shared (1200×630).
+  To regenerate: serve the repository root (python3 -m http.server), open /scripts/og-image.html
+  in a 1200×630 viewport, take a screenshot, save it as site/public/og.png.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Huddle social image</title>
+    <style>
+      @font-face { font-family: 'Barlow'; font-weight: 500; src: url(/node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2) format('woff2'); }
+      @font-face { font-family: 'Barlow'; font-weight: 600; src: url(/node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2) format('woff2'); }
+      @font-face { font-family: 'Barlow Condensed'; font-weight: 800; src: url(/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2) format('woff2'); }
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        background: radial-gradient(900px 600px at 85% 40%, rgba(57, 201, 122, 0.22), transparent 60%), #0d131d;
+        color: #f1efe8;
+        font-family: 'Barlow', sans-serif;
+        display: flex;
+        align-items: center;
+        padding: 0 72px;
+        box-sizing: border-box;
+        position: relative;
+      }
+      .text { width: 500px; display: flex; flex-direction: column; gap: 18px; z-index: 1; }
+      .brand { display: flex; align-items: center; gap: 18px; }
+      .brand img { width: 72px; height: 72px; border-radius: 18px; }
+      .brand span { font-family: 'Barlow Condensed'; font-weight: 800; font-size: 88px; line-height: 1; letter-spacing: 0.5px; }
+      h1 { margin: 0; font-family: 'Barlow Condensed'; font-weight: 800; font-size: 60px; line-height: 1.02; color: #39c97a; }
+      p { margin: 0; font-size: 24px; line-height: 1.4; color: #9aa4b6; font-weight: 500; }
+      .tags { display: flex; gap: 10px; margin-top: 8px; }
+      .tags span { border: 1px solid #2c3850; background: #172030; border-radius: 999px; padding: 8px 16px; font-size: 20px; font-weight: 600; color: #f1efe8; }
+      .phones { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); height: 630px; width: 560px; }
+      .phone { position: absolute; width: 250px; border-radius: 34px; border: 8px solid #222c3d; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55); }
+      .p1 { left: 60px; top: 100px; transform: rotate(-7deg); }
+      .p2 { left: 300px; top: 40px; transform: rotate(5deg); }
+    </style>
+  </head>
+  <body>
+    <div class="text">
+      <div class="brand"><img src="/site/public/logo.svg" alt="" /><span>Huddle</span></div>
+      <h1>NFL picks with your crew</h1>
+      <p>A free pick’em app you host yourself. Live scores, standings and trophies. No ads, no betting.</p>
+      <div class="tags"><span>Open source</span><span>Self-hosted</span><span>Docker</span></div>
+    </div>
+    <div class="phones">
+      <img class="phone p1" src="/site/public/screens/standings.jpg" alt="" />
+      <img class="phone p2" src="/site/public/screens/games.jpg" alt="" />
+    </div>
+  </body>
+</html>

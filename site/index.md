@@ -1,4 +1,7 @@
 ---
+title: "Huddle: free, self-hosted NFL pick’em app for friends"
+titleTemplate: false
+description: "Run your own NFL pick’em league with your friends: pick every game in one tap, live scores, standings, trophies and a weekly recap. Free, open source, self-hosted with Docker. No ads, no betting."
 layout: home
 
 hero:

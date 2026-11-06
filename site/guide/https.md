@@ -1,3 +1,8 @@
+---
+title: "HTTPS: Caddy, Cloudflare Tunnel or your reverse proxy"
+description: "Serve your Huddle NFL pick’em app over HTTPS with Caddy, a Cloudflare Tunnel, Traefik or nginx, so phones can install it and get notifications."
+---
+
 # HTTPS
 
 Phones only install web apps and receive push notifications over HTTPS. Pick the option that fits
