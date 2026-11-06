@@ -132,15 +132,19 @@ describe('real import', () => {
   });
 });
 
-describe('the real file from the old site', () => {
-  it('week 8 against real ESPN results: everyone\'s correct picks match', () => {
+describe('a full week against recorded ESPN data', () => {
+  it('real team names, as exported by the old site: correct picks counted right', () => {
     // Week 8 teams and results recorded from ESPN (tests/fixtures/espn).
     db.exec('DELETE FROM teams');
     const teams = JSON.parse(readFileSync('tests/fixtures/espn/teams.json', 'utf8')).sports[0].leagues[0].teams;
-    for (const { team: t } of teams)
+    const fullName = new Map<string, string>();
+    for (const { team: t } of teams) {
       db.prepare('INSERT INTO teams (id, abbr, name, display_name) VALUES (?, ?, ?, ?)').run(t.id, t.abbreviation, t.name, t.displayName);
+      fullName.set(String(t.id), t.displayName);
+    }
     const events = JSON.parse(readFileSync('tests/fixtures/espn/scoreboard-final.json', 'utf8')).events;
-    for (const e of events) {
+    const rows: string[] = [];
+    for (const [i, e] of events.entries()) {
       const c = e.competitions[0].competitors;
       const away = c.find((x: { homeAway: string }) => x.homeAway === 'away');
       const home = c.find((x: { homeAway: string }) => x.homeAway === 'home');
@@ -148,19 +152,17 @@ describe('the real file from the old site', () => {
         `INSERT INTO games (id, season, week, kickoff, status, away_id, home_id, away_score, home_score, winner, updated_at)
          VALUES (?, 2026, 8, ?, 'final', ?, ?, ?, ?, ?, 0)`
       ).run(e.id, Date.parse(e.date), away.team.id, home.team.id, Number(away.score), Number(home.score), away.winner ? 'away' : 'home');
+      // Bea always picks the winner, Gwen always the home team, Max skips every other game.
+      const [awayName, homeName] = [fullName.get(String(away.team.id))!, fullName.get(String(home.team.id))!];
+      const winner = away.winner ? awayName : homeName;
+      rows.push([i ? '' : 'Week8', homeName, awayName, winner, homeName, i % 2 ? '' : winner].join(','));
     }
-    const week8 = parseHistory(readFileSync('tests/fixtures/pronos-2026.csv', 'utf8')).filter((l) => l.week === 8);
-    expect(week8).toHaveLength(14);
-    importHistory(week8);
+    const lines = parseHistory([',Home,Away,Prono BE,Prono GW,Prono MA', ...rows].join('\n'));
+    expect(lines).toHaveLength(events.length);
+    importHistory(lines);
     const good = Object.fromEntries(standings(8).map((r) => [r.name, r.good]));
-    expect(good).toEqual({ Bea: 10, Audrey: 10, Max: 7, Gwen: 8, Bud: 11 });
-  });
-
-  it('the whole file parses: 8 weeks, 121 games, 2 missing picks (Audrey)', () => {
-    const lines = parseHistory(readFileSync('tests/fixtures/pronos-2026.csv', 'utf8'));
-    expect(new Set(lines.map((l) => l.week))).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8]));
-    expect(lines).toHaveLength(121);
-    expect(lines.filter((l) => !l.picks.AU).map((l) => l.week)).toEqual([5, 6]);
+    const homeWins = events.filter((e: any) => e.competitions[0].competitors.find((x: any) => x.homeAway === 'home').winner).length;
+    expect(good).toMatchObject({ Bea: events.length, Gwen: homeWins, Max: Math.ceil(events.length / 2) });
   });
 });
 

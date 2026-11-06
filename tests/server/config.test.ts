@@ -56,6 +56,6 @@ describe('invalid values: defaults are used', () => {
     delete process.env.APP_NAME;
     const config = await import('../../server/config');
     expect([config.POINTS_REGULAR, config.POINTS_PLAYOFFS]).toEqual([1, 2]);
-    expect(config.APP_NAME).toBe('Prono NFL entre potes');
+    expect(config.APP_NAME).toBe('Huddle');
   });
 });

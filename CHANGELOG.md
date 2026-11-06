@@ -8,8 +8,8 @@ from whoever hosts the app (it is always spelled out here), minor and patch vers
 
 ## [1.0.0] - 2026-11-06
 
-First numbered release: the app the original group has been using all season, packaged so that any
-group can host its own.
+First public release of Huddle, the NFL picks app for a group of friends: the app the original group
+has been using all season, packaged so that any group can host its own. MIT licensed.
 
 ### Picks and scoring
 - Weekly NFL games with logos, one tap to pick, picks lock at kickoff (checked by the server).
@@ -32,6 +32,7 @@ group can host its own.
 - All texts in one dictionary per language (`shared/i18n/`); French only for now.
 - Push notifications: reminder before an unpicked game, weekly results, picks flipping late in a game.
 - Docker image for amd64 and arm64 on `ghcr.io/gwenoler/pronos`.
+- Upgrade safety: every release's sample database must migrate cleanly with later versions.
 
 [Unreleased]: https://github.com/gwenoleR/pronos/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/gwenoleR/pronos/releases/tag/v1.0.0

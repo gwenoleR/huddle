@@ -1,6 +1,5 @@
 /**
- * "Prono NFL entre potes" design system: one file per component, each with its own CSS.
- * Source : https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh
+ * Huddle design system: one file per component, each with its own CSS.
  * Imported in main.tsx before app.css, so the app styles can override the ones here.
  */
 import './base.css';

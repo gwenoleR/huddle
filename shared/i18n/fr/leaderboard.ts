@@ -32,7 +32,7 @@ export const leaderboard = {
    */
   seasonRecord: (r: { good: number; played: number; startPoints: number; bonus: number }, startWeek: number) => {
     const bonus = r.bonus ? ` · +${r.bonus} bonus` : '';
-    if (!r.played) return r.startPoints ? `${r.startPoints} pts repris de l’ancien site${bonus}` : `Pas encore de match terminé${bonus}`;
+    if (!r.played) return r.startPoints ? `${r.startPoints} pts de départ${bonus}` : `Pas encore de match terminé${bonus}`;
     const since = startWeek > 1 ? ` depuis la S${startWeek}` : '';
     const kept = r.startPoints ? ` · ${r.startPoints} repris` : '';
     return `${r.good} / ${r.played}${since}${kept}${bonus}`;

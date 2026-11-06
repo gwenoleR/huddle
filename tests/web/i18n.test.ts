@@ -69,7 +69,7 @@ describe('settings at app startup', () => {
       throw new Error('offline');
     });
     expect(i18n.config).toEqual(i18n.DEFAULT_CONFIG);
-    expect(i18n.t.common.appName).toBe('Prono NFL entre potes');
+    expect(i18n.t.common.appName).toBe('Huddle');
   });
 
   it('corrupted settings on the phone: ignored', async () => {

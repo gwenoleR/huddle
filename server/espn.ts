@@ -16,7 +16,7 @@ export interface NflStandings {
 }
 
 const BASE = process.env.ESPN_BASE ?? 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
-const UA = 'prono-entre-potes/1.0';
+const UA = 'huddle/1.0';
 
 // ---------- ESPN calls: counter and pause ----------
 

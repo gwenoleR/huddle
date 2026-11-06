@@ -1,4 +1,4 @@
-# Prono NFL entre potes
+# Huddle
 
 An NFL picks app for a group of friends: a mobile PWA you install on your home screen, that you host yourself with Docker. One instance = one group.
 
@@ -72,8 +72,8 @@ All optional, in the `.env` next to `docker-compose.yml` (then `docker compose u
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `APP_NAME` | Prono NFL entre potes | App name: title, login screen, installed app |
-| `APP_SHORT_NAME` | Prono | Name under the home screen icon |
+| `APP_NAME` | Huddle | App name: title, login screen, installed app |
+| `APP_SHORT_NAME` | Huddle | Name under the home screen icon |
 | `APP_LANG` | `fr` | Language of the texts and notifications (only French exists for now) |
 | `POINTS_REGULAR` | 1 | Points for a correct pick in the regular season |
 | `POINTS_PLAYOFFS` | 2 | Points for a correct pick in the playoffs (Wild Card to Super Bowl) |
@@ -127,8 +127,8 @@ The UI runs on http://localhost:5173 and the API on port 3000. Other commands:
 | `server/schema.ts` | Database tables, as numbered migrations: to change the database, **append** a migration at the end |
 | `shared/i18n/` | App and server texts, one dictionary per language (only `fr/` exists) |
 | `shared/api.ts` | Shape of the API responses, shared by the server and the app |
-| `web/src/ds/` | Design system tokens and components, one file per component with its CSS ([artifact](https://claude.ai/artifact/LumqadSKDa1KpdGUebdBNh)) |
-| `web/src/screens/` | The screens ([mockups](https://claude.ai/artifact/1CmahETymQknWdhFefETvM)) |
+| `web/src/ds/` | Design system tokens and components, one file per component with its CSS |
+| `web/src/screens/` | The screens |
 | `web/src/sw.ts` | Service worker: offline cache and notifications |
 | `tests/` | Vitest tests: in-memory SQLite database, ESPN responses recorded in `tests/fixtures/espn` |
 | `scripts/` | Release helpers: changelog notes, sample database snapshot |
@@ -150,3 +150,19 @@ To refresh a recorded ESPN response, download it, then keep only the fields read
 4. Commit, then tag and push: `git tag vx.y.z && git push && git push origin vx.y.z`.
 
 CI checks that the tag matches `package.json` and has a changelog section, runs the tests, publishes the image for amd64 and arm64 with the version tags and `latest`, then creates the GitHub release with that section as notes.
+
+## Disclaimer
+
+Huddle is an independent, non-commercial hobby project. It is not affiliated with, endorsed by or
+sponsored by the National Football League, its teams, or ESPN. NFL and team names, logos and marks
+belong to their owners and are shown only to identify the games.
+
+Game data comes from ESPN's **public but unofficial** API: it has no documented terms for this use,
+can change or disappear at any time, and the app would then stop syncing until `server/espn.ts` is
+adapted. Use it for your group of friends, not for a commercial service. No betting: picks have no
+stake and no prize.
+
+## License
+
+[MIT](LICENSE)
+

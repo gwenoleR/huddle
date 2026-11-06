@@ -16,8 +16,8 @@ export const common = {
   htmlLang: 'fr',
 
   /** App name if the instance doesn't set one (APP_NAME). */
-  appName: 'Prono NFL entre potes',
-  appShortName: 'Prono',
+  appName: 'Huddle',
+  appShortName: 'Huddle',
   appDescription: 'Les pronos NFL de la bande',
 
   count,

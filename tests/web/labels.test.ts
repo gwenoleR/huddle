@@ -109,7 +109,7 @@ describe('line under the name in the leaderboard', () => {
 
   it('with a mid-season start', () => {
     expect(seasonRecord(r({ good: 5, played: 8, startPoints: 73 }), 9)).toBe('5 / 8 depuis la S9 · 73 repris');
-    expect(seasonRecord(r({ startPoints: 73 }), 9)).toBe('73 pts repris de l’ancien site');
+    expect(seasonRecord(r({ startPoints: 73 }), 9)).toBe('73 pts de départ');
   });
 
   it('season summary: where the points come from', () => {

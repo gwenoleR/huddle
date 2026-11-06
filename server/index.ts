@@ -48,8 +48,8 @@ if (existsSync(WEB_DIR)) {
 }
 
 await app.listen({ port: PORT, host: HOST });
-console.log(`[prono] season ${currentSeason()}, picks counted from week ${startWeek()}, listening on ${HOST}:${PORT}`);
-if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[prono] no players: open ${PUBLIC_URL} to create your group (you will be its admin)`);
+console.log(`[huddle] season ${currentSeason()}, picks counted from week ${startWeek()}, listening on ${HOST}:${PORT}`);
+if (!(db.prepare('SELECT 1 FROM players LIMIT 1').get())) console.log(`[huddle] no players: open ${PUBLIC_URL} to create your group (you will be its admin)`);
 
 let running = false;
 async function tick() {

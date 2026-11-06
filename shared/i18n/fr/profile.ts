@@ -14,7 +14,7 @@ export const profile = {
   byWeek: 'Semaine par semaine',
   /** Carried-over points line: « S1–S8 » or « Avant ». */
   carriedWeeks: (startWeek: number) => (startWeek > 1 ? `S1–S${startWeek - 1}` : 'Avant'),
-  carriedFrom: 'Repris de l’ancien site',
+  carriedFrom: 'Points de départ',
   carriedPoints: (points: number) => `${points} pts`,
   byWeekHelp: (playoffs: number) => `En vert, les semaines à 70 % ou plus. En playoffs, un bon prono vaut ${common.points(playoffs)}.`,
 
